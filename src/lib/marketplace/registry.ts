@@ -1,0 +1,25 @@
+import type { MarketplaceProfile } from "./types";
+import type { Marketplace } from "@/types";
+import { amazonProfile } from "./amazon";
+import { walmartProfile } from "./walmart";
+import { ebayProfile } from "./ebay";
+import { shopifyProfile } from "./shopify";
+
+const profiles: Record<Marketplace, MarketplaceProfile> = {
+  amazon: amazonProfile,
+  walmart: walmartProfile,
+  ebay: ebayProfile,
+  shopify: shopifyProfile,
+};
+
+export function getMarketplaceProfile(marketplace: Marketplace): MarketplaceProfile {
+  return profiles[marketplace];
+}
+
+export function getAllMarketplaces(): MarketplaceProfile[] {
+  return Object.values(profiles);
+}
+
+export function getMarketplaceIds(): Marketplace[] {
+  return Object.keys(profiles) as Marketplace[];
+}
