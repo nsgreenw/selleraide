@@ -185,7 +185,7 @@ export default function ListingResultPage({
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
           {/* Top actions bar */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <button
               onClick={() => router.push("/chat")}
               className="btn-secondary text-xs py-2 gap-2"
@@ -204,21 +204,21 @@ export default function ListingResultPage({
                 ) : (
                   <Copy className="h-3.5 w-3.5" />
                 )}
-                {copied ? "Copied!" : "Copy"}
+                <span className="hidden sm:inline">{copied ? "Copied!" : "Copy"}</span>
               </button>
               <button
                 onClick={handleExportCSV}
                 className="btn-secondary text-xs py-2 gap-2"
               >
                 <FileText className="h-3.5 w-3.5" />
-                CSV
+                <span className="hidden sm:inline">CSV</span>
               </button>
               <button
                 onClick={handleExportPDF}
                 className="btn-secondary text-xs py-2 gap-2"
               >
                 <Download className="h-3.5 w-3.5" />
-                PDF
+                <span className="hidden sm:inline">PDF</span>
               </button>
             </div>
           </div>

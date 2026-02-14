@@ -2,6 +2,7 @@
 
 import { Menu, User } from "lucide-react";
 import { useApp } from "@/components/providers";
+import { useAppShell } from "@/components/layout/app-shell";
 import { PLANS } from "@/lib/subscription/plans";
 
 interface HeaderProps {
@@ -10,6 +11,8 @@ interface HeaderProps {
 }
 
 export function Header({ title, onMenuToggle }: HeaderProps) {
+  const { toggleMobileNav } = useAppShell();
+  const handleMenuToggle = onMenuToggle ?? toggleMobileNav;
   const { profile } = useApp();
 
   const used = profile?.listings_used_this_period ?? 0;
@@ -23,7 +26,7 @@ export function Header({ title, onMenuToggle }: HeaderProps) {
       {/* Left: Mobile menu button + page title */}
       <div className="flex items-center gap-3">
         <button
-          onClick={onMenuToggle}
+          onClick={handleMenuToggle}
           className="lg:hidden p-1 text-zinc-400 hover:text-zinc-200 transition"
           aria-label="Open menu"
         >

@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import MarketplacePicker from "@/components/chat/marketplace-picker";
+import GenerationProgress from "@/components/chat/generation-progress";
 import { Header } from "@/components/layout/header";
+import { createClient } from "@/lib/supabase/client";
 import type { Marketplace } from "@/types";
 
 export default function NewListingPage() {
@@ -13,6 +15,18 @@ export default function NewListingPage() {
   const [description, setDescription] = useState("");
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isFirstTime, setIsFirstTime] = useState(false);
+
+  useEffect(() => {
+    async function checkFirstTime() {
+      const supabase = createClient();
+      const { count } = await supabase
+        .from("conversations")
+        .select("id", { count: "exact", head: true });
+      if (count === 0) setIsFirstTime(true);
+    }
+    checkFirstTime();
+  }, []);
 
   async function handleGenerate() {
     const trimmed = description.trim();
@@ -49,6 +63,29 @@ export default function NewListingPage() {
 
       <div className="flex flex-1 flex-col items-center justify-center px-4">
         <div className="w-full max-w-2xl">
+          {/* First-time welcome */}
+          {isFirstTime && !generating && (
+            <div className="card-glass p-5 mb-6">
+              <h2 className="text-lg font-semibold text-zinc-100 mb-3">
+                Welcome to SellerAide
+              </h2>
+              <div className="space-y-2 text-sm text-zinc-400">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sa-200/15 text-xs font-semibold text-sa-200">1</span>
+                  <span><span className="text-zinc-200">Describe your product</span> — the more detail, the better your listing</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sa-200/15 text-xs font-semibold text-sa-200">2</span>
+                  <span><span className="text-zinc-200">We research &amp; generate</span> — keywords, competitors, and optimized copy</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sa-200/15 text-xs font-semibold text-sa-200">3</span>
+                  <span><span className="text-zinc-200">Refine &amp; export</span> — tweak via chat, then download as PDF or CSV</span>
+                </div>
+              </div>
+            </div>
+          )}
+
           <h1 className="text-2xl font-semibold tracking-tight text-zinc-100 mb-2">
             Create a new listing
           </h1>
@@ -95,29 +132,22 @@ export default function NewListingPage() {
           )}
 
           {/* Generate button */}
-          <button
-            onClick={handleGenerate}
-            className="btn-primary w-full"
-            disabled={generating || description.trim().length < 10}
-          >
-            {generating ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating your listing...
-              </>
-            ) : (
-              <>
-                <Sparkles className="mr-2 h-4 w-4" />
-                Generate Listing
-              </>
-            )}
-          </button>
+          {!generating && (
+            <button
+              onClick={handleGenerate}
+              className="btn-primary w-full"
+              disabled={description.trim().length < 10}
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              Generate Listing
+            </button>
+          )}
 
+          {/* Progress indicator during generation */}
           {generating && (
-            <p className="mt-3 text-center text-xs text-zinc-500">
-              This usually takes 10–20 seconds. We're researching your product
-              category and generating optimized copy.
-            </p>
+            <div className="mt-2">
+              <GenerationProgress />
+            </div>
           )}
         </div>
       </div>
