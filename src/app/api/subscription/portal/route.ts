@@ -29,7 +29,10 @@ export async function POST() {
     );
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (!appUrl) {
+    return jsonError("Application URL not configured. Set NEXT_PUBLIC_APP_URL.", 500);
+  }
 
   const session = await getStripe().billingPortal.sessions.create({
     customer: profile.stripe_customer_id,

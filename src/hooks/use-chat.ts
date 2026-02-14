@@ -9,12 +9,14 @@ interface UseChatReturn {
   messages: Message[];
   sendMessage: (content: string) => Promise<void>;
   loading: boolean;
+  error: string | null;
 }
 
 export function useChat(conversationId: string): UseChatReturn {
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchConversation() {
@@ -65,6 +67,8 @@ export function useChat(conversationId: string): UseChatReturn {
       setMessages((prev) => [...prev, optimisticUserMessage]);
       setLoading(true);
 
+      setError(null);
+
       try {
         const response = await fetch(
           `/api/chat/${conversationId}/messages`,
@@ -76,7 +80,8 @@ export function useChat(conversationId: string): UseChatReturn {
         );
 
         if (!response.ok) {
-          throw new Error("Failed to send message");
+          const data = await response.json().catch(() => null);
+          throw new Error(data?.error ?? "Failed to send message");
         }
 
         const data = await response.json();
@@ -101,10 +106,13 @@ export function useChat(conversationId: string): UseChatReturn {
         if (data.conversation) {
           setConversation(data.conversation);
         }
-      } catch {
-        // Remove the optimistic message on failure
+      } catch (err) {
+        // Remove the optimistic message and surface the error
         setMessages((prev) =>
           prev.filter((m) => m.id !== optimisticUserMessage.id)
+        );
+        setError(
+          err instanceof Error ? err.message : "Something went wrong. Please try again."
         );
       } finally {
         setLoading(false);
@@ -113,5 +121,5 @@ export function useChat(conversationId: string): UseChatReturn {
     [conversationId]
   );
 
-  return { conversation, messages, sendMessage, loading };
+  return { conversation, messages, sendMessage, loading, error };
 }

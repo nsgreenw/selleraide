@@ -15,6 +15,7 @@ interface ChatResult {
   response: string;
   updatedStatus?: ConversationStatus;
   listing?: ListingContent;
+  assistantMessage?: Message;
 }
 
 /**
@@ -115,7 +116,7 @@ export async function handleChatMessage(
       const assistantResponse = buildListingResponse(listing, conv.marketplace);
 
       // Save assistant message
-      await saveAssistantMessage(
+      const savedMsg = await saveAssistantMessage(
         supabase,
         conversationId,
         assistantResponse,
@@ -126,10 +127,15 @@ export async function handleChatMessage(
         response: assistantResponse,
         updatedStatus: "refining",
         listing,
+        assistantMessage: savedMsg,
       };
     } catch (err) {
-      const errorMsg =
-        "I encountered an issue generating your listing. Let me try a different approach. Could you confirm the key details of your product?";
+      console.error("Listing generation failed:", err instanceof Error ? err.message : err);
+
+      const reason = err instanceof Error && err.message.includes("429")
+        ? "The AI service is temporarily busy."
+        : "I encountered an issue generating your listing.";
+      const errorMsg = `${reason} Let me try a different approach. Could you confirm the key details of your product?`;
 
       // Fall back to gathering on generation failure
       await supabase
@@ -140,12 +146,12 @@ export async function handleChatMessage(
         })
         .eq("id", conversationId);
 
-      await saveAssistantMessage(supabase, conversationId, errorMsg, {
+      const savedErrMsg = await saveAssistantMessage(supabase, conversationId, errorMsg, {
         phase: "generating",
         error: err instanceof Error ? err.message : "Unknown error",
       });
 
-      return { response: errorMsg, updatedStatus: "gathering" };
+      return { response: errorMsg, updatedStatus: "gathering", assistantMessage: savedErrMsg };
     }
   }
 
@@ -207,7 +213,7 @@ export async function handleChatMessage(
   }
 
   // Save assistant message
-  await saveAssistantMessage(supabase, conversationId, assistantResponse, {
+  const savedMsg = await saveAssistantMessage(supabase, conversationId, assistantResponse, {
     phase: currentStatus,
   });
 
@@ -215,6 +221,7 @@ export async function handleChatMessage(
     response: assistantResponse,
     updatedStatus,
     listing,
+    assistantMessage: savedMsg,
   };
 }
 
@@ -422,22 +429,28 @@ function buildListingResponse(
 }
 
 /**
- * Saves an assistant message to the database.
+ * Saves an assistant message to the database and returns it.
  */
 async function saveAssistantMessage(
   supabase: SupabaseClient,
   conversationId: string,
   content: string,
   metadata: Record<string, unknown>
-): Promise<void> {
-  const { error } = await supabase.from("messages").insert({
-    conversation_id: conversationId,
-    role: "assistant",
-    content,
-    metadata,
-  });
+): Promise<Message> {
+  const { data, error } = await supabase
+    .from("messages")
+    .insert({
+      conversation_id: conversationId,
+      role: "assistant",
+      content,
+      metadata,
+    })
+    .select()
+    .single();
 
-  if (error) {
-    throw new Error(`Failed to save assistant message: ${error.message}`);
+  if (error || !data) {
+    throw new Error(`Failed to save assistant message: ${error?.message ?? "no data returned"}`);
   }
+
+  return data as Message;
 }

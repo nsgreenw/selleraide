@@ -45,13 +45,13 @@ export default function ExportMenu({ listingId, marketplace }: ExportMenuProps) 
 
       if (format === "clipboard") {
         const data = await response.json();
-        await navigator.clipboard.writeText(data.text);
+        await navigator.clipboard.writeText(data.content);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
         return;
       }
 
-      // PDF or CSV -- download as a file
+      // PDF or CSV -- server returns binary/text directly
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");

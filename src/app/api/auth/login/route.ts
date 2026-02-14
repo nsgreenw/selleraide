@@ -25,7 +25,8 @@ export async function POST(request: NextRequest) {
     }
 
     return jsonSuccess({ user: data.user });
-  } catch {
-    return jsonError("Internal server error", 500);
+  } catch (err) {
+    console.error("Login error:", err instanceof Error ? err.message : err);
+    return jsonError("An unexpected error occurred. Please try again.", 500);
   }
 }

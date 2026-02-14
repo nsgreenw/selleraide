@@ -7,6 +7,7 @@ import type { Conversation } from "@/types";
 interface UseConversationsReturn {
   conversations: Conversation[];
   loading: boolean;
+  error: string | null;
   refresh: () => Promise<void>;
   deleteConversation: (id: string) => Promise<void>;
 }
@@ -14,25 +15,37 @@ interface UseConversationsReturn {
 export function useConversations(): UseConversationsReturn {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
+    setError(null);
     const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+
+    let user;
+    try {
+      const { data } = await supabase.auth.getUser();
+      user = data.user;
+    } catch {
+      setError("Unable to verify authentication. Please try refreshing the page.");
+      setLoading(false);
+      return;
+    }
+
     if (!user) {
       setConversations([]);
       setLoading(false);
       return;
     }
 
-    const { data, error } = await supabase
+    const { data, error: fetchError } = await supabase
       .from("conversations")
       .select("*")
       .eq("user_id", user.id)
       .order("updated_at", { ascending: false });
 
-    if (!error && data) {
+    if (fetchError) {
+      setError("Failed to load conversations.");
+    } else if (data) {
       setConversations(data);
     }
     setLoading(false);
@@ -57,5 +70,5 @@ export function useConversations(): UseConversationsReturn {
     refresh();
   }, [refresh]);
 
-  return { conversations, loading, refresh, deleteConversation };
+  return { conversations, loading, error, refresh, deleteConversation };
 }

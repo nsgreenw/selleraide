@@ -43,7 +43,7 @@ interface ChatContainerProps {
 }
 
 export default function ChatContainer({ conversationId }: ChatContainerProps) {
-  const { messages, conversation, loading, sendMessage } =
+  const { messages, conversation, loading, sendMessage, error } =
     useChat(conversationId);
 
   return (
@@ -59,6 +59,13 @@ export default function ChatContainer({ conversationId }: ChatContainerProps) {
 
       {/* Typing indicator when loading */}
       {loading && <TypingIndicator />}
+
+      {/* Error banner */}
+      {error && (
+        <div className="mx-4 mb-2 rounded-xl border border-rose-300/25 bg-rose-400/10 px-4 py-2.5 text-sm text-rose-200">
+          {error}
+        </div>
+      )}
 
       {/* Chat input */}
       <div className="border-t border-white/10 p-4">

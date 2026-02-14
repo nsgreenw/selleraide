@@ -1,8 +1,8 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Download, Copy, FileText, Check } from "lucide-react";
+import { ArrowLeft, Download, Copy, FileText, Check, Send, Loader2 } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import ListingPreview from "@/components/chat/listing-preview";
 import QAResultsCard from "@/components/chat/qa-results-card";
@@ -20,6 +20,9 @@ export default function ListingResultPage({
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [refineInput, setRefineInput] = useState("");
+  const [refining, setRefining] = useState(false);
+  const [refineError, setRefineError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchListing() {
@@ -95,6 +98,34 @@ export default function ListingResultPage({
       // PDF export failed silently
     }
   }
+
+  const handleRefine = useCallback(async () => {
+    const trimmed = refineInput.trim();
+    if (!trimmed || !listing || refining) return;
+    setRefining(true);
+    setRefineError(null);
+
+    try {
+      const response = await fetch(`/api/listings/${listing.id}/refine`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ instruction: trimmed }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error ?? "Failed to refine listing");
+      }
+
+      const data = await response.json();
+      setListing(data.listing);
+      setRefineInput("");
+    } catch (err) {
+      setRefineError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setRefining(false);
+    }
+  }, [refineInput, listing, refining]);
 
   async function handleExportCSV() {
     if (!listing) return;
@@ -206,6 +237,52 @@ export default function ListingResultPage({
               marketplace={conversation.marketplace as Marketplace}
             />
           )}
+
+          {/* Version indicator */}
+          {listing.version > 1 && (
+            <p className="text-xs text-zinc-500 text-center">
+              Version {listing.version}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Refine input — fixed at bottom */}
+      <div className="border-t border-white/10 p-4">
+        <div className="max-w-4xl mx-auto">
+          {refineError && (
+            <div className="mb-3 rounded-xl border border-rose-300/25 bg-rose-400/10 px-4 py-2 text-sm text-rose-200">
+              {refineError}
+            </div>
+          )}
+          <div className="flex items-end gap-3 rounded-xl border border-white/15 bg-black/35 p-3">
+            <textarea
+              className="flex-1 resize-none bg-transparent text-sm text-zinc-100 placeholder:text-zinc-500 outline-none max-h-24"
+              rows={1}
+              placeholder="Refine your listing... e.g. &quot;make the title shorter&quot; or &quot;add more keywords to bullet 3&quot;"
+              value={refineInput}
+              onChange={(e) => setRefineInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleRefine();
+                }
+              }}
+              disabled={refining}
+            />
+            <button
+              type="button"
+              className="btn-primary px-3 py-2"
+              disabled={refining || !refineInput.trim()}
+              onClick={handleRefine}
+            >
+              {refining ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

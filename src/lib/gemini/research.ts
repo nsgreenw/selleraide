@@ -68,7 +68,11 @@ Respond ONLY with the JSON object, no additional text.`;
           ? parsed.category_notes
           : "",
     };
-  } catch {
+  } catch (err) {
+    console.error(
+      "Gemini research parsing failed:",
+      err instanceof Error ? err.message : err
+    );
     // Return a minimal research object if parsing fails
     return {
       keywords: [],

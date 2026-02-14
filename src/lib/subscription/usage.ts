@@ -24,35 +24,18 @@ export async function recordUsage(
 
 /**
  * Increment the listings_used_this_period counter on the user's profile.
+ * Uses an atomic RPC call to avoid race conditions with concurrent requests.
  */
 export async function incrementListingCount(
   supabase: SupabaseClient,
   userId: string
 ): Promise<void> {
-  const { data: profile, error: fetchError } = await supabase
-    .from("profiles")
-    .select("listings_used_this_period")
-    .eq("id", userId)
-    .single();
+  const { error } = await supabase.rpc("increment_listing_count", {
+    p_user_id: userId,
+  });
 
-  if (fetchError || !profile) {
-    throw new Error(
-      `Failed to fetch profile: ${fetchError?.message ?? "not found"}`
-    );
-  }
-
-  const { error: updateError } = await supabase
-    .from("profiles")
-    .update({
-      listings_used_this_period: profile.listings_used_this_period + 1,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", userId);
-
-  if (updateError) {
-    throw new Error(
-      `Failed to increment listing count: ${updateError.message}`
-    );
+  if (error) {
+    throw new Error(`Failed to increment listing count: ${error.message}`);
   }
 }
 

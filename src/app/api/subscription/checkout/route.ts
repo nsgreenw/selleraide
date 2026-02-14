@@ -68,7 +68,11 @@ export async function POST(request: Request) {
     .single();
 
   if (profileError || !profile) {
-    return jsonError("Failed to fetch profile", 500);
+    console.error("Checkout profile fetch failed:", profileError?.message);
+    return jsonError(
+      profileError ? "Failed to load account details" : "Account profile not found. Please contact support.",
+      profileError ? 500 : 404
+    );
   }
 
   let customerId = profile.stripe_customer_id;
@@ -91,7 +95,10 @@ export async function POST(request: Request) {
       .eq("id", user.id);
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (!appUrl) {
+    return jsonError("Application URL not configured. Set NEXT_PUBLIC_APP_URL.", 500);
+  }
 
   // Create Stripe checkout session
   const session = await getStripe().checkout.sessions.create({

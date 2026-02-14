@@ -26,11 +26,16 @@ export async function POST(request: NextRequest) {
     });
 
     if (error) {
-      return jsonError("Unable to create account", 400);
+      // Surface Supabase-specific errors like "email already registered"
+      const msg = error.message?.toLowerCase().includes("already registered")
+        ? "An account with this email already exists."
+        : "Unable to create account. Please try again.";
+      return jsonError(msg, 400);
     }
 
     return jsonSuccess({ user: data.user }, 201);
-  } catch {
-    return jsonError("Internal server error", 500);
+  } catch (err) {
+    console.error("Signup error:", err instanceof Error ? err.message : err);
+    return jsonError("An unexpected error occurred. Please try again.", 500);
   }
 }

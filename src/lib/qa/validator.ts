@@ -266,6 +266,90 @@ function capitalize(s: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+// ─── Photo recommendation checks ────────────────────────────────────
+
+function checkPhotoRecommendations(
+  content: ListingContent
+): QAResult[] {
+  const results: QAResult[] = [];
+  const photos = content.photo_recommendations;
+  if (!photos || photos.length === 0) return results;
+
+  const seenSlots = new Set<number>();
+  for (const photo of photos) {
+    // Duplicate slot check
+    if (seenSlots.has(photo.slot)) {
+      results.push({
+        field: "photo_recommendations",
+        rule: "duplicate_slot",
+        severity: "warning",
+        message: `Duplicate photo slot ${photo.slot} — each slot should be unique`,
+      });
+    }
+    seenSlots.add(photo.slot);
+
+    // Missing description
+    if (!photo.description || photo.description.trim().length === 0) {
+      results.push({
+        field: "photo_recommendations",
+        rule: "missing_photo_description",
+        severity: "info",
+        message: `Photo slot ${photo.slot} is missing a description`,
+      });
+    }
+
+    // Missing tips
+    if (!photo.tips || photo.tips.length === 0) {
+      results.push({
+        field: "photo_recommendations",
+        rule: "missing_photo_tips",
+        severity: "info",
+        message: `Photo slot ${photo.slot} has no tips`,
+      });
+    }
+  }
+
+  return results;
+}
+
+// ─── Item specifics / attributes checks ─────────────────────────────
+
+function checkMetadataFields(
+  content: ListingContent
+): QAResult[] {
+  const results: QAResult[] = [];
+
+  // Check item_specifics for empty values
+  if (content.item_specifics) {
+    for (const [key, value] of Object.entries(content.item_specifics)) {
+      if (!value || value.trim().length === 0) {
+        results.push({
+          field: "item_specifics",
+          rule: "empty_specific",
+          severity: "warning",
+          message: `Item specific "${key}" has an empty value`,
+        });
+      }
+    }
+  }
+
+  // Check attributes for empty values
+  if (content.attributes) {
+    for (const [key, value] of Object.entries(content.attributes)) {
+      if (!value || value.trim().length === 0) {
+        results.push({
+          field: "attributes",
+          rule: "empty_attribute",
+          severity: "warning",
+          message: `Attribute "${key}" has an empty value`,
+        });
+      }
+    }
+  }
+
+  return results;
+}
+
 // ─── Main export ──────────────────────────────────────────────────────
 
 /**
@@ -281,6 +365,14 @@ export function validateListing(
   const fieldResults = checkFieldConstraints(content, profile.fields);
   const bannedResults = checkBannedTerms(content, profile.bannedTerms);
   const structuralResults = checkStructuralRules(content, profile.fields);
+  const photoResults = checkPhotoRecommendations(content);
+  const metadataResults = checkMetadataFields(content);
 
-  return sortBySeverity([...fieldResults, ...bannedResults, ...structuralResults]);
+  return sortBySeverity([
+    ...fieldResults,
+    ...bannedResults,
+    ...structuralResults,
+    ...photoResults,
+    ...metadataResults,
+  ]);
 }

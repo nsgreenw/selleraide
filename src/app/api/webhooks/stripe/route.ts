@@ -229,12 +229,17 @@ export async function POST(request: NextRequest) {
         // Unhandled event type -- acknowledge receipt
         break;
     }
-  } catch {
-    // Log-free error handling for webhook processing failures.
-    // Return 200 to prevent Stripe from retrying on application errors.
+  } catch (err) {
+    // Log the error for debugging, but return 200 to prevent Stripe from
+    // retrying on application errors (which could cause duplicate processing).
+    console.error(
+      "Stripe webhook processing error:",
+      event.type,
+      err instanceof Error ? err.message : err
+    );
     return NextResponse.json(
       { error: "Webhook handler failed" },
-      { status: 500 }
+      { status: 200 }
     );
   }
 

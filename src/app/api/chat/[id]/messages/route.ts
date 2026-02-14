@@ -94,15 +94,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Call the chat engine (this saves assistant message + updates status internally)
     const chatResult = await handleChatMessage(id, content, supabase);
 
-    // Fetch the assistant message that handleChatMessage saved
-    const { data: assistantMsg } = await supabase
-      .from("messages")
-      .select("*")
-      .eq("conversation_id", id)
-      .eq("role", "assistant")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .single();
+    // Use the assistant message returned directly from handleChatMessage
+    // (avoids race condition with re-fetching by created_at)
+    const assistantMsg = chatResult.assistantMessage ?? null;
 
     // Fetch updated conversation
     const { data: updatedConv } = await supabase
@@ -189,7 +183,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     return jsonSuccess(response);
-  } catch {
-    return jsonError("Internal server error", 500);
+  } catch (err) {
+    console.error("Chat message error:", err instanceof Error ? err.message : err);
+    return jsonError("An unexpected error occurred. Please try again.", 500);
   }
 }
