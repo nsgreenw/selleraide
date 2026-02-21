@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { Logo } from "@/components/ui/logo";
 import {
   ShoppingCart,
   Tag,
@@ -11,7 +9,6 @@ import {
   Info,
   Plus,
   Loader2,
-  ArrowLeft,
   ClipboardCheck,
 } from "lucide-react";
 import type { QAGrade } from "@/types";
@@ -113,20 +110,7 @@ export default function AuditPage() {
 
   return (
     <div className="min-h-screen">
-      {/* Nav */}
-      <nav className="sticky top-0 z-50 backdrop-blur-lg border-b border-white/10 bg-black/40">
-        <div className="max-w-7xl mx-auto flex items-center justify-between py-4 px-6">
-          <Logo variant="full" size="sm" />
-          <div className="flex items-center gap-6">
-            <Link href="/" className="text-sm text-zinc-400 hover:text-zinc-200 flex items-center gap-1">
-              <ArrowLeft className="size-4" />
-              Back to Home
-            </Link>
-          </div>
-        </div>
-      </nav>
-
-      <div className="max-w-4xl mx-auto px-6 py-12">
+      <div className="max-w-4xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="text-center mb-10">
           <p className="label-kicker text-sa-200 mb-4">FREE LISTING AUDIT</p>
