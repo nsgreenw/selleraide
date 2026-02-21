@@ -427,9 +427,9 @@ export default function Home() {
               <p className="label-kicker text-zinc-500 mb-3">AGENCY</p>
               <div className="mb-1">
                 <span className="text-3xl font-semibold text-zinc-100">
-                  $99
+                  Custom
                 </span>
-                <span className="text-sm text-zinc-500"> /month</span>
+                <span className="text-sm text-zinc-500"> pricing</span>
               </div>
               <div className="border-t border-white/10 my-4" />
               <ul className="space-y-2 mb-6">
