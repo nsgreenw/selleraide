@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { amazonProfile } from "@/lib/marketplace/amazon";
 import { ebayProfile } from "@/lib/marketplace/ebay";
 import { CRITERION_FUNCTIONS } from "@/lib/qa/scorer";
+import { createConversationSchema, generateListingSchema } from "@/lib/api/contracts";
 
 describe("Amazon marketplace profile schema", () => {
   it("listingShape contains exactly the v1 expected keys", () => {
@@ -53,5 +54,20 @@ describe("eBay marketplace profile schema", () => {
     for (const sw of ebayProfile.scoringWeights) {
       expect(CRITERION_FUNCTIONS).toHaveProperty(sw.criterion);
     }
+  });
+});
+
+describe("Marketplace contract enforcement", () => {
+  it("rejects disabled marketplaces in createConversationSchema", () => {
+    const parsed = createConversationSchema.safeParse({ marketplace: "walmart" });
+    expect(parsed.success).toBe(false);
+  });
+
+  it("rejects disabled marketplaces in generateListingSchema", () => {
+    const parsed = generateListingSchema.safeParse({
+      marketplace: "shopify",
+      product_description: "Valid product description text",
+    });
+    expect(parsed.success).toBe(false);
   });
 });

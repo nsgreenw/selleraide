@@ -78,6 +78,16 @@ describe("scoreListing — eBay", () => {
     expect(specificsEntry).toBeDefined();
     expect(specificsEntry!.score).toBeLessThan(30);
   });
+
+  it("handles non-string metadata values without throwing", () => {
+    const listing = makeEbayListing({
+      item_specifics: { Brand: "Sony", Model: 123 as unknown as string },
+      attributes: { color: null as unknown as string },
+    });
+    const validationResults = validateListing(listing, "ebay");
+
+    expect(() => scoreListing(listing, "ebay", validationResults)).not.toThrow();
+  });
 });
 
 describe("getListingStatus", () => {

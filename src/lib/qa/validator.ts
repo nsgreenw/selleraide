@@ -214,20 +214,58 @@ function checkBannedTerms(
 
 function checkStructuralRules(
   content: ListingContent,
-  fields: FieldConstraint[]
+  fields: FieldConstraint[],
+  marketplace: Marketplace
 ): QAResult[] {
   const results: QAResult[] = [];
+
+  if (marketplace === "amazon") {
+    const bullets = Array.isArray(content.bullets) ? content.bullets : [];
+    if (bullets.length !== 5) {
+      results.push({
+        field: "bullets",
+        rule: "amazon_bullet_count",
+        severity: "error",
+        message: `Amazon requires exactly 5 bullets; found ${bullets.length}`,
+      });
+    }
+
+    for (let i = 0; i < bullets.length; i++) {
+      const rawBullet = bullets[i];
+      const bullet = typeof rawBullet === "string" ? rawBullet.trim() : "";
+
+      if (!bullet) {
+        results.push({
+          field: "bullets",
+          rule: "amazon_bullet_empty",
+          severity: "error",
+          message: `Amazon bullet ${i + 1} must be non-empty`,
+        });
+        continue;
+      }
+
+      if (bullet.length > 500) {
+        results.push({
+          field: "bullets",
+          rule: "amazon_bullet_length",
+          severity: "error",
+          message: `Amazon bullet ${i + 1} is ${bullet.length} chars; max is 500`,
+        });
+      }
+    }
+  }
 
   // Check bullet/feature quality — each should be substantive (>20 chars)
   if (content.bullets && content.bullets.length > 0) {
     for (let i = 0; i < content.bullets.length; i++) {
-      const bullet = content.bullets[i];
-      if (bullet.trim().length > 0 && bullet.trim().length < 20) {
+      const rawBullet = content.bullets[i];
+      const bullet = typeof rawBullet === "string" ? rawBullet.trim() : "";
+      if (bullet.length > 0 && bullet.length < 20) {
         results.push({
           field: "bullets",
           rule: "bullet_too_short",
           severity: "warning",
-          message: `Bullet ${i + 1} is only ${bullet.trim().length} chars — bullets should be substantive (at least 20 chars)`,
+          message: `Bullet ${i + 1} is only ${bullet.length} chars — bullets should be substantive (at least 20 chars)`,
         });
       }
     }
@@ -342,7 +380,8 @@ function checkMetadataFields(
   // Check item_specifics for empty values
   if (content.item_specifics) {
     for (const [key, value] of Object.entries(content.item_specifics)) {
-      if (!value || value.trim().length === 0) {
+      const trimmed = typeof value === "string" ? value.trim() : "";
+      if (!trimmed) {
         results.push({
           field: "item_specifics",
           rule: "empty_specific",
@@ -356,7 +395,8 @@ function checkMetadataFields(
   // Check attributes for empty values
   if (content.attributes) {
     for (const [key, value] of Object.entries(content.attributes)) {
-      if (!value || value.trim().length === 0) {
+      const trimmed = typeof value === "string" ? value.trim() : "";
+      if (!trimmed) {
         results.push({
           field: "attributes",
           rule: "empty_attribute",
@@ -384,7 +424,7 @@ export function validateListing(
 
   const fieldResults = checkFieldConstraints(content, profile.fields);
   const bannedResults = checkBannedTerms(content, profile.bannedTerms);
-  const structuralResults = checkStructuralRules(content, profile.fields);
+  const structuralResults = checkStructuralRules(content, profile.fields, marketplace);
   const photoResults = checkPhotoRecommendations(content);
   const metadataResults = checkMetadataFields(content);
 

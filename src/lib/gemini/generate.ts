@@ -6,6 +6,7 @@ import type {
 } from "@/types";
 import { getMarketplaceProfile } from "@/lib/marketplace/registry";
 import { getGeminiGenerateModel } from "./client";
+import { normalizeStringArray, normalizeStringRecord } from "./normalization";
 
 /**
  * Generates a complete listing using Gemini, based on the product context,
@@ -111,13 +112,16 @@ Generate the listing now. Respond with ONLY a valid JSON object.`;
 
   // Collect bullet points — new format: bullet_points array
   if (Array.isArray(listingData.bullet_points)) {
-    content.bullets = listingData.bullet_points.map(String);
+    content.bullets = normalizeStringArray(listingData.bullet_points);
   } else {
     // Legacy fallback: bullet_1, bullet_2, ... format
     const bullets: string[] = [];
     for (const key of profile.listingShape) {
-      if (key.startsWith("bullet_") && listingData[key]) {
-        bullets.push(String(listingData[key]));
+      if (!key.startsWith("bullet_")) continue;
+      const raw = listingData[key];
+      const text = typeof raw === "string" ? raw.trim() : "";
+      if (text) {
+        bullets.push(text);
       }
     }
     if (bullets.length > 0) {
@@ -127,7 +131,7 @@ Generate the listing now. Respond with ONLY a valid JSON object.`;
 
   // backend_search_terms array → backend_keywords string (space-joined)
   if (Array.isArray(listingData.backend_search_terms)) {
-    content.backend_keywords = listingData.backend_search_terms.join(" ");
+    content.backend_keywords = normalizeStringArray(listingData.backend_search_terms).join(" ");
   } else if (listingData.backend_keywords) {
     content.backend_keywords = String(listingData.backend_keywords);
   }
@@ -140,7 +144,7 @@ Generate the listing now. Respond with ONLY a valid JSON object.`;
     content.meta_description = String(listingData.meta_description);
   }
   if (listingData.tags && Array.isArray(listingData.tags)) {
-    content.tags = listingData.tags.map(String);
+    content.tags = normalizeStringArray(listingData.tags);
   }
   if (listingData.subtitle) {
     content.subtitle = String(listingData.subtitle);
@@ -148,28 +152,25 @@ Generate the listing now. Respond with ONLY a valid JSON object.`;
   if (listingData.shelf_description) {
     content.shelf_description = String(listingData.shelf_description);
   }
-  if (
-    listingData.item_specifics &&
-    typeof listingData.item_specifics === "object"
-  ) {
-    content.item_specifics = listingData.item_specifics as Record<
-      string,
-      string
-    >;
+  const normalizedItemSpecifics = normalizeStringRecord(listingData.item_specifics);
+  if (Object.keys(normalizedItemSpecifics).length > 0) {
+    content.item_specifics = normalizedItemSpecifics;
   }
-  if (listingData.attributes && typeof listingData.attributes === "object") {
-    content.attributes = listingData.attributes as Record<string, string>;
+
+  const normalizedAttributes = normalizeStringRecord(listingData.attributes);
+  if (Object.keys(normalizedAttributes).length > 0) {
+    content.attributes = normalizedAttributes;
   }
 
   // New optional fields for v1 marketplace profiles
   if (Array.isArray(listingData.compliance_notes)) {
-    content.compliance_notes = listingData.compliance_notes.map(String);
+    content.compliance_notes = normalizeStringArray(listingData.compliance_notes);
   }
   if (Array.isArray(listingData.assumptions)) {
-    content.assumptions = listingData.assumptions.map(String);
+    content.assumptions = normalizeStringArray(listingData.assumptions);
   }
   if (Array.isArray(listingData.condition_notes)) {
-    content.condition_notes = listingData.condition_notes.map(String);
+    content.condition_notes = normalizeStringArray(listingData.condition_notes);
   }
   if (listingData.shipping_notes) {
     content.shipping_notes = String(listingData.shipping_notes);

@@ -79,6 +79,17 @@ describe("validateListing — Amazon", () => {
     );
     expect(titleErrors.length).toBeGreaterThan(0);
   });
+
+  it("enforces Amazon exact bullet count and bullet length/emptiness as errors", () => {
+    const listing = makeAmazonListing({
+      bullets: ["", "valid bullet", "x".repeat(501), "ok"],
+    });
+    const results = validateListing(listing, "amazon");
+
+    expect(results.some((r) => r.rule === "amazon_bullet_count" && r.severity === "error")).toBe(true);
+    expect(results.some((r) => r.rule === "amazon_bullet_empty" && r.severity === "error")).toBe(true);
+    expect(results.some((r) => r.rule === "amazon_bullet_length" && r.severity === "error")).toBe(true);
+  });
 });
 
 describe("validateListing — eBay", () => {
@@ -116,5 +127,14 @@ describe("validateListing — eBay", () => {
       (r) => r.field === "item_specifics" && r.rule === "empty_specific"
     );
     expect(emptyWarnings.length).toBe(2);
+  });
+
+  it("handles non-string metadata values without throwing", () => {
+    const listing = makeEbayListing({
+      item_specifics: { Brand: "Sony", Model: 123 as unknown as string },
+      attributes: { color: null as unknown as string },
+    });
+
+    expect(() => validateListing(listing, "ebay")).not.toThrow();
   });
 });

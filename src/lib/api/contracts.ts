@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { getEnabledMarketplaceIds } from "@/lib/marketplace/registry";
 
 export const loginSchema = z.object({
   email: z.string().email(),
@@ -19,8 +20,14 @@ export const updatePasswordSchema = z.object({
   password: z.string().min(6),
 });
 
+const marketplaceSchema = z
+  .enum(["amazon", "walmart", "ebay", "shopify"])
+  .refine((marketplace) => getEnabledMarketplaceIds().includes(marketplace), {
+    message: "Marketplace is currently disabled",
+  });
+
 export const createConversationSchema = z.object({
-  marketplace: z.enum(["amazon", "walmart", "ebay", "shopify"]),
+  marketplace: marketplaceSchema,
   title: z.string().optional(),
 });
 
@@ -29,7 +36,7 @@ export const sendMessageSchema = z.object({
 });
 
 export const generateListingSchema = z.object({
-  marketplace: z.enum(["amazon", "walmart", "ebay", "shopify"]),
+  marketplace: marketplaceSchema,
   product_description: z.string().min(10).max(15000),
 });
 

@@ -4,7 +4,11 @@ import { createClient } from "@/lib/supabase/server";
 import { refineListingSchema } from "@/lib/api/contracts";
 import { jsonError, jsonSuccess } from "@/lib/api/response";
 import { getGeminiGenerateModel } from "@/lib/gemini/client";
-import { getMarketplaceProfile } from "@/lib/marketplace/registry";
+import {
+  normalizeStringArray,
+  normalizeStringRecord,
+} from "@/lib/gemini/normalization";
+import { getMarketplaceProfile, isMarketplaceEnabled } from "@/lib/marketplace/registry";
 import { analyzeListing } from "@/lib/qa";
 import { recordUsage } from "@/lib/subscription/usage";
 import type { Listing, ListingContent, Marketplace } from "@/types";
@@ -74,6 +78,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     const marketplace = conversation.marketplace as Marketplace;
+    if (!isMarketplaceEnabled(marketplace)) {
+      return jsonError("Marketplace is currently disabled.", 403);
+    }
     const profile = getMarketplaceProfile(marketplace);
 
     // 6. Call Gemini to refine the listing
@@ -118,15 +125,18 @@ Modify the listing according to the seller's request. Keep all other fields unch
 
     // Collect bullet points — new format: bullet_points array
     if (Array.isArray(listingData.bullet_points)) {
-      refinedContent.bullets = listingData.bullet_points.map(String);
+      refinedContent.bullets = normalizeStringArray(listingData.bullet_points);
     } else if (Array.isArray(listingData.bullets)) {
-      refinedContent.bullets = listingData.bullets.map(String);
+      refinedContent.bullets = normalizeStringArray(listingData.bullets);
     } else {
       // Legacy fallback: bullet_1, bullet_2, ... format
       const bullets: string[] = [];
       for (const key of Object.keys(listingData)) {
-        if (key.startsWith("bullet_") && listingData[key]) {
-          bullets.push(String(listingData[key]));
+        if (!key.startsWith("bullet_")) continue;
+        const raw = listingData[key];
+        const text = typeof raw === "string" ? raw.trim() : "";
+        if (text) {
+          bullets.push(text);
         }
       }
       if (bullets.length > 0) {
@@ -138,7 +148,7 @@ Modify the listing according to the seller's request. Keep all other fields unch
 
     // backend_search_terms array → backend_keywords string (space-joined)
     if (Array.isArray(listingData.backend_search_terms)) {
-      refinedContent.backend_keywords = listingData.backend_search_terms.join(" ");
+      refinedContent.backend_keywords = normalizeStringArray(listingData.backend_search_terms).join(" ");
     } else if (listingData.backend_keywords) {
       refinedContent.backend_keywords = String(listingData.backend_keywords);
     } else if (currentContent.backend_keywords) {
@@ -158,7 +168,7 @@ Modify the listing according to the seller's request. Keep all other fields unch
     }
 
     if (listingData.tags && Array.isArray(listingData.tags)) {
-      refinedContent.tags = listingData.tags.map(String);
+      refinedContent.tags = normalizeStringArray(listingData.tags);
     } else if (currentContent.tags) {
       refinedContent.tags = currentContent.tags;
     }
@@ -175,45 +185,35 @@ Modify the listing according to the seller's request. Keep all other fields unch
       refinedContent.shelf_description = currentContent.shelf_description;
     }
 
-    if (
-      listingData.item_specifics &&
-      typeof listingData.item_specifics === "object"
-    ) {
-      refinedContent.item_specifics = listingData.item_specifics as Record<
-        string,
-        string
-      >;
+    const normalizedItemSpecifics = normalizeStringRecord(listingData.item_specifics);
+    if (Object.keys(normalizedItemSpecifics).length > 0) {
+      refinedContent.item_specifics = normalizedItemSpecifics;
     } else if (currentContent.item_specifics) {
       refinedContent.item_specifics = currentContent.item_specifics;
     }
 
-    if (
-      listingData.attributes &&
-      typeof listingData.attributes === "object"
-    ) {
-      refinedContent.attributes = listingData.attributes as Record<
-        string,
-        string
-      >;
+    const normalizedAttributes = normalizeStringRecord(listingData.attributes);
+    if (Object.keys(normalizedAttributes).length > 0) {
+      refinedContent.attributes = normalizedAttributes;
     } else if (currentContent.attributes) {
       refinedContent.attributes = currentContent.attributes;
     }
 
     // New v1 fields — prefer Gemini response, fall back to current content
     if (Array.isArray(listingData.compliance_notes)) {
-      refinedContent.compliance_notes = (listingData.compliance_notes as unknown[]).map(String);
+      refinedContent.compliance_notes = normalizeStringArray(listingData.compliance_notes);
     } else if (currentContent.compliance_notes) {
       refinedContent.compliance_notes = currentContent.compliance_notes;
     }
 
     if (Array.isArray(listingData.assumptions)) {
-      refinedContent.assumptions = (listingData.assumptions as unknown[]).map(String);
+      refinedContent.assumptions = normalizeStringArray(listingData.assumptions);
     } else if (currentContent.assumptions) {
       refinedContent.assumptions = currentContent.assumptions;
     }
 
     if (Array.isArray(listingData.condition_notes)) {
-      refinedContent.condition_notes = (listingData.condition_notes as unknown[]).map(String);
+      refinedContent.condition_notes = normalizeStringArray(listingData.condition_notes);
     } else if (currentContent.condition_notes) {
       refinedContent.condition_notes = currentContent.condition_notes;
     }

@@ -12,7 +12,7 @@ const profiles: Record<Marketplace, MarketplaceProfile> = {
   shopify: shopifyProfile,
 };
 
-function isEnabled(id: Marketplace): boolean {
+export function isMarketplaceEnabled(id: Marketplace): boolean {
   const key = `MARKETPLACE_ENABLED_${id.toUpperCase()}`;
   const val = process.env[key];
   if (val === undefined) return id === "amazon" || id === "ebay"; // safe defaults
@@ -32,5 +32,5 @@ export function getMarketplaceIds(): Marketplace[] {
 }
 
 export function getEnabledMarketplaceIds(): Marketplace[] {
-  return getMarketplaceIds().filter(isEnabled);
+  return getMarketplaceIds().filter(isMarketplaceEnabled);
 }

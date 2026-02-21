@@ -691,7 +691,11 @@ const scoreItemSpecificsCompleteness: CriterionFn = ({ content }) => {
 
   const entries = Object.entries(specifics);
   const total = entries.length;
-  const filled = entries.filter(([, v]) => v && v.trim() && v !== "null").length;
+  const filled = entries.filter(([, v]) => {
+    if (typeof v !== "string") return false;
+    const trimmed = v.trim();
+    return trimmed.length > 0 && trimmed.toLowerCase() !== "null";
+  }).length;
   const fillRate = filled / total;
 
   let score: number;
@@ -730,8 +734,17 @@ const scoreAttributeCompleteness: CriterionFn = ({ content }) => {
   const required = ["brand", "condition"];
   const optional = ["material", "color", "size", "model"];
   const attrs = content.attributes ?? {};
-  const filled = Object.entries(attrs).filter(([, v]) => v && v !== "null").length;
-  const hasRequired = required.every(k => attrs[k] && attrs[k] !== "null");
+  const filled = Object.entries(attrs).filter(([, v]) => {
+    if (typeof v !== "string") return false;
+    const trimmed = v.trim();
+    return trimmed.length > 0 && trimmed.toLowerCase() !== "null";
+  }).length;
+  const hasRequired = required.every((k) => {
+    const value = attrs[k];
+    if (typeof value !== "string") return false;
+    const trimmed = value.trim();
+    return trimmed.length > 0 && trimmed.toLowerCase() !== "null";
+  });
   let score = hasRequired ? 60 : 20;
   score += Math.min(40, filled * 8); // up to 5 extra keys = full 40pts
   return {

@@ -7,6 +7,7 @@ import { extractProductContextFromDescription } from "@/lib/gemini/extract";
 import { researchProduct } from "@/lib/gemini/research";
 import { generateListing } from "@/lib/gemini/generate";
 import { analyzeListing } from "@/lib/qa";
+import { isMarketplaceEnabled } from "@/lib/marketplace/registry";
 import { canGenerateListing } from "@/lib/subscription/plans";
 import {
   incrementListingCount,
@@ -30,6 +31,10 @@ export async function POST(request: NextRequest) {
     }
 
     const { marketplace, product_description } = parsed.data;
+    if (!isMarketplaceEnabled(marketplace)) {
+      return jsonError("Marketplace is currently disabled.", 403);
+    }
+
     const supabase = await createClient();
 
     // Check usage limits

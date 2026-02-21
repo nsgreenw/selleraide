@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createConversationSchema } from "@/lib/api/contracts";
 import { jsonError, jsonSuccess } from "@/lib/api/response";
 import { buildSystemPrompt } from "@/lib/gemini/prompts/system";
+import { isMarketplaceEnabled } from "@/lib/marketplace/registry";
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,6 +22,10 @@ export async function POST(request: NextRequest) {
     }
 
     const { marketplace, title } = parsed.data;
+    if (!isMarketplaceEnabled(marketplace)) {
+      return jsonError("Marketplace is currently disabled.", 403);
+    }
+
     const supabase = await createClient();
 
     // Create the conversation
