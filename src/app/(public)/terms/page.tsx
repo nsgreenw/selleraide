@@ -52,7 +52,7 @@ export default function TermsOfService() {
 
       <h2>4. AI-Generated Content Disclaimer</h2>
       <p>
-        SellerAide uses Google Gemini AI to generate product listings, keyword suggestions, and
+        SellerAide uses Anthropic Claude AI to generate product listings, keyword suggestions, and
         related content. <strong>AI-generated content is provided &quot;as is&quot; without any
         guarantee of accuracy, completeness, or fitness for a particular purpose.</strong>
       </p>

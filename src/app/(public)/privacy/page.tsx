@@ -52,7 +52,7 @@ export default function PrivacyPolicy() {
       <h2>2. How We Use Your Information</h2>
       <ul>
         <li><strong>Service Delivery:</strong> To operate your account, generate listings, and manage subscriptions.</li>
-        <li><strong>AI Processing:</strong> Your product descriptions are sent to Google Gemini API to generate and optimize listings. We do not use your data to train AI models.</li>
+        <li><strong>AI Processing:</strong> Your product descriptions are sent to Anthropic Claude API to generate and optimize listings. We do not use your data to train AI models.</li>
         <li><strong>Analytics:</strong> To understand usage patterns and improve the Service.</li>
         <li><strong>Marketing:</strong> To deliver relevant advertising via Meta Pixel and communicate product updates via email (with your consent).</li>
         <li><strong>Security:</strong> To detect and prevent fraud, abuse, and unauthorized access.</li>
@@ -63,7 +63,7 @@ export default function PrivacyPolicy() {
       <ul>
         <li><strong>Supabase</strong> — Authentication and database hosting (stores account data, conversations, and listings).</li>
         <li><strong>Stripe</strong> — Payment processing and subscription management.</li>
-        <li><strong>Google Gemini API</strong> — AI-powered listing generation. Product descriptions you provide are sent to Google&apos;s servers for processing.</li>
+        <li><strong>Anthropic Claude API</strong> — AI-powered listing generation. Product descriptions you provide are sent to Anthropic&apos;s servers for processing.</li>
         <li><strong>Google Analytics (GA4)</strong> — Website analytics and usage tracking.</li>
         <li><strong>Meta Pixel (Facebook)</strong> — Advertising conversion tracking and audience building.</li>
         <li><strong>Vercel</strong> — Application hosting and content delivery.</li>
