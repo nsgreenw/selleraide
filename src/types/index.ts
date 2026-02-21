@@ -102,6 +102,12 @@ export interface ListingContent {
   a_plus_modules?: APlusModule[];
   collections?: string[];
   photo_recommendations?: PhotoRecommendation[];
+  compliance_notes?: string[];
+  assumptions?: string[];
+  condition_notes?: string[];
+  shipping_notes?: string;
+  returns_notes?: string;
+  category_hint?: string;
 }
 
 export interface APlusModule {
@@ -150,4 +156,10 @@ export function getGrade(score: number): QAGrade {
   if (score >= 60) return "C";
   if (score >= 40) return "D";
   return "F";
+}
+
+export function getListingStatus(score: number): "ready" | "needs_revision" | "regenerate" {
+  if (score >= 85) return "ready";
+  if (score >= 70) return "needs_revision";
+  return "regenerate";
 }

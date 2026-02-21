@@ -12,6 +12,13 @@ const profiles: Record<Marketplace, MarketplaceProfile> = {
   shopify: shopifyProfile,
 };
 
+function isEnabled(id: Marketplace): boolean {
+  const key = `MARKETPLACE_ENABLED_${id.toUpperCase()}`;
+  const val = process.env[key];
+  if (val === undefined) return id === "amazon" || id === "ebay"; // safe defaults
+  return val !== "false" && val !== "0";
+}
+
 export function getMarketplaceProfile(marketplace: Marketplace): MarketplaceProfile {
   return profiles[marketplace];
 }
@@ -22,4 +29,8 @@ export function getAllMarketplaces(): MarketplaceProfile[] {
 
 export function getMarketplaceIds(): Marketplace[] {
   return Object.keys(profiles) as Marketplace[];
+}
+
+export function getEnabledMarketplaceIds(): Marketplace[] {
+  return getMarketplaceIds().filter(isEnabled);
 }

@@ -235,6 +235,8 @@ export default function ListingResultPage({
               results={listing.qa_results}
               score={listing.score}
               marketplace={conversation.marketplace as Marketplace}
+              listingId={listing.id}
+              onRefined={setListing}
             />
           )}
 

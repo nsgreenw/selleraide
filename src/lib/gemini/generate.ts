@@ -66,7 +66,7 @@ ${fieldInstructions}
 
 The JSON response MUST contain exactly these keys: ${JSON.stringify(profile.listingShape)}
 
-For fields that contain bullet points (e.g., bullet_1 through bullet_5), each should be a separate string field in the JSON.
+bullet_points must be a JSON array of 5 strings; backend_search_terms must be a JSON array of strings.
 
 KEYWORD STRATEGY:
 - Place primary keywords in: ${profile.keywordStrategy.primaryPlacement}
@@ -109,21 +109,30 @@ Generate the listing now. Respond with ONLY a valid JSON object.`;
     description: String(listingData.description ?? ""),
   };
 
-  // Collect bullet points into the bullets array
-  const bullets: string[] = [];
-  for (const key of profile.listingShape) {
-    if (key.startsWith("bullet_") && listingData[key]) {
-      bullets.push(String(listingData[key]));
+  // Collect bullet points — new format: bullet_points array
+  if (Array.isArray(listingData.bullet_points)) {
+    content.bullets = listingData.bullet_points.map(String);
+  } else {
+    // Legacy fallback: bullet_1, bullet_2, ... format
+    const bullets: string[] = [];
+    for (const key of profile.listingShape) {
+      if (key.startsWith("bullet_") && listingData[key]) {
+        bullets.push(String(listingData[key]));
+      }
+    }
+    if (bullets.length > 0) {
+      content.bullets = bullets;
     }
   }
-  if (bullets.length > 0) {
-    content.bullets = bullets;
+
+  // backend_search_terms array → backend_keywords string (space-joined)
+  if (Array.isArray(listingData.backend_search_terms)) {
+    content.backend_keywords = listingData.backend_search_terms.join(" ");
+  } else if (listingData.backend_keywords) {
+    content.backend_keywords = String(listingData.backend_keywords);
   }
 
   // Map optional fields
-  if (listingData.backend_keywords) {
-    content.backend_keywords = String(listingData.backend_keywords);
-  }
   if (listingData.seo_title) {
     content.seo_title = String(listingData.seo_title);
   }
@@ -150,6 +159,26 @@ Generate the listing now. Respond with ONLY a valid JSON object.`;
   }
   if (listingData.attributes && typeof listingData.attributes === "object") {
     content.attributes = listingData.attributes as Record<string, string>;
+  }
+
+  // New optional fields for v1 marketplace profiles
+  if (Array.isArray(listingData.compliance_notes)) {
+    content.compliance_notes = listingData.compliance_notes.map(String);
+  }
+  if (Array.isArray(listingData.assumptions)) {
+    content.assumptions = listingData.assumptions.map(String);
+  }
+  if (Array.isArray(listingData.condition_notes)) {
+    content.condition_notes = listingData.condition_notes.map(String);
+  }
+  if (listingData.shipping_notes) {
+    content.shipping_notes = String(listingData.shipping_notes);
+  }
+  if (listingData.returns_notes) {
+    content.returns_notes = String(listingData.returns_notes);
+  }
+  if (listingData.category_hint) {
+    content.category_hint = String(listingData.category_hint);
   }
 
   // Add photo recommendations from the marketplace profile

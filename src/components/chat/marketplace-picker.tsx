@@ -1,6 +1,6 @@
 "use client";
 
-import { Globe, ShoppingCart, Store, Tag } from "lucide-react";
+import { ShoppingCart, Tag } from "lucide-react";
 import type { Marketplace } from "@/types";
 
 const marketplaces: {
@@ -9,9 +9,7 @@ const marketplaces: {
   icon: React.ReactNode;
 }[] = [
   { id: "amazon", label: "Amazon", icon: <ShoppingCart className="h-4 w-4" /> },
-  { id: "walmart", label: "Walmart", icon: <Store className="h-4 w-4" /> },
   { id: "ebay", label: "eBay", icon: <Tag className="h-4 w-4" /> },
-  { id: "shopify", label: "Shopify", icon: <Globe className="h-4 w-4" /> },
 ];
 
 interface MarketplacePickerProps {

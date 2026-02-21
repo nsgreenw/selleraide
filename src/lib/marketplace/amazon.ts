@@ -16,44 +16,12 @@ export const amazonProfile: MarketplaceProfile = {
         "Product title. Must include brand, key feature, product type, size/quantity. No ALL CAPS.",
     },
     {
-      name: "bullet_1",
-      maxLength: 500,
+      name: "bullets",
+      maxLength: null,
       required: true,
       htmlAllowed: false,
       description:
-        "First bullet point. Lead with the strongest benefit or unique selling proposition.",
-    },
-    {
-      name: "bullet_2",
-      maxLength: 500,
-      required: true,
-      htmlAllowed: false,
-      description:
-        "Second bullet point. Highlight a key feature and its benefit to the customer.",
-    },
-    {
-      name: "bullet_3",
-      maxLength: 500,
-      required: true,
-      htmlAllowed: false,
-      description:
-        "Third bullet point. Address quality, materials, or construction details.",
-    },
-    {
-      name: "bullet_4",
-      maxLength: 500,
-      required: true,
-      htmlAllowed: false,
-      description:
-        "Fourth bullet point. Cover use cases, compatibility, or included accessories.",
-    },
-    {
-      name: "bullet_5",
-      maxLength: 500,
-      required: true,
-      htmlAllowed: false,
-      description:
-        "Fifth bullet point. Mention warranty, satisfaction guarantee details, or brand story.",
+        "5 benefit-driven bullet points. Each starts with a capitalized short phrase (2-4 words) followed by a benefit statement. Max 500 chars each.",
     },
     {
       name: "description",
@@ -70,7 +38,7 @@ export const amazonProfile: MarketplaceProfile = {
       required: false,
       htmlAllowed: false,
       description:
-        "Search terms (backend). Max 250 bytes. Do not repeat words already in the title. Use spaces, not commas. No ASINs, brand names of competitors, or subjective claims.",
+        "Backend search terms (space-separated). Max 250 bytes. Do not repeat words already in the title. No ASINs, competitor brand names, or subjective claims.",
     },
   ],
 
@@ -200,57 +168,33 @@ export const amazonProfile: MarketplaceProfile = {
   scoringWeights: [
     {
       criterion: "title_keyword_richness",
-      weight: 0.2,
-      description:
-        "Title includes primary and secondary keywords naturally without keyword stuffing.",
+      weight: 0.20,
+      description: "Relevance + keyword placement",
+    },
+    {
+      criterion: "title_quality_readability",
+      weight: 0.15,
+      description: "Title quality/readability",
     },
     {
       criterion: "bullet_quality",
-      weight: 0.2,
-      description:
-        "Bullets are benefit-driven, scannable, and each covers a distinct selling point.",
-    },
-    {
-      criterion: "backend_keywords_utilization",
-      weight: 0.15,
-      description:
-        "Backend search terms use close to 250 bytes without repeating title words.",
-    },
-    {
-      criterion: "banned_terms_absence",
-      weight: 0.15,
-      description:
-        "Listing is free of all banned terms that would risk suppression or policy violations.",
+      weight: 0.20,
+      description: "Bullet uniqueness/benefit clarity",
     },
     {
       criterion: "description_completeness",
-      weight: 0.1,
-      description:
-        "Description expands on bullets with storytelling, use cases, and brand narrative.",
+      weight: 0.15,
+      description: "Description depth/clarity",
     },
     {
-      criterion: "title_length_optimization",
-      weight: 0.05,
-      description:
-        "Title is between 80-200 characters, maximizing visibility without truncation.",
+      criterion: "compliance_safety",
+      weight: 0.20,
+      description: "Compliance safety (no banned terms)",
     },
     {
-      criterion: "readability",
-      weight: 0.05,
-      description:
-        "Content is written at an accessible reading level, avoiding jargon where possible.",
-    },
-    {
-      criterion: "formatting_compliance",
-      weight: 0.05,
-      description:
-        "No ALL CAPS words (except brand/acronyms), proper punctuation, no special characters abuse.",
-    },
-    {
-      criterion: "benefit_driven_language",
-      weight: 0.05,
-      description:
-        "Features are translated into customer benefits using 'so that' or 'which means' framing.",
+      criterion: "attribute_completeness",
+      weight: 0.10,
+      description: "Attribute completeness",
     },
   ],
 
@@ -401,12 +345,11 @@ GENERAL:
 
   listingShape: [
     "title",
-    "bullet_1",
-    "bullet_2",
-    "bullet_3",
-    "bullet_4",
-    "bullet_5",
+    "bullet_points",
     "description",
-    "backend_keywords",
+    "backend_search_terms",
+    "attributes",
+    "compliance_notes",
+    "assumptions",
   ],
 };

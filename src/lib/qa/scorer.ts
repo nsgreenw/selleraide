@@ -680,20 +680,120 @@ const scoreSeoOptimization: CriterionFn = ({ content, marketplace }) => {
   return { score: Math.min(100, score), notes: parts.join(", ") };
 };
 
+// ── item_specifics_completeness ───────────────────────────────────────
+// Checks eBay item specifics coverage.
+
+const scoreItemSpecificsCompleteness: CriterionFn = ({ content }) => {
+  const specifics = content.item_specifics;
+  if (!specifics || Object.keys(specifics).length === 0) {
+    return { score: 0, notes: "No item specifics provided" };
+  }
+
+  const entries = Object.entries(specifics);
+  const total = entries.length;
+  const filled = entries.filter(([, v]) => v && v.trim() && v !== "null").length;
+  const fillRate = filled / total;
+
+  let score: number;
+  if (total >= 10 && fillRate >= 0.9) {
+    score = 100;
+  } else if (total >= 7 && fillRate >= 0.8) {
+    score = 85;
+  } else if (total >= 5 && fillRate >= 0.7) {
+    score = 70;
+  } else if (total >= 3) {
+    score = 50;
+  } else {
+    score = 25;
+  }
+
+  return {
+    score,
+    notes: `${filled}/${total} item specifics filled (${Math.round(fillRate * 100)}%)`,
+  };
+};
+
+// ── title_quality_readability ─────────────────────────────────────────
+// Combines title length optimization + readability into one criterion (50/50).
+
+const scoreTitleQualityReadability: CriterionFn = (ctx) => {
+  const len = scoreTitleLengthOptimization(ctx);
+  const read = scoreReadability(ctx);
+  const score = Math.round((len.score + read.score) / 2);
+  return { score, notes: `Length: ${len.notes}; Readability: ${read.notes}` };
+};
+
+// ── attribute_completeness ────────────────────────────────────────────
+// Checks content.attributes for Amazon required + optional keys.
+
+const scoreAttributeCompleteness: CriterionFn = ({ content }) => {
+  const required = ["brand", "condition"];
+  const optional = ["material", "color", "size", "model"];
+  const attrs = content.attributes ?? {};
+  const filled = Object.entries(attrs).filter(([, v]) => v && v !== "null").length;
+  const hasRequired = required.every(k => attrs[k] && attrs[k] !== "null");
+  let score = hasRequired ? 60 : 20;
+  score += Math.min(40, filled * 8); // up to 5 extra keys = full 40pts
+  return {
+    score: Math.min(100, score),
+    notes: `${filled} of ${required.length + optional.length} attributes filled`,
+  };
+};
+
+// ── condition_disclosure ──────────────────────────────────────────────
+// Checks eBay flaw/condition transparency.
+
+const scoreConditionDisclosure: CriterionFn = ({ content }) => {
+  const hasConditionNotes = content.condition_notes && content.condition_notes.length > 0;
+  const descLower = (content.description ?? "").toLowerCase();
+  const conditionWords = ["condition", "used", "like new", "refurbished", "wear", "scratch", "flaw", "open box", "new"];
+  const foundCondition = conditionWords.filter(w => descLower.includes(w)).length;
+  let score = hasConditionNotes ? 70 : 30;
+  score += Math.min(30, foundCondition * 6);
+  return {
+    score: Math.min(100, score),
+    notes: hasConditionNotes
+      ? `Condition notes present; ${foundCondition} condition term(s) in description`
+      : `No condition_notes; ${foundCondition} condition term(s) in description`,
+  };
+};
+
+// ── listing_completeness ──────────────────────────────────────────────
+// Checks eBay shipping/returns/category presence.
+
+const scoreListingCompleteness: CriterionFn = ({ content }) => {
+  let score = 0;
+  const parts: string[] = [];
+  if (content.shipping_notes?.trim()) { score += 35; parts.push("shipping notes"); }
+  if (content.returns_notes?.trim()) { score += 35; parts.push("returns notes"); }
+  if (content.category_hint?.trim()) { score += 30; parts.push("category hint"); }
+  return {
+    score,
+    notes: parts.length > 0 ? parts.join(", ") + " present" : "Missing shipping/returns/category",
+  };
+};
+
 // ─── Criterion registry ───────────────────────────────────────────────
 
-const CRITERION_FUNCTIONS: Record<string, CriterionFn> = {
+export const CRITERION_FUNCTIONS: Record<string, CriterionFn> = {
   title_keyword_richness: scoreTitleKeywordRichness,
   bullet_quality: scoreBulletQuality,
   feature_quality: scoreBulletQuality, // alias — some marketplaces call them "features"
   backend_keywords_utilization: scoreBackendKeywordsUtilization,
   banned_terms_absence: scoreBannedTermsAbsence,
+  // compliance_safety is an alias for banned_terms_absence
+  compliance_safety: scoreBannedTermsAbsence,
   description_completeness: scoreDescriptionCompleteness,
   title_length_optimization: scoreTitleLengthOptimization,
+  title_quality_readability: scoreTitleQualityReadability,
   readability: scoreReadability,
   formatting_compliance: scoreFormattingCompliance,
   benefit_driven_language: scoreBenefitDrivenLanguage,
   seo_optimization: scoreSeoOptimization,
+  attribute_completeness: scoreAttributeCompleteness,
+  condition_disclosure: scoreConditionDisclosure,
+  listing_completeness: scoreListingCompleteness,
+  item_specifics_completeness: scoreItemSpecificsCompleteness,
 };
 
 // ─── Main export ──────────────────────────────────────────────────────

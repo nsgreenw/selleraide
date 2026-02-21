@@ -132,57 +132,33 @@ export const ebayProfile: MarketplaceProfile = {
   scoringWeights: [
     {
       criterion: "title_keyword_richness",
-      weight: 0.2,
-      description:
-        "Title uses all 80 characters effectively with high-value keywords for Cassini search.",
+      weight: 0.20,
+      description: "Title relevance + 80-char compliance",
     },
     {
       criterion: "item_specifics_completeness",
-      weight: 0.2,
-      description:
-        "All required and recommended item specifics are filled in for maximum Best Match ranking.",
+      weight: 0.30,
+      description: "Item specifics completeness",
     },
     {
-      criterion: "description_quality",
-      weight: 0.2,
-      description:
-        "Description is comprehensive, well-formatted with HTML, and mobile-responsive.",
-    },
-    {
-      criterion: "banned_terms_absence",
+      criterion: "description_completeness",
       weight: 0.15,
-      description:
-        "Listing is free of counterfeit-related terms and policy violations.",
+      description: "Description clarity/accuracy",
     },
     {
-      criterion: "subtitle_effectiveness",
-      weight: 0.05,
-      description:
-        "Subtitle (if used) adds value with a compelling hook or extra keywords.",
+      criterion: "condition_disclosure",
+      weight: 0.15,
+      description: "Condition transparency/flaw disclosure",
     },
     {
-      criterion: "readability",
-      weight: 0.05,
-      description:
-        "Content is clear, scannable, and accessible to a broad audience.",
+      criterion: "listing_completeness",
+      weight: 0.10,
+      description: "Shipping/returns/category present",
     },
     {
-      criterion: "formatting_compliance",
-      weight: 0.05,
-      description:
-        "HTML is clean, mobile-friendly, and free of active content (no JavaScript or iframes).",
-    },
-    {
-      criterion: "trust_signals",
-      weight: 0.05,
-      description:
-        "Listing includes condition details, return policy references, and authenticity cues.",
-    },
-    {
-      criterion: "benefit_driven_language",
-      weight: 0.05,
-      description:
-        "Features are presented as customer benefits, not just raw specs.",
+      criterion: "compliance_safety",
+      weight: 0.10,
+      description: "Policy/compliance safety",
     },
   ],
 
@@ -319,6 +295,27 @@ ITEM SPECIFICS RULES:
 - Item specifics are critical for Cassini ranking and filtering — more specifics = better visibility.
 - Use standardized values from eBay's dropdown menus where possible.
 
+CONDITION NOTES (condition_notes):
+- Provide an array of strings describing the item's condition, any flaws, wear, or imperfections.
+- Be transparent and specific: e.g. ["Minor scratch on bottom", "All original accessories included"].
+- For new items, confirm "New, unused, in original packaging".
+
+SHIPPING NOTES (shipping_notes):
+- Provide a brief placeholder describing shipping intent, e.g. "Ships within 1 business day via USPS First Class".
+- This will be used as a reference; actual shipping is configured in eBay listing settings.
+
+RETURNS NOTES (returns_notes):
+- Provide a brief returns policy placeholder, e.g. "30-day returns accepted. Buyer pays return shipping".
+
+CATEGORY HINT (category_hint):
+- Suggest the most appropriate eBay category path, e.g. "Electronics > Cameras & Photo > Digital Cameras".
+
+COMPLIANCE NOTES (compliance_notes):
+- Array of any regulatory or policy compliance notes relevant to the listing, e.g. ["Authentic item — not a replica", "CE certified"].
+
+ASSUMPTIONS (assumptions):
+- Array of any assumptions made during listing generation, e.g. ["Assumed item is in used condition based on description"].
+
 GENERAL:
 - NEVER use terms associated with counterfeit goods: fake, replica, counterfeit, knockoff, unauthorized.
 - eBay's VeRO program aggressively enforces intellectual property — never reference brands unless selling authentic branded items.
@@ -326,5 +323,16 @@ GENERAL:
 - Address buyer concerns proactively: authenticity, condition, return policy, shipping speed.
 - eBay buyers compare across multiple listings — differentiate with detail, honesty, and professionalism.`,
 
-  listingShape: ["title", "subtitle", "description", "item_specifics"],
+  listingShape: [
+    "title",
+    "subtitle",
+    "description",
+    "item_specifics",
+    "condition_notes",
+    "shipping_notes",
+    "returns_notes",
+    "category_hint",
+    "compliance_notes",
+    "assumptions",
+  ],
 };

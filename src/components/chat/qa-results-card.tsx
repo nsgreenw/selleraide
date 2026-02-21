@@ -1,8 +1,9 @@
 "use client";
 
-import { AlertCircle, AlertTriangle, Info } from "lucide-react";
-import type { Marketplace, QAGrade, QAResult } from "@/types";
-import { getGrade } from "@/types";
+import { useState } from "react";
+import { AlertCircle, AlertTriangle, Info, Loader2, Wrench } from "lucide-react";
+import type { Listing, Marketplace, QAGrade, QAResult } from "@/types";
+import { getGrade, getListingStatus } from "@/types";
 
 function ScoreBadge({ score }: { score: number }) {
   const grade = getGrade(score);
@@ -66,6 +67,21 @@ function GradeBadge({ grade }: { grade: QAGrade }) {
   );
 }
 
+function StatusBadge({ score }: { score: number }) {
+  const status = getListingStatus(score);
+  const config = {
+    ready: { label: "Ready", className: "text-emerald-300" },
+    needs_revision: { label: "Needs Revision", className: "text-amber-300" },
+    regenerate: { label: "Regenerate", className: "text-rose-300" },
+  }[status];
+
+  return (
+    <span className={`text-xs font-medium ${config.className}`}>
+      {config.label}
+    </span>
+  );
+}
+
 function SeverityIcon({ severity }: { severity: QAResult["severity"] }) {
   switch (severity) {
     case "error":
@@ -81,12 +97,57 @@ interface QAResultsCardProps {
   results: QAResult[];
   score: number;
   marketplace: Marketplace;
+  listingId?: string;
+  onRefined?: (listing: Listing) => void;
 }
 
 export default function QAResultsCard({
   results,
   score,
+  marketplace,
+  listingId,
+  onRefined,
 }: QAResultsCardProps) {
+  const [fixing, setFixing] = useState(false);
+  const [fixError, setFixError] = useState<string | null>(null);
+
+  const status = getListingStatus(score);
+  const showFixButton = status !== "ready" && !!listingId && !!onRefined;
+
+  async function handleAutoFix() {
+    if (!listingId || !onRefined || fixing) return;
+    setFixing(true);
+    setFixError(null);
+
+    const issues = results
+      .filter((r) => r.severity === "error" || r.severity === "warning")
+      .map((r) => `- ${r.field}: ${r.message}`)
+      .join("\n");
+
+    const marketplaceName = marketplace.charAt(0).toUpperCase() + marketplace.slice(1);
+    const instruction = `Auto-fix this ${marketplaceName} listing. Issues to resolve:\n${issues || "General quality improvements needed."}\nAim for a score of 85 or higher.`;
+
+    try {
+      const response = await fetch(`/api/listings/${listingId}/refine`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ instruction }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error ?? "Failed to auto-fix listing");
+      }
+
+      const data = await response.json();
+      onRefined(data.listing);
+    } catch (err) {
+      setFixError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setFixing(false);
+    }
+  }
+
   return (
     <div className="card-glass p-5">
       <div className="flex items-center justify-between mb-4">
@@ -95,11 +156,38 @@ export default function QAResultsCard({
       </div>
 
       {/* Score display */}
-      <div className="flex items-center gap-4 mb-4">
+      <div className="flex items-center gap-4 mb-1">
         <span className="text-4xl font-semibold text-sa-100">{score}</span>
         <span className="text-lg text-zinc-400">/100</span>
         <GradeBadge grade={getGrade(score)} />
       </div>
+      <div className="mb-4">
+        <StatusBadge score={score} />
+      </div>
+
+      {/* Auto-fix button */}
+      {showFixButton && (
+        <div className="mb-4">
+          <button
+            type="button"
+            onClick={handleAutoFix}
+            disabled={fixing}
+            className="btn-secondary text-sm gap-2 py-2"
+          >
+            {fixing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Wrench className="h-4 w-4" />
+            )}
+            {fixing
+              ? "Fixing..."
+              : `Fix for ${marketplace.charAt(0).toUpperCase() + marketplace.slice(1)}`}
+          </button>
+          {fixError && (
+            <p className="mt-2 text-xs text-rose-300">{fixError}</p>
+          )}
+        </div>
+      )}
 
       {/* Issues list */}
       {results.length === 0 ? (

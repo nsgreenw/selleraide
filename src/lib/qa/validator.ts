@@ -30,6 +30,26 @@ function getFieldValue(
       return content.subtitle;
     case "shelf_description":
       return content.shelf_description;
+    case "item_specifics": {
+      const specifics = content.item_specifics;
+      if (!specifics || Object.keys(specifics).length === 0) return undefined;
+      return JSON.stringify(specifics);
+    }
+    case "attributes": {
+      const attrs = content.attributes;
+      if (!attrs || Object.keys(attrs).length === 0) return undefined;
+      return JSON.stringify(attrs);
+    }
+    case "condition_notes":
+      return content.condition_notes;
+    case "compliance_notes":
+      return content.compliance_notes;
+    case "shipping_notes":
+      return content.shipping_notes;
+    case "returns_notes":
+      return content.returns_notes;
+    case "category_hint":
+      return content.category_hint;
     default:
       return undefined;
   }

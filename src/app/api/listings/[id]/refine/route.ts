@@ -116,29 +116,30 @@ Modify the listing according to the seller's request. Keep all other fields unch
       ),
     };
 
-    // Collect bullet points into the bullets array
-    const bullets: string[] = [];
-    if (Array.isArray(listingData.bullets)) {
-      // Handle array-format bullets
-      for (const b of listingData.bullets) {
-        bullets.push(String(b));
-      }
+    // Collect bullet points — new format: bullet_points array
+    if (Array.isArray(listingData.bullet_points)) {
+      refinedContent.bullets = listingData.bullet_points.map(String);
+    } else if (Array.isArray(listingData.bullets)) {
+      refinedContent.bullets = listingData.bullets.map(String);
     } else {
-      // Handle bullet_1, bullet_2, ... format
+      // Legacy fallback: bullet_1, bullet_2, ... format
+      const bullets: string[] = [];
       for (const key of Object.keys(listingData)) {
         if (key.startsWith("bullet_") && listingData[key]) {
           bullets.push(String(listingData[key]));
         }
       }
-    }
-    if (bullets.length > 0) {
-      refinedContent.bullets = bullets;
-    } else if (currentContent.bullets) {
-      refinedContent.bullets = currentContent.bullets;
+      if (bullets.length > 0) {
+        refinedContent.bullets = bullets;
+      } else if (currentContent.bullets) {
+        refinedContent.bullets = currentContent.bullets;
+      }
     }
 
-    // Map optional fields
-    if (listingData.backend_keywords) {
+    // backend_search_terms array → backend_keywords string (space-joined)
+    if (Array.isArray(listingData.backend_search_terms)) {
+      refinedContent.backend_keywords = listingData.backend_search_terms.join(" ");
+    } else if (listingData.backend_keywords) {
       refinedContent.backend_keywords = String(listingData.backend_keywords);
     } else if (currentContent.backend_keywords) {
       refinedContent.backend_keywords = currentContent.backend_keywords;
@@ -196,6 +197,43 @@ Modify the listing according to the seller's request. Keep all other fields unch
       >;
     } else if (currentContent.attributes) {
       refinedContent.attributes = currentContent.attributes;
+    }
+
+    // New v1 fields — prefer Gemini response, fall back to current content
+    if (Array.isArray(listingData.compliance_notes)) {
+      refinedContent.compliance_notes = (listingData.compliance_notes as unknown[]).map(String);
+    } else if (currentContent.compliance_notes) {
+      refinedContent.compliance_notes = currentContent.compliance_notes;
+    }
+
+    if (Array.isArray(listingData.assumptions)) {
+      refinedContent.assumptions = (listingData.assumptions as unknown[]).map(String);
+    } else if (currentContent.assumptions) {
+      refinedContent.assumptions = currentContent.assumptions;
+    }
+
+    if (Array.isArray(listingData.condition_notes)) {
+      refinedContent.condition_notes = (listingData.condition_notes as unknown[]).map(String);
+    } else if (currentContent.condition_notes) {
+      refinedContent.condition_notes = currentContent.condition_notes;
+    }
+
+    if (listingData.shipping_notes) {
+      refinedContent.shipping_notes = String(listingData.shipping_notes);
+    } else if (currentContent.shipping_notes) {
+      refinedContent.shipping_notes = currentContent.shipping_notes;
+    }
+
+    if (listingData.returns_notes) {
+      refinedContent.returns_notes = String(listingData.returns_notes);
+    } else if (currentContent.returns_notes) {
+      refinedContent.returns_notes = currentContent.returns_notes;
+    }
+
+    if (listingData.category_hint) {
+      refinedContent.category_hint = String(listingData.category_hint);
+    } else if (currentContent.category_hint) {
+      refinedContent.category_hint = currentContent.category_hint;
     }
 
     // Preserve photo recommendations from original listing
