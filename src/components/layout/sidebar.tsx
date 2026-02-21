@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Plus, Cog, LogOut } from "lucide-react";
+import { Plus, Cog, LogOut, X } from "lucide-react";
+import { useState } from "react";
 import { Logo } from "@/components/ui/logo";
 import { useApp } from "@/components/providers";
 import { useConversations } from "@/hooks/use-conversations";
@@ -19,7 +20,26 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { profile } = useApp();
-  const { conversations, loading } = useConversations();
+  const { conversations, loading, refresh } = useConversations();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  async function handleDeleteConversation(id: string, e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (deletingId) return;
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/chat/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        refresh();
+        if (pathname === `/chat/${id}`) {
+          router.push("/chat");
+        }
+      }
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   async function handleLogout() {
     const supabase = createClient();
@@ -63,11 +83,23 @@ export function Sidebar() {
             return (
               <Link key={conv.id} href={`/chat/${conv.id}`}>
                 <div
-                  className={`card-subtle px-3 py-2.5 cursor-pointer transition duration-200 hover:border-white/20 ${
+                  className={`group card-subtle px-3 py-2.5 cursor-pointer transition duration-200 hover:border-white/20 relative ${
                     isActive ? "border-sa-200/30 bg-sa-200/5" : ""
                   }`}
                 >
-                  <p className="text-sm text-zinc-300 truncate">
+                  <button
+                    onClick={(e) => handleDeleteConversation(conv.id, e)}
+                    disabled={deletingId === conv.id}
+                    className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-white/10 text-zinc-500 hover:text-red-400"
+                    aria-label="Delete conversation"
+                  >
+                    {deletingId === conv.id ? (
+                      <div className="h-3 w-3 animate-spin rounded-full border border-zinc-500 border-t-transparent" />
+                    ) : (
+                      <X className="h-3 w-3" />
+                    )}
+                  </button>
+                  <p className="text-sm text-zinc-300 truncate pr-5">
                     {conv.title}
                   </p>
                   <div className="mt-1 flex items-center gap-1.5">
