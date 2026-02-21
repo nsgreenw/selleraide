@@ -63,7 +63,7 @@ export async function POST(request: Request) {
   // Get or create Stripe customer
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("stripe_customer_id, email")
+    .select("stripe_customer_id, stripe_subscription_id, email")
     .eq("id", user.id)
     .single();
 
@@ -122,6 +122,9 @@ export async function POST(request: Request) {
         user_id: user.id,
         plan_id,
       },
+      ...(profile.stripe_subscription_id
+        ? {}
+        : { trial_period_days: 7 }),
     },
   });
 

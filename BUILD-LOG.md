@@ -75,3 +75,11 @@
 - Security audit items (mentioned in MEMORY.md as blocked)
 - Domain setup (currently on selleraide.vercel.app)
 - A/B testing ghostwriter vs manual mode
+
+### Commit: Paid Plans + 7-Day Trial Model
+- Removed user-facing Free tier from landing and billing plan selection
+- Pricing now positions Starter/Pro/Agency as paid plans with 7-day free trial messaging
+- Updated plan feature copy to launch scope: Amazon + eBay (removed "All marketplaces")
+- Added Stripe checkout trial handling (`trial_period_days: 7`) for users without an existing subscription
+- Updated Terms + Acceptable Use wording to match paid-plan trial model and Amazon/eBay scope
+- Kept internal `free` tier only as a non-selectable fallback state (`No Active Plan`, 0 listings)

@@ -35,7 +35,7 @@ interface SubscriptionData {
   };
 }
 
-const tierOrder: SubscriptionTier[] = ["free", "starter", "pro", "agency"];
+const tierOrder: SubscriptionTier[] = ["starter", "pro", "agency"];
 
 export default function BillingPage() {
   const { profile, refreshProfile } = useApp();
@@ -62,7 +62,6 @@ export default function BillingPage() {
   }, []);
 
   async function handleUpgrade(planId: SubscriptionTier) {
-    if (planId === "free") return;
     setCheckoutLoading(planId);
 
     try {
@@ -235,7 +234,11 @@ export default function BillingPage() {
                     className="btn-primary w-full gap-2"
                   >
                     <Zap className="h-4 w-4" />
-                    {checkoutLoading === tierId ? "Loading..." : "Upgrade"}
+                    {checkoutLoading === tierId
+                      ? "Loading..."
+                      : currentTier === "free"
+                        ? "Start 7-Day Trial"
+                        : "Upgrade"}
                   </button>
                 ) : (
                   <div className="btn-secondary w-full opacity-40 cursor-default pointer-events-none text-xs">

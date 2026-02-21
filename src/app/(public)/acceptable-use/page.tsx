@@ -44,10 +44,7 @@ export default function AcceptableUsePolicy() {
 
       <h2>3. Rate Limiting &amp; Abuse</h2>
       <p>
-        Each subscription tier includes defined usage limits (listing generations per billing
-        period). Attempting to circumvent these limits, exploit free-tier allocations through
-        multiple accounts, or overload the system constitutes abuse and may result in immediate
-        account termination.
+        Each subscription plan includes defined usage limits (listing generations per billing period). Attempting to circumvent these limits through multiple accounts or overload the system constitutes abuse and may result in immediate account termination.
       </p>
 
       <h2>4. Account Sharing</h2>
@@ -66,9 +63,7 @@ export default function AcceptableUsePolicy() {
       <ul>
         <li>Amazon Seller Central policies</li>
         <li>eBay listing policies</li>
-        <li>Walmart Marketplace seller agreement</li>
-        <li>Shopify acceptable use policy</li>
-      </ul>
+              </ul>
       <p>
         SellerAide is not responsible for listing removals, account suspensions, or penalties imposed
         by any marketplace.

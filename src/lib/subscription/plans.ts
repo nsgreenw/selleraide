@@ -9,16 +9,16 @@ export interface PlanConfig {
 }
 
 export const PLANS: Record<SubscriptionTier, PlanConfig> = {
+  // Internal fallback state for users without an active subscription.
+  // Not displayed as a user-selectable plan.
   free: {
-    name: "Free",
+    name: "No Active Plan",
     priceMonthly: 0,
     priceYearly: 0,
-    listingsPerMonth: 5,
+    listingsPerMonth: 0,
     features: [
-      "5 listings per month",
-      "All marketplaces",
-      "Basic QA scoring",
-      "Copy to clipboard export",
+      "No active subscription",
+      "Choose a paid plan to start your 7-day free trial",
     ],
   },
   starter: {
@@ -27,8 +27,9 @@ export const PLANS: Record<SubscriptionTier, PlanConfig> = {
     priceYearly: 190,
     listingsPerMonth: 50,
     features: [
+      "7-day free trial",
       "50 listings per month",
-      "All marketplaces",
+      "Amazon + eBay",
       "Full QA scoring",
       "PDF & CSV export",
       "Priority AI generation",
@@ -40,8 +41,9 @@ export const PLANS: Record<SubscriptionTier, PlanConfig> = {
     priceYearly: 490,
     listingsPerMonth: 200,
     features: [
+      "7-day free trial",
       "200 listings per month",
-      "All marketplaces",
+      "Amazon + eBay",
       "Full QA scoring",
       "All export formats",
       "Priority AI generation",
@@ -54,8 +56,9 @@ export const PLANS: Record<SubscriptionTier, PlanConfig> = {
     priceYearly: 990,
     listingsPerMonth: null,
     features: [
+      "7-day free trial",
       "Unlimited listings",
-      "All marketplaces",
+      "Amazon + eBay",
       "Full QA scoring",
       "All export formats",
       "Priority AI generation",

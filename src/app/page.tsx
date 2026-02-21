@@ -81,7 +81,7 @@ export default function Home() {
             className="btn-primary px-8 py-3 text-base gap-2"
           >
             <Sparkles className="size-5" />
-            Start Creating Free
+            Start 7-Day Free Trial
           </Link>
           <Link
             href="#features"
@@ -277,50 +277,11 @@ export default function Home() {
               Simple, transparent pricing
             </h2>
             <p className="text-zinc-400">
-              Start free. Upgrade when you&apos;re ready.
+              All paid plans include a 7-day free trial.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* FREE */}
-            <div className="card-glass p-6">
-              <p className="label-kicker text-zinc-500 mb-3">FREE</p>
-              <div className="mb-1">
-                <span className="text-3xl font-semibold text-zinc-100">$0</span>
-                <span className="text-sm text-zinc-500"> /month</span>
-              </div>
-              <div className="border-t border-white/10 my-4" />
-              <ul className="space-y-2 mb-6">
-                <li className="flex items-center gap-2">
-                  <Check className="size-4 text-zinc-500 shrink-0" />
-                  <span className="text-sm text-zinc-400">
-                    5 listings per month
-                  </span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="size-4 text-zinc-500 shrink-0" />
-                  <span className="text-sm text-zinc-400">
-                    Amazon + eBay
-                  </span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="size-4 text-zinc-500 shrink-0" />
-                  <span className="text-sm text-zinc-400">
-                    Basic QA scoring
-                  </span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="size-4 text-zinc-500 shrink-0" />
-                  <span className="text-sm text-zinc-400">
-                    Clipboard export
-                  </span>
-                </li>
-              </ul>
-              <Link href="/signup" className="btn-secondary w-full mt-6">
-                Get Started
-              </Link>
-            </div>
-
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* STARTER */}
             <div className="card-glass p-6">
               <p className="label-kicker text-zinc-500 mb-3">STARTER</p>
@@ -492,11 +453,10 @@ export default function Home() {
               Ready to create listings that convert?
             </h2>
             <p className="text-zinc-400 mb-8">
-              Join sellers who use SellerAide to optimize their product listings
-              across Amazon and eBay.
+              Join sellers who use SellerAide to optimize their Amazon and eBay listings with a 7-day free trial.
             </p>
             <Link href="/signup" className="btn-primary px-8 py-3 text-base">
-              Start Creating Free
+              Start 7-Day Free Trial
             </Link>
           </div>
         </div>
