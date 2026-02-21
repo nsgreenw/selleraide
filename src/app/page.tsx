@@ -479,12 +479,15 @@ export default function Home() {
             <Link href="/cookies" className="text-xs text-zinc-500 hover:text-zinc-300">
               Cookies
             </Link>
+            <Link href="/refunds" className="text-xs text-zinc-500 hover:text-zinc-300">
+              Refunds
+            </Link>
             <Link href="/acceptable-use" className="text-xs text-zinc-500 hover:text-zinc-300">
               Acceptable Use
             </Link>
-            <a href="mailto:support@selleraide.com" className="text-xs text-zinc-500 hover:text-zinc-300">
-              Support
-            </a>
+            <Link href="/contact" className="text-xs text-zinc-500 hover:text-zinc-300">
+              Contact
+            </Link>
           </div>
         </div>
       </footer>
