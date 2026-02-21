@@ -277,7 +277,7 @@ export default function Home() {
               Simple, transparent pricing
             </h2>
             <p className="text-zinc-400">
-              All paid plans include a 7-day free trial.
+              All paid plans include a 7-day free trial. Monthly and yearly billing available.
             </p>
           </div>
 
@@ -291,6 +291,7 @@ export default function Home() {
                 </span>
                 <span className="text-sm text-zinc-500"> /month</span>
               </div>
+              <p className="text-xs text-zinc-500 mb-1">or $199/year (save 13%)</p>
               <div className="border-t border-white/10 my-4" />
               <ul className="space-y-2 mb-6">
                 <li className="flex items-center gap-2">
@@ -339,6 +340,7 @@ export default function Home() {
                 <span className="text-3xl font-semibold text-sa-100">$49</span>
                 <span className="text-sm text-zinc-500"> /month</span>
               </div>
+              <p className="text-xs text-zinc-500 mb-1">or $499/year (save 15%)</p>
               <div className="border-t border-white/10 my-4" />
               <ul className="space-y-2 mb-6">
                 <li className="flex items-center gap-2">
