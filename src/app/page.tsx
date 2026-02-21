@@ -431,9 +431,9 @@ export default function Home() {
                   </span>
                 </li>
               </ul>
-              <Link href="/signup" className="btn-secondary w-full mt-6">
+              <a href="mailto:support@selleraide.com" className="btn-secondary w-full mt-6">
                 Contact Sales
-              </Link>
+              </a>
             </div>
           </div>
         </div>
