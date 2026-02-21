@@ -1,6 +1,6 @@
 # SellerAide Build Log
 
-**Last Updated:** 2026-02-21
+**Last Updated:** 2026-02-21 (Phase 2)
 
 ## Current State
 - **Deployed:** https://selleraide.vercel.app (Vercel production)
@@ -39,6 +39,14 @@
 ### Commit 6: `8fabc4e` — High-Risk Validation Gaps
 - Closed remaining high-risk validation and marketplace enforcement gaps
 - Final pass on input sanitization and constraint enforcement
+
+### Commit 7: Chrome Extension — Phase 2
+- Created `/extension/` directory with Manifest V3 Chrome extension
+- `manifest.json`: MV3 config with activeTab permission, content scripts for Amazon/eBay domains
+- `content.js`: Extracts listing data (title, bullets, description, ASIN, item specifics) from Amazon & eBay pages
+- `popup.html` + `popup.js`: Dark UI (matches SellerAide design), editable fields, audit via API, score display with color-coded circle, top issues, "View Full Report" link
+- `icons/`: Generated gold "SA" on dark background PNGs (16/48/128px)
+- Standalone extension — no build step needed, load as unpacked in Chrome
 
 ## What's Done ✅
 - Full chat-based listing generation flow (Gemini AI)
