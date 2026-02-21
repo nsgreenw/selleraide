@@ -526,15 +526,21 @@ export default function Home() {
             &copy; 2026 SellerAide. All rights reserved.
           </p>
           <div className="flex gap-6">
-            <Link href="#" className="text-xs text-zinc-500 hover:text-zinc-300">
+            <Link href="/privacy" className="text-xs text-zinc-500 hover:text-zinc-300">
               Privacy
             </Link>
-            <Link href="#" className="text-xs text-zinc-500 hover:text-zinc-300">
+            <Link href="/terms" className="text-xs text-zinc-500 hover:text-zinc-300">
               Terms
             </Link>
-            <Link href="#" className="text-xs text-zinc-500 hover:text-zinc-300">
-              Support
+            <Link href="/cookies" className="text-xs text-zinc-500 hover:text-zinc-300">
+              Cookies
             </Link>
+            <Link href="/acceptable-use" className="text-xs text-zinc-500 hover:text-zinc-300">
+              Acceptable Use
+            </Link>
+            <a href="mailto:support@selleraide.com" className="text-xs text-zinc-500 hover:text-zinc-300">
+              Support
+            </a>
           </div>
         </div>
       </footer>

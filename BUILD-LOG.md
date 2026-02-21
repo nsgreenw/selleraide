@@ -1,6 +1,6 @@
 # SellerAide Build Log
 
-**Last Updated:** 2026-02-21 (Phase 2)
+**Last Updated:** 2026-02-21 (Legal Pages)
 
 ## Current State
 - **Deployed:** https://selleraide.vercel.app (Vercel production)
@@ -58,6 +58,14 @@
 - Mobile-responsive UI
 - Error handling across all routes
 - Deployed to Vercel
+
+### Commit: Legal Pages
+- Added 4 legal pages under `(public)` route group: Privacy Policy, Terms of Service, Cookie Policy, Acceptable Use Policy
+- Created `(public)/layout.tsx` with nav + footer for legal pages
+- Added `.legal-page` component styles to globals.css (headings, lists, code, effective date)
+- Updated landing page footer with real links to all legal pages + support email
+- All pages use dark glassmorphic design, gold accent links, Manrope font
+- Effective date: 2026-02-21
 
 ## What's Left / Known Issues 🔲
 - Real-user testing (auth flow, end-to-end listing creation)
