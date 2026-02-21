@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=400">
+  <title>SellerAide Listing Audit</title>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 400px;
+      max-height: 600px;
+      overflow-y: auto;
+      background: #0a0a0a;
+      color: #d4d4d8;
+      font-family: 'Manrope', sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #27272a;
+      text-align: center;
+    }
+    .header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #f6cb63;
+      letter-spacing: -0.5px;
+    }
+    .header .subtitle {
+      font-size: 11px;
+      color: #71717a;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 2px;
+    }
+    .content { padding: 16px 20px; }
+    .status {
+      padding: 10px 14px;
+      background: #18181b;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 12px;
+      color: #a1a1aa;
+    }
+    .status.detected { color: #4ade80; }
+    .status.error { color: #f87171; }
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #a1a1aa;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+      margin-top: 12px;
+    }
+    label:first-of-type { margin-top: 0; }
+    textarea, input[type="text"] {
+      width: 100%;
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 6px;
+      color: #e4e4e7;
+      font-family: 'Manrope', sans-serif;
+      font-size: 12px;
+      padding: 8px 10px;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    textarea:focus, input[type="text"]:focus {
+      border-color: #f6cb63;
+    }
+    textarea { min-height: 48px; }
+    #bullets-container input { margin-bottom: 4px; }
+    .btn-add-bullet {
+      background: none;
+      border: 1px dashed #3f3f46;
+      border-radius: 6px;
+      color: #71717a;
+      font-size: 11px;
+      padding: 4px 10px;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+    .btn-add-bullet:hover { border-color: #f6cb63; color: #f6cb63; }
+    .btn-audit {
+      width: 100%;
+      margin-top: 16px;
+      padding: 10px;
+      background: #f6cb63;
+      color: #0a0a0a;
+      border: none;
+      border-radius: 8px;
+      font-family: 'Manrope', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn-audit:hover { opacity: 0.9; }
+    .btn-audit:disabled { opacity: 0.4; cursor: not-allowed; }
+    .results {
+      margin-top: 16px;
+      padding: 16px;
+      background: #18181b;
+      border-radius: 8px;
+      display: none;
+    }
+    .results.visible { display: block; }
+    .score-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+    .score-circle {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .score-circle.red { background: #451a1a; color: #f87171; border: 2px solid #f87171; }
+    .score-circle.yellow { background: #422d08; color: #facc15; border: 2px solid #facc15; }
+    .score-circle.green { background: #14352a; color: #4ade80; border: 2px solid #4ade80; }
+    .score-meta .grade { font-size: 16px; font-weight: 700; color: #e4e4e7; }
+    .score-meta .label { font-size: 11px; color: #71717a; }
+    .issues-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: #a1a1aa;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    .issue {
+      padding: 6px 0;
+      border-bottom: 1px solid #27272a;
+      font-size: 12px;
+      color: #d4d4d8;
+    }
+    .issue:last-child { border-bottom: none; }
+    .issue .severity {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: 4px;
+      margin-right: 6px;
+    }
+    .severity.high { background: #451a1a; color: #f87171; }
+    .severity.medium { background: #422d08; color: #facc15; }
+    .severity.low { background: #1a2e1a; color: #4ade80; }
+    .btn-full-report {
+      display: block;
+      margin-top: 12px;
+      text-align: center;
+      color: #f6cb63;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .btn-full-report:hover { text-decoration: underline; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>SellerAide</h1>
+    <div class="subtitle">Listing Audit</div>
+  </div>
+  <div class="content">
+    <div class="status" id="status">Detecting listing...</div>
+    <div id="form-section" class="hidden">
+      <label>Title</label>
+      <textarea id="field-title" rows="2"></textarea>
+
+      <label>Bullet Points</label>
+      <div id="bullets-container"></div>
+      <button class="btn-add-bullet" id="btn-add-bullet">+ Add Bullet</button>
+
+      <label>Description</label>
+      <textarea id="field-description" rows="4"></textarea>
+
+      <button class="btn-audit" id="btn-audit">Run Audit</button>
+    </div>
+    <div class="results" id="results">
+      <div class="score-row">
+        <div class="score-circle" id="score-circle">--</div>
+        <div class="score-meta">
+          <div class="grade" id="grade">--</div>
+          <div class="label">Quality Score</div>
+        </div>
+      </div>
+      <div class="issues-title">Top Issues</div>
+      <div id="issues-list"></div>
+      <a href="#" class="btn-full-report" id="btn-full-report" target="_blank">View Full Report →</a>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

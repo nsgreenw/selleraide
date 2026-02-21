@@ -48,3 +48,11 @@ export const checkoutSchema = z.object({
   plan_id: z.enum(["starter", "pro", "agency"]),
   interval: z.enum(["monthly", "yearly"]),
 });
+
+export const auditSchema = z.object({
+  marketplace: z.enum(["amazon", "ebay"]),
+  title: z.string().min(1),
+  bullets: z.array(z.string()).default([]),
+  description: z.string().min(1),
+  backend_keywords: z.string().optional(),
+});

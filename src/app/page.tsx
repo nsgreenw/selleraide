@@ -25,6 +25,12 @@ export default function Home() {
 
           <div className="flex items-center gap-6">
             <Link
+              href="/audit"
+              className="text-sm text-zinc-400 hover:text-zinc-200"
+            >
+              Audit a Listing
+            </Link>
+            <Link
               href="#features"
               className="text-sm text-zinc-400 hover:text-zinc-200"
             >
