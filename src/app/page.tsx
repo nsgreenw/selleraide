@@ -3,9 +3,7 @@ import { Logo } from "@/components/ui/logo";
 import {
   Sparkles,
   ShoppingCart,
-  Store,
   Tag,
-  Globe,
   MessageSquare,
   Search,
   Target,
@@ -74,8 +72,7 @@ export default function Home() {
 
         <p className="text-lg sm:text-xl text-zinc-400 max-w-2xl mx-auto mb-10 relative">
           SellerAide researches your product, optimizes for marketplace
-          algorithms, and generates high-converting listings for Amazon,
-          Walmart, eBay, and Shopify.
+          algorithms, and generates high-converting listings for Amazon and eBay.
         </p>
 
         <div className="flex gap-4 justify-center relative">
@@ -106,20 +103,8 @@ export default function Home() {
               <span className="text-zinc-300 text-sm font-medium">Amazon</span>
             </div>
             <div className="card-subtle px-6 py-3 flex items-center gap-3">
-              <Store className="size-5 text-zinc-400" />
-              <span className="text-zinc-300 text-sm font-medium">
-                Walmart
-              </span>
-            </div>
-            <div className="card-subtle px-6 py-3 flex items-center gap-3">
               <Tag className="size-5 text-zinc-400" />
               <span className="text-zinc-300 text-sm font-medium">eBay</span>
-            </div>
-            <div className="card-subtle px-6 py-3 flex items-center gap-3">
-              <Globe className="size-5 text-zinc-400" />
-              <span className="text-zinc-300 text-sm font-medium">
-                Shopify
-              </span>
             </div>
           </div>
         </div>
@@ -178,8 +163,7 @@ export default function Home() {
                 Marketplace Optimization
               </h3>
               <p className="text-sm text-zinc-400">
-                Listings tailored to each marketplace&apos;s algorithm — Amazon
-                A9, Walmart, eBay Cassini, Shopify SEO.
+                Listings tailored to each marketplace&apos;s algorithm — Amazon A9 and eBay Cassini.
               </p>
             </div>
 
@@ -316,7 +300,7 @@ export default function Home() {
                 <li className="flex items-center gap-2">
                   <Check className="size-4 text-zinc-500 shrink-0" />
                   <span className="text-sm text-zinc-400">
-                    All 4 marketplaces
+                    Amazon + eBay
                   </span>
                 </li>
                 <li className="flex items-center gap-2">
@@ -357,7 +341,7 @@ export default function Home() {
                 <li className="flex items-center gap-2">
                   <Check className="size-4 text-zinc-500 shrink-0" />
                   <span className="text-sm text-zinc-400">
-                    All 4 marketplaces
+                    Amazon + eBay
                   </span>
                 </li>
                 <li className="flex items-center gap-2">
@@ -405,7 +389,7 @@ export default function Home() {
                 <li className="flex items-center gap-2">
                   <Check className="size-4 text-sa-200 shrink-0" />
                   <span className="text-sm text-zinc-400">
-                    All 4 marketplaces
+                    Amazon + eBay
                   </span>
                 </li>
                 <li className="flex items-center gap-2">
@@ -458,7 +442,7 @@ export default function Home() {
                 <li className="flex items-center gap-2">
                   <Check className="size-4 text-zinc-500 shrink-0" />
                   <span className="text-sm text-zinc-400">
-                    All 4 marketplaces
+                    Amazon + eBay
                   </span>
                 </li>
                 <li className="flex items-center gap-2">
@@ -509,7 +493,7 @@ export default function Home() {
             </h2>
             <p className="text-zinc-400 mb-8">
               Join sellers who use SellerAide to optimize their product listings
-              across every marketplace.
+              across Amazon and eBay.
             </p>
             <Link href="/signup" className="btn-primary px-8 py-3 text-base">
               Start Creating Free
