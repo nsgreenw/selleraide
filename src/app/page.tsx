@@ -319,6 +319,9 @@ export default function Home() {
                 <span className="text-sm text-zinc-500">
                   {billingInterval === "monthly" ? " /month" : " /year"}
                 </span>
+                {billingInterval === "yearly" && (
+                  <p className="text-xs text-emerald-300">Save $29/yr (13%)</p>
+                )}
               </div>
               <div className="border-t border-white/10 my-4" />
               <ul className="space-y-2 mb-6">
@@ -371,6 +374,9 @@ export default function Home() {
                 <span className="text-sm text-zinc-500">
                   {billingInterval === "monthly" ? " /month" : " /year"}
                 </span>
+                {billingInterval === "yearly" && (
+                  <p className="text-xs text-emerald-300">Save $89/yr (15%)</p>
+                )}
               </div>
               <div className="border-t border-white/10 my-4" />
               <ul className="space-y-2 mb-6">

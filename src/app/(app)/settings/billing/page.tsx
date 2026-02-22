@@ -266,6 +266,11 @@ export default function BillingPage() {
                       <span className="text-xs text-zinc-500">
                         {billingInterval === "monthly" ? "/mo" : "/yr"}
                       </span>
+                      {billingInterval === "yearly" && (
+                        <p className="mt-1 text-xs text-emerald-300">
+                          Save ${plan.priceMonthly * 12 - plan.priceYearly}/yr ({Math.round(((plan.priceMonthly * 12 - plan.priceYearly) / (plan.priceMonthly * 12)) * 100)}%)
+                        </p>
+                      )}
                     </>
                   )}
                 </div>
