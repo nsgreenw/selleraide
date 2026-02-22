@@ -43,6 +43,7 @@ export default function BillingPage() {
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [billingError, setBillingError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchSubscription() {
@@ -62,6 +63,7 @@ export default function BillingPage() {
   }, []);
 
   async function handleUpgrade(planId: SubscriptionTier) {
+    setBillingError(null);
     setCheckoutLoading(planId);
 
     try {
@@ -71,12 +73,19 @@ export default function BillingPage() {
         body: JSON.stringify({ plan_id: planId, interval: "monthly" }),
       });
 
-      if (!response.ok) throw new Error("Failed to create checkout session");
       const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || "Failed to create checkout session");
+      }
+
       if (data.url) {
         window.location.href = data.url;
+        return;
       }
-    } catch {
+
+      throw new Error("Stripe checkout URL was not returned.");
+    } catch (err) {
+      setBillingError(err instanceof Error ? err.message : "Failed to start checkout. Please try again.");
       setCheckoutLoading(null);
     }
   }
@@ -129,6 +138,12 @@ export default function BillingPage() {
         <ArrowLeft className="h-4 w-4" />
         Back to Settings
       </Link>
+
+      {billingError && (
+        <div className="rounded-xl border border-rose-300/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-200">
+          {billingError}
+        </div>
+      )}
 
       {/* Current Plan + Usage */}
       <div className="card-glass p-6">
