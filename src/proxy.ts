@@ -1,7 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const protectedPaths = ["/chat", "/listings", "/settings"];
+const protectedPaths = ["/chat", "/listings", "/settings", "/audit"];
+const planRequiredPaths = ["/chat", "/listings", "/audit"];
 const authPaths = ["/login", "/signup"];
 
 export async function proxy(request: NextRequest) {
@@ -51,10 +52,32 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Auth routes — redirect to /chat if already authenticated
+  let hasPlanAccess = false;
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("subscription_tier, subscription_status")
+      .eq("id", user.id)
+      .single();
+
+    const tier = profile?.subscription_tier;
+    const status = profile?.subscription_status;
+    hasPlanAccess =
+      tier !== "free" && (status === "active" || status === "trialing" || status === "past_due");
+
+    // Paid plan required routes — redirect to billing if user has no active/trialing plan
+    if (planRequiredPaths.some((p) => pathname.startsWith(p)) && !hasPlanAccess) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/settings/billing";
+      return NextResponse.redirect(url);
+    }
+  }
+
+  // Auth routes — redirect authenticated users to app
   if (authPaths.some((p) => pathname.startsWith(p)) && user) {
     const url = request.nextUrl.clone();
-    url.pathname = "/chat";
+    url.pathname = hasPlanAccess ? "/chat" : "/settings/billing";
     return NextResponse.redirect(url);
   }
 
