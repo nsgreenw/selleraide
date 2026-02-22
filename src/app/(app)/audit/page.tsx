@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   ShoppingCart,
   Tag,
@@ -24,7 +25,8 @@ interface AuditResults {
   validation: QAResult[];
 }
 
-export default function AuditPage() {
+function AuditContent() {
+  const searchParams = useSearchParams();
   const [marketplace, setMarketplace] = useState<Marketplace>("amazon");
   const [title, setTitle] = useState("");
   const [bullets, setBullets] = useState<string[]>([""]);
@@ -33,6 +35,59 @@ export default function AuditPage() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<AuditResults | null>(null);
   const [error, setError] = useState("");
+
+  // Read ?data= param from extension and auto-run audit
+  useEffect(() => {
+    const raw = searchParams.get("data");
+    if (!raw) return;
+    try {
+      const decoded = JSON.parse(decodeURIComponent(escape(atob(raw))));
+      const mp: Marketplace =
+        decoded.marketplace === "amazon" || decoded.marketplace === "ebay"
+          ? decoded.marketplace
+          : "amazon";
+      const decodedTitle: string = decoded.title || "";
+      const decodedBullets: string[] =
+        Array.isArray(decoded.bullets) && decoded.bullets.length > 0
+          ? decoded.bullets
+          : [""];
+      const decodedDescription: string = decoded.description || "";
+      const decodedKeywords: string = decoded.backend_keywords || "";
+
+      setMarketplace(mp);
+      setTitle(decodedTitle);
+      setBullets(decodedBullets);
+      setDescription(decodedDescription);
+      setBackendKeywords(decodedKeywords);
+
+      // Auto-run audit using decoded values directly (avoids stale state)
+      if (!decodedTitle || !decodedDescription) return;
+      setLoading(true);
+      setResults(null);
+      setError("");
+      fetch("/api/audit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          marketplace: mp,
+          title: decodedTitle,
+          bullets: decodedBullets.filter((b) => b.trim().length > 0),
+          description: decodedDescription,
+          ...(mp === "amazon" && decodedKeywords ? { backend_keywords: decodedKeywords } : {}),
+        }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.error) setError(data.error);
+          else setResults(data);
+        })
+        .catch(() => setError("Failed to connect to the server"))
+        .finally(() => setLoading(false));
+    } catch {
+      // Invalid or malformed data param — ignore, show blank form
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const addBullet = () => {
     if (bullets.length < 10) setBullets([...bullets, ""]);
@@ -109,6 +164,238 @@ export default function AuditPage() {
     : [];
 
   return (
+    <>
+      {/* Form */}
+      <div className="card-glass p-6 sm:p-8 mb-8">
+        {/* Marketplace Toggle */}
+        <div className="mb-6">
+          <label className="text-sm font-medium text-zinc-300 block mb-3">Marketplace</label>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setMarketplace("amazon")}
+              className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium transition-all ${
+                marketplace === "amazon"
+                  ? "rounded-xl border border-sa-200/50 bg-sa-200/10 text-sa-200"
+                  : "rounded-xl border border-white/10 bg-black/25 text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              <ShoppingCart className="size-4" />
+              Amazon
+            </button>
+            <button
+              onClick={() => setMarketplace("ebay")}
+              className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium transition-all ${
+                marketplace === "ebay"
+                  ? "rounded-xl border border-sa-200/50 bg-sa-200/10 text-sa-200"
+                  : "rounded-xl border border-white/10 bg-black/25 text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              <Tag className="size-4" />
+              eBay
+            </button>
+          </div>
+        </div>
+
+        {/* Title */}
+        <div className="mb-6">
+          <label className="text-sm font-medium text-zinc-300 block mb-2">Title</label>
+          <textarea
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Enter your product title..."
+            rows={2}
+            className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-zinc-200 placeholder-zinc-600 focus:border-sa-200/50 focus:outline-none resize-none"
+          />
+        </div>
+
+        {/* Bullets */}
+        <div className="mb-6">
+          <label className="text-sm font-medium text-zinc-300 block mb-2">Bullet Points</label>
+          <div className="space-y-2">
+            {bullets.map((bullet, i) => (
+              <div key={i} className="flex gap-2">
+                <input
+                  value={bullet}
+                  onChange={(e) => updateBullet(i, e.target.value)}
+                  placeholder={`Bullet point ${i + 1}`}
+                  className="flex-1 rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-zinc-200 placeholder-zinc-600 focus:border-sa-200/50 focus:outline-none"
+                />
+                {bullets.length > 1 && (
+                  <button
+                    onClick={() => removeBullet(i)}
+                    className="px-3 text-zinc-500 hover:text-red-400 transition-colors"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          {bullets.length < 10 && (
+            <button
+              onClick={addBullet}
+              className="mt-2 flex items-center gap-1 text-sm text-sa-200 hover:text-sa-100 transition-colors"
+            >
+              <Plus className="size-4" />
+              Add Bullet
+            </button>
+          )}
+        </div>
+
+        {/* Description */}
+        <div className="mb-6">
+          <label className="text-sm font-medium text-zinc-300 block mb-2">Description</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Enter your product description..."
+            rows={5}
+            className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-zinc-200 placeholder-zinc-600 focus:border-sa-200/50 focus:outline-none resize-none"
+          />
+        </div>
+
+        {/* Backend Keywords (Amazon only) */}
+        {marketplace === "amazon" && (
+          <div className="mb-6">
+            <label className="text-sm font-medium text-zinc-300 block mb-2">Backend Keywords</label>
+            <input
+              value={backendKeywords}
+              onChange={(e) => setBackendKeywords(e.target.value)}
+              placeholder="keyword1 keyword2 keyword3..."
+              className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-zinc-200 placeholder-zinc-600 focus:border-sa-200/50 focus:outline-none"
+            />
+            <p className="text-xs text-zinc-500 mt-1">Space-separated, max 250 bytes</p>
+          </div>
+        )}
+
+        {/* Submit */}
+        {error && (
+          <div className="mb-4 flex items-center gap-2 text-red-400 text-sm">
+            <AlertCircle className="size-4 shrink-0" />
+            {error}
+          </div>
+        )}
+
+        <button
+          onClick={handleSubmit}
+          disabled={loading || !title.trim() || !description.trim()}
+          className="btn-primary w-full py-3 text-base gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? (
+            <>
+              <Loader2 className="size-5 animate-spin" />
+              Analyzing...
+            </>
+          ) : (
+            <>
+              <ClipboardCheck className="size-5" />
+              Audit Listing
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Results */}
+      {results && (
+        <div className="space-y-6">
+          {/* Score Overview */}
+          <div className="card-glass p-6 sm:p-8">
+            <p className="label-kicker text-sa-200 mb-4">AUDIT RESULTS</p>
+            <div className="flex items-center gap-6 mb-6">
+              <div className="text-center">
+                <div className={`text-5xl font-bold ${scoreColor(results.score)}`}>
+                  {results.score}
+                </div>
+                <div className="text-xs text-zinc-500 mt-1">out of 100</div>
+              </div>
+              <div
+                className={`px-4 py-2 rounded-xl border text-lg font-bold ${gradeColor(results.grade)}`}
+              >
+                Grade: {results.grade}
+              </div>
+            </div>
+
+            {/* Score bar */}
+            <div className="w-full h-3 rounded-full bg-white/5 overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-700 ${scoreBarColor(results.score)}`}
+                style={{ width: `${results.score}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Breakdown */}
+          <div className="card-glass p-6 sm:p-8">
+            <p className="label-kicker text-sa-200 mb-4">SCORE BREAKDOWN</p>
+            <div className="space-y-4">
+              {results.breakdown.map((item) => (
+                <div key={item.criterion}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm text-zinc-300 capitalize">
+                      {item.criterion.replace(/_/g, " ")}
+                    </span>
+                    <span className={`text-sm font-medium ${scoreColor(item.score)}`}>
+                      {item.score}
+                    </span>
+                  </div>
+                  <div className="w-full h-2 rounded-full bg-white/5 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${scoreBarColor(item.score)}`}
+                      style={{ width: `${item.score}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-zinc-500 mt-1">{item.notes}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Validation Issues */}
+          {sortedValidation.length > 0 && (
+            <div className="card-glass p-6 sm:p-8">
+              <p className="label-kicker text-sa-200 mb-4">
+                ISSUES ({sortedValidation.length})
+              </p>
+              <div className="space-y-3">
+                {sortedValidation.map((issue, i) => (
+                  <div
+                    key={i}
+                    className="card-subtle p-4 flex items-start gap-3"
+                  >
+                    {issue.severity === "error" && (
+                      <AlertCircle className="size-5 text-red-400 shrink-0 mt-0.5" />
+                    )}
+                    {issue.severity === "warning" && (
+                      <AlertTriangle className="size-5 text-amber-400 shrink-0 mt-0.5" />
+                    )}
+                    {issue.severity === "info" && (
+                      <Info className="size-5 text-blue-400 shrink-0 mt-0.5" />
+                    )}
+                    <div>
+                      <div className="text-sm text-zinc-200">{issue.message}</div>
+                      <div className="text-xs text-zinc-500 mt-0.5">
+                        {issue.field} · {issue.rule}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {sortedValidation.length === 0 && (
+            <div className="card-glass p-6 text-center">
+              <p className="text-emerald-400 text-sm">✓ No validation issues found</p>
+            </div>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
+export default function AuditPage() {
+  return (
     <div className="min-h-screen">
       <div className="max-w-4xl mx-auto px-6 py-8">
         {/* Header */}
@@ -122,231 +409,9 @@ export default function AuditPage() {
           </p>
         </div>
 
-        {/* Form */}
-        <div className="card-glass p-6 sm:p-8 mb-8">
-          {/* Marketplace Toggle */}
-          <div className="mb-6">
-            <label className="text-sm font-medium text-zinc-300 block mb-3">Marketplace</label>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setMarketplace("amazon")}
-                className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium transition-all ${
-                  marketplace === "amazon"
-                    ? "rounded-xl border border-sa-200/50 bg-sa-200/10 text-sa-200"
-                    : "rounded-xl border border-white/10 bg-black/25 text-zinc-400 hover:text-zinc-200"
-                }`}
-              >
-                <ShoppingCart className="size-4" />
-                Amazon
-              </button>
-              <button
-                onClick={() => setMarketplace("ebay")}
-                className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium transition-all ${
-                  marketplace === "ebay"
-                    ? "rounded-xl border border-sa-200/50 bg-sa-200/10 text-sa-200"
-                    : "rounded-xl border border-white/10 bg-black/25 text-zinc-400 hover:text-zinc-200"
-                }`}
-              >
-                <Tag className="size-4" />
-                eBay
-              </button>
-            </div>
-          </div>
-
-          {/* Title */}
-          <div className="mb-6">
-            <label className="text-sm font-medium text-zinc-300 block mb-2">Title</label>
-            <textarea
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter your product title..."
-              rows={2}
-              className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-zinc-200 placeholder-zinc-600 focus:border-sa-200/50 focus:outline-none resize-none"
-            />
-          </div>
-
-          {/* Bullets */}
-          <div className="mb-6">
-            <label className="text-sm font-medium text-zinc-300 block mb-2">Bullet Points</label>
-            <div className="space-y-2">
-              {bullets.map((bullet, i) => (
-                <div key={i} className="flex gap-2">
-                  <input
-                    value={bullet}
-                    onChange={(e) => updateBullet(i, e.target.value)}
-                    placeholder={`Bullet point ${i + 1}`}
-                    className="flex-1 rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-zinc-200 placeholder-zinc-600 focus:border-sa-200/50 focus:outline-none"
-                  />
-                  {bullets.length > 1 && (
-                    <button
-                      onClick={() => removeBullet(i)}
-                      className="px-3 text-zinc-500 hover:text-red-400 transition-colors"
-                    >
-                      ×
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-            {bullets.length < 10 && (
-              <button
-                onClick={addBullet}
-                className="mt-2 flex items-center gap-1 text-sm text-sa-200 hover:text-sa-100 transition-colors"
-              >
-                <Plus className="size-4" />
-                Add Bullet
-              </button>
-            )}
-          </div>
-
-          {/* Description */}
-          <div className="mb-6">
-            <label className="text-sm font-medium text-zinc-300 block mb-2">Description</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Enter your product description..."
-              rows={5}
-              className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-zinc-200 placeholder-zinc-600 focus:border-sa-200/50 focus:outline-none resize-none"
-            />
-          </div>
-
-          {/* Backend Keywords (Amazon only) */}
-          {marketplace === "amazon" && (
-            <div className="mb-6">
-              <label className="text-sm font-medium text-zinc-300 block mb-2">Backend Keywords</label>
-              <input
-                value={backendKeywords}
-                onChange={(e) => setBackendKeywords(e.target.value)}
-                placeholder="keyword1 keyword2 keyword3..."
-                className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-zinc-200 placeholder-zinc-600 focus:border-sa-200/50 focus:outline-none"
-              />
-              <p className="text-xs text-zinc-500 mt-1">Space-separated, max 250 bytes</p>
-            </div>
-          )}
-
-          {/* Submit */}
-          {error && (
-            <div className="mb-4 flex items-center gap-2 text-red-400 text-sm">
-              <AlertCircle className="size-4 shrink-0" />
-              {error}
-            </div>
-          )}
-
-          <button
-            onClick={handleSubmit}
-            disabled={loading || !title.trim() || !description.trim()}
-            className="btn-primary w-full py-3 text-base gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="size-5 animate-spin" />
-                Analyzing...
-              </>
-            ) : (
-              <>
-                <ClipboardCheck className="size-5" />
-                Audit Listing
-              </>
-            )}
-          </button>
-        </div>
-
-        {/* Results */}
-        {results && (
-          <div className="space-y-6">
-            {/* Score Overview */}
-            <div className="card-glass p-6 sm:p-8">
-              <p className="label-kicker text-sa-200 mb-4">AUDIT RESULTS</p>
-              <div className="flex items-center gap-6 mb-6">
-                <div className="text-center">
-                  <div className={`text-5xl font-bold ${scoreColor(results.score)}`}>
-                    {results.score}
-                  </div>
-                  <div className="text-xs text-zinc-500 mt-1">out of 100</div>
-                </div>
-                <div
-                  className={`px-4 py-2 rounded-xl border text-lg font-bold ${gradeColor(results.grade)}`}
-                >
-                  Grade: {results.grade}
-                </div>
-              </div>
-
-              {/* Score bar */}
-              <div className="w-full h-3 rounded-full bg-white/5 overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-700 ${scoreBarColor(results.score)}`}
-                  style={{ width: `${results.score}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Breakdown */}
-            <div className="card-glass p-6 sm:p-8">
-              <p className="label-kicker text-sa-200 mb-4">SCORE BREAKDOWN</p>
-              <div className="space-y-4">
-                {results.breakdown.map((item) => (
-                  <div key={item.criterion}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm text-zinc-300 capitalize">
-                        {item.criterion.replace(/_/g, " ")}
-                      </span>
-                      <span className={`text-sm font-medium ${scoreColor(item.score)}`}>
-                        {item.score}
-                      </span>
-                    </div>
-                    <div className="w-full h-2 rounded-full bg-white/5 overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-500 ${scoreBarColor(item.score)}`}
-                        style={{ width: `${item.score}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-zinc-500 mt-1">{item.notes}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Validation Issues */}
-            {sortedValidation.length > 0 && (
-              <div className="card-glass p-6 sm:p-8">
-                <p className="label-kicker text-sa-200 mb-4">
-                  ISSUES ({sortedValidation.length})
-                </p>
-                <div className="space-y-3">
-                  {sortedValidation.map((issue, i) => (
-                    <div
-                      key={i}
-                      className="card-subtle p-4 flex items-start gap-3"
-                    >
-                      {issue.severity === "error" && (
-                        <AlertCircle className="size-5 text-red-400 shrink-0 mt-0.5" />
-                      )}
-                      {issue.severity === "warning" && (
-                        <AlertTriangle className="size-5 text-amber-400 shrink-0 mt-0.5" />
-                      )}
-                      {issue.severity === "info" && (
-                        <Info className="size-5 text-blue-400 shrink-0 mt-0.5" />
-                      )}
-                      <div>
-                        <div className="text-sm text-zinc-200">{issue.message}</div>
-                        <div className="text-xs text-zinc-500 mt-0.5">
-                          {issue.field} · {issue.rule}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {sortedValidation.length === 0 && (
-              <div className="card-glass p-6 text-center">
-                <p className="text-emerald-400 text-sm">✓ No validation issues found</p>
-              </div>
-            )}
-          </div>
-        )}
+        <Suspense fallback={null}>
+          <AuditContent />
+        </Suspense>
       </div>
     </div>
   );
