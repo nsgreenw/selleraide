@@ -3,6 +3,24 @@ import type { ListingContent, Marketplace } from "@/types";
 import { getMarketplaceProfile } from "@/lib/marketplace/registry";
 import { stripHtml } from "@/lib/utils/sanitize";
 
+const APLUS_MODULE_LABELS: Record<string, string> = {
+  STANDARD_HEADER_IMAGE_TEXT: "Hero Banner",
+  STANDARD_SINGLE_SIDE_IMAGE: "Feature Highlight",
+  STANDARD_THREE_IMAGE_TEXT: "Three-Column Features",
+  STANDARD_FOUR_IMAGE_TEXT: "Four-Column Features",
+  STANDARD_SINGLE_IMAGE_HIGHLIGHTS: "Benefits & Highlights",
+  STANDARD_SINGLE_IMAGE_SPECS_DETAIL: "Specs Detail",
+  STANDARD_TECH_SPECS: "Technical Specifications",
+  STANDARD_PRODUCT_DESCRIPTION: "Brand Story",
+  STANDARD_FOUR_IMAGE_TEXT_QUADRANT: "Feature Quadrant",
+  STANDARD_MULTIPLE_IMAGE_TEXT: "Image Carousel",
+  STANDARD_COMPARISON_TABLE: "Comparison Table",
+  STANDARD_TEXT: "Text Block",
+  STANDARD_COMPANY_LOGO: "Brand Logo",
+  STANDARD_IMAGE_TEXT_OVERLAY: "Full-Width Banner",
+  STANDARD_IMAGE_SIDEBAR: "Image Sidebar",
+};
+
 export function generateListingPDF(content: ListingContent, marketplace: Marketplace): Buffer {
   const profile = getMarketplaceProfile(marketplace);
   const doc = new jsPDF();
@@ -115,6 +133,28 @@ export function generateListingPDF(content: ListingContent, marketplace: Marketp
       photo.tips.forEach((tip) => {
         addText(`  • ${tip}`, 9);
       });
+    });
+  }
+
+  // A+ Content Modules (Amazon)
+  if (content.a_plus_modules && content.a_plus_modules.length > 0) {
+    y += 4;
+    addText("A+ CONTENT MODULES", 8, true);
+    y -= 2;
+    content.a_plus_modules.forEach((mod) => {
+      const label = APLUS_MODULE_LABELS[mod.type] ?? mod.type;
+      addText(`Module ${mod.position}: ${label} (${mod.type})`, 10, true);
+      if (mod.headline) addText(`  Headline: ${mod.headline}`, 10);
+      if (mod.body) addText(`  Body: ${mod.body}`, 9);
+      if (mod.image?.alt_text) {
+        addText(`  Image Alt Text (${mod.image.alt_text.length}/100 chars): ${mod.image.alt_text}`, 9);
+      }
+      if (mod.images && mod.images.length > 0) {
+        mod.images.forEach((img, j) => {
+          if (img.alt_text) addText(`  Image ${j + 1} Alt Text (${img.alt_text.length}/100 chars): ${img.alt_text}`, 9);
+        });
+      }
+      y += 2;
     });
   }
 

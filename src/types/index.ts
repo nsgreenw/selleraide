@@ -56,6 +56,7 @@ export interface ProductContext {
   price_point?: string;
   compliance_info?: string;
   research_data?: ResearchData;
+  aplus_module_count?: number; // set by API route based on subscription tier
 }
 
 export interface ResearchData {
@@ -110,11 +111,38 @@ export interface ListingContent {
   category_hint?: string;
 }
 
+export type APlusModuleType =
+  | "STANDARD_HEADER_IMAGE_TEXT"
+  | "STANDARD_IMAGE_TEXT_OVERLAY"
+  | "STANDARD_SINGLE_SIDE_IMAGE"
+  | "STANDARD_IMAGE_SIDEBAR"
+  | "STANDARD_THREE_IMAGE_TEXT"
+  | "STANDARD_FOUR_IMAGE_TEXT"
+  | "STANDARD_FOUR_IMAGE_TEXT_QUADRANT"
+  | "STANDARD_MULTIPLE_IMAGE_TEXT"
+  | "STANDARD_SINGLE_IMAGE_HIGHLIGHTS"
+  | "STANDARD_SINGLE_IMAGE_SPECS_DETAIL"
+  | "STANDARD_TEXT"
+  | "STANDARD_PRODUCT_DESCRIPTION"
+  | "STANDARD_TECH_SPECS"
+  | "STANDARD_COMPARISON_TABLE"
+  | "STANDARD_COMPANY_LOGO";
+
+export interface APlusImageSlot {
+  alt_text: string;       // max 100 chars — keyword-rich, partially indexed
+  image_guidance: string; // describes the photo to use (for the seller)
+}
+
 export interface APlusModule {
-  type: string;
+  type: APlusModuleType;
+  position: number;           // 1–7
   headline?: string;
   body?: string;
-  image_alt?: string;
+  caption?: string;
+  image?: APlusImageSlot;     // primary image slot
+  images?: APlusImageSlot[];  // for 3/4-image module types
+  highlights?: string[];      // STANDARD_SINGLE_IMAGE_HIGHLIGHTS bullets (max 8, 100 chars each)
+  specs?: Record<string, string>; // STANDARD_TECH_SPECS label→value pairs
 }
 
 export interface PhotoRecommendation {

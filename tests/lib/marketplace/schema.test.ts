@@ -14,6 +14,7 @@ describe("Amazon marketplace profile schema", () => {
       "attributes",
       "compliance_notes",
       "assumptions",
+      "a_plus_modules",
     ]);
   });
 

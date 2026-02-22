@@ -22,6 +22,15 @@ Copy `.env.local.example` to `.env.local`. Required: `NEXT_PUBLIC_SUPABASE_URL`,
 
 **SellerAide** is an AI-powered e-commerce listing generator. Users chat with Gemini AI to describe their product, the system researches keywords/trends, generates marketplace-optimized listings, runs QA validation and scoring, and exports to PDF/CSV.
 
+### API Routes (17 total)
+- `auth/` — login, logout, signup, reset-password (all require no prior auth)
+- `chat/` — create conversation (`POST /chat`), get/delete (`/chat/[id]`), send message (`/chat/[id]/messages`)
+- `listings/` — list/create (`/listings`), get/update/delete (`/listings/[id]`), refine (`/listings/[id]/refine`), export PDF/CSV (`/listings/[id]/export`)
+- `subscription/` — get status (`/subscription`), create checkout (`/subscription/checkout`), billing portal (`/subscription/portal`)
+- `generate/` — standalone listing generation (used internally)
+- `audit/` — **public** (no auth required) QA endpoint; calls `analyzeListing()` directly, useful for testing QA logic
+- `webhooks/stripe/` — receives Stripe events, syncs subscription state to profiles
+
 ### Chat State Machine (core flow)
 Conversations progress through phases: `gathering` → `researching` → `generating` → `refining` → `completed`. The state machine lives in `src/lib/gemini/chat.ts` — it reads the current conversation status, calls the appropriate Gemini function for that phase, then advances status. The `refining` ↔ `generating` loop lets users iterate on listings through chat.
 
@@ -29,7 +38,7 @@ Conversations progress through phases: `gathering` → `researching` → `genera
 Each marketplace (Amazon, Walmart, eBay, Shopify) is a self-contained `MarketplaceProfile` object (`src/lib/marketplace/`) that defines field constraints (char/byte limits, HTML rules), banned terms with regex patterns, scoring weights, keyword strategy, photo slots, and a `listingShape` array of expected JSON keys. These profiles drive everything: Gemini prompt construction, listing validation, and QA scoring. To add a new marketplace, create a profile file and register it in `registry.ts`.
 
 ### QA System (`src/lib/qa/`)
-Two-stage pipeline: `validator.ts` runs deterministic field checks (lengths, banned terms, HTML compliance) producing `QAResult[]` sorted by severity. `scorer.ts` computes a weighted 0–100 score across ~8 criteria (title keyword richness, description depth, compliance coverage, etc.) using per-marketplace weights. Combined via `analyzeListing()` in `index.ts`.
+Two-stage pipeline: `validator.ts` runs deterministic field checks (lengths, banned terms, HTML compliance) producing `QAResult[]` sorted by severity. `scorer.ts` computes a weighted 0–100 score across ~8 criteria (title keyword richness, description depth, compliance coverage, etc.) using per-marketplace weights. Combined via `analyzeListing()` in `index.ts`. Tests live in `tests/lib/qa/` (scorer.test.ts, validator.test.ts).
 
 ### API Route Pattern
 All API routes follow: `requireAuth()` from `src/lib/api/auth-guard.ts` → parse body with Zod schema from `src/lib/api/contracts.ts` → business logic → respond with `jsonSuccess(data)` or `jsonError(message, status)` from `src/lib/api/response.ts`.
@@ -49,6 +58,7 @@ Four tiers (free/starter/pro/agency) defined in `src/lib/subscription/plans.ts` 
 - **Fonts**: Manrope (primary body/headings), IBM Plex Mono (labels, technical text). Both loaded via `next/font`.
 - **Icons**: `lucide-react` exclusively — no other icon libraries.
 - **HTML sanitization**: DOMPurify via `src/lib/utils/sanitize.ts` for any AI-generated HTML content.
+- **AI output normalization**: `src/lib/gemini/normalization.ts` provides `toSafeString()` and related helpers for safely coercing Gemini's JSON output to expected types before validation.
 - **Types**: All shared TypeScript types live in `src/types/index.ts`.
 - **Route groups**: `(auth)` for public auth pages, `(app)` for authenticated pages wrapped in `AppProvider`.
 - **Glob tool caveat**: Parenthesized route groups like `(app)` break the Glob tool — use Grep or Bash find for those paths.

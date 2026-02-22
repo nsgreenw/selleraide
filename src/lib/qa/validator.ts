@@ -1,4 +1,4 @@
-import type { ListingContent, Marketplace, QAResult } from "@/types";
+import type { ListingContent, Marketplace, QAResult, APlusModuleType } from "@/types";
 import { getMarketplaceProfile } from "@/lib/marketplace/registry";
 import type { FieldConstraint, BannedTermRule } from "@/lib/marketplace/types";
 
@@ -410,6 +410,143 @@ function checkMetadataFields(
   return results;
 }
 
+// ─── A+ module checks ─────────────────────────────────────────────────
+
+const VALID_APLUS_TYPES = new Set<APlusModuleType>([
+  "STANDARD_HEADER_IMAGE_TEXT",
+  "STANDARD_IMAGE_TEXT_OVERLAY",
+  "STANDARD_SINGLE_SIDE_IMAGE",
+  "STANDARD_IMAGE_SIDEBAR",
+  "STANDARD_THREE_IMAGE_TEXT",
+  "STANDARD_FOUR_IMAGE_TEXT",
+  "STANDARD_FOUR_IMAGE_TEXT_QUADRANT",
+  "STANDARD_MULTIPLE_IMAGE_TEXT",
+  "STANDARD_SINGLE_IMAGE_HIGHLIGHTS",
+  "STANDARD_SINGLE_IMAGE_SPECS_DETAIL",
+  "STANDARD_TEXT",
+  "STANDARD_PRODUCT_DESCRIPTION",
+  "STANDARD_TECH_SPECS",
+  "STANDARD_COMPARISON_TABLE",
+  "STANDARD_COMPANY_LOGO",
+]);
+
+function checkAPlusModules(
+  content: ListingContent,
+  marketplace: Marketplace,
+  bannedTerms: BannedTermRule[]
+): QAResult[] {
+  const results: QAResult[] = [];
+
+  if (marketplace !== "amazon") return results;
+
+  const modules = content.a_plus_modules;
+  if (!modules || modules.length === 0) {
+    results.push({
+      field: "a_plus_modules",
+      rule: "aplus_missing",
+      severity: "info",
+      message: "No A+ Content modules generated — A+ Content improves conversion rates on Amazon listings",
+    });
+    return results;
+  }
+
+  for (let i = 0; i < modules.length; i++) {
+    const mod = modules[i];
+    const label = `A+ module ${i + 1}`;
+
+    // Type validation
+    if (!VALID_APLUS_TYPES.has(mod.type)) {
+      results.push({
+        field: "a_plus_modules",
+        rule: "aplus_invalid_type",
+        severity: "error",
+        message: `${label} has unrecognized type "${mod.type}"`,
+      });
+    }
+
+    // Position range
+    if (mod.position < 1 || mod.position > 7) {
+      results.push({
+        field: "a_plus_modules",
+        rule: "aplus_position_range",
+        severity: "warning",
+        message: `${label} has position ${mod.position} — valid range is 1–7`,
+      });
+    }
+
+    // Image alt_text checks
+    const imageSlots = [
+      ...(mod.image ? [{ slot: "primary", ...mod.image }] : []),
+      ...(mod.images ?? []).map((img, j) => ({ slot: `image[${j}]`, ...img })),
+    ];
+    for (const slot of imageSlots) {
+      if (!slot.alt_text || slot.alt_text.trim().length === 0) {
+        results.push({
+          field: "a_plus_modules",
+          rule: "aplus_alt_text_missing",
+          severity: "info",
+          message: `${label} ${slot.slot} image is missing alt_text — alt text is partially indexed by Amazon`,
+        });
+      } else {
+        const altLen = new TextEncoder().encode(slot.alt_text).length;
+        if (altLen > 100) {
+          results.push({
+            field: "a_plus_modules",
+            rule: "aplus_alt_text_too_long",
+            severity: "error",
+            message: `${label} ${slot.slot} alt_text is ${altLen} bytes, max is 100`,
+          });
+        } else if (slot.alt_text.trim().length < 10) {
+          results.push({
+            field: "a_plus_modules",
+            rule: "aplus_alt_text_too_short",
+            severity: "warning",
+            message: `${label} ${slot.slot} alt_text is only ${slot.alt_text.trim().length} chars — use keyword-rich alt text for indexing benefit`,
+          });
+        }
+      }
+    }
+
+    // Highlights length
+    if (mod.highlights) {
+      for (let j = 0; j < mod.highlights.length; j++) {
+        const h = mod.highlights[j];
+        if (h.length > 100) {
+          results.push({
+            field: "a_plus_modules",
+            rule: "aplus_highlight_too_long",
+            severity: "warning",
+            message: `${label} highlight ${j + 1} is ${h.length} chars — max recommended is 100`,
+          });
+        }
+      }
+    }
+
+    // Banned terms in headline and body
+    const textFields: Array<{ text: string; name: string }> = [];
+    if (mod.headline) textFields.push({ text: mod.headline, name: "headline" });
+    if (mod.body) textFields.push({ text: mod.body, name: "body" });
+    if (mod.caption) textFields.push({ text: mod.caption, name: "caption" });
+
+    for (const { text, name } of textFields) {
+      for (const rule of bannedTerms) {
+        rule.pattern.lastIndex = 0;
+        const match = rule.pattern.exec(text);
+        if (match) {
+          results.push({
+            field: "a_plus_modules",
+            rule: "banned_term",
+            severity: rule.severity,
+            message: `Banned term '${rule.term}' found in A+ module ${i + 1} ${name}: ${rule.reason}`,
+          });
+        }
+      }
+    }
+  }
+
+  return results;
+}
+
 // ─── Main export ──────────────────────────────────────────────────────
 
 /**
@@ -427,6 +564,7 @@ export function validateListing(
   const structuralResults = checkStructuralRules(content, profile.fields, marketplace);
   const photoResults = checkPhotoRecommendations(content);
   const metadataResults = checkMetadataFields(content);
+  const aplusResults = checkAPlusModules(content, marketplace, profile.bannedTerms);
 
   return sortBySeverity([
     ...fieldResults,
@@ -434,5 +572,6 @@ export function validateListing(
     ...structuralResults,
     ...photoResults,
     ...metadataResults,
+    ...aplusResults,
   ]);
 }

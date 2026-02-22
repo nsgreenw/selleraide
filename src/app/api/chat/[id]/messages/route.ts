@@ -49,17 +49,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const conv = conversation as Conversation;
 
+    // Always fetch profile for usage check + A+ module count
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("subscription_tier, listings_used_this_period")
+      .eq("id", user.id)
+      .single();
+
     // Check usage limits if the conversation is about to generate a listing
     if (
       conv.status === "researching" ||
       conv.status === "generating"
     ) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("subscription_tier, listings_used_this_period")
-        .eq("id", user.id)
-        .single();
-
       if (profile) {
         const allowed = canGenerateListing(
           profile.subscription_tier,
@@ -74,6 +75,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         }
       }
     }
+
+    // Derive A+ module count from subscription tier
+    // Starter gets 4-module stack; Pro/Agency get full 7-module stack
+    const aplusModuleCount = profile?.subscription_tier === "starter" ? 4 : 7;
 
     // Insert user message into DB
     const { data: userMsg, error: userMsgError } = await supabase
@@ -92,7 +97,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Call the chat engine (this saves assistant message + updates status internally)
-    const chatResult = await handleChatMessage(id, content, supabase);
+    const chatResult = await handleChatMessage(id, content, supabase, { aplusModuleCount });
 
     // Use the assistant message returned directly from handleChatMessage
     // (avoids race condition with re-fetching by created_at)

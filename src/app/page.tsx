@@ -340,6 +340,12 @@ export default function Home() {
                 <li className="flex items-center gap-2">
                   <Check className="size-4 text-zinc-500 shrink-0" />
                   <span className="text-sm text-zinc-400">
+                    A+ Content (4-module stack)
+                  </span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="size-4 text-zinc-500 shrink-0" />
+                  <span className="text-sm text-zinc-400">
                     Full QA & scoring
                   </span>
                 </li>
@@ -394,6 +400,12 @@ export default function Home() {
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="size-4 text-sa-200 shrink-0" />
+                  <span className="text-sm text-zinc-400 font-medium text-zinc-300">
+                    A+ Content (full 7-module stack)
+                  </span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="size-4 text-sa-200 shrink-0" />
                   <span className="text-sm text-zinc-400">
                     Full QA & scoring
                   </span>
@@ -443,6 +455,12 @@ export default function Home() {
                   <Check className="size-4 text-zinc-500 shrink-0" />
                   <span className="text-sm text-zinc-400">
                     Amazon + eBay
+                  </span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="size-4 text-zinc-500 shrink-0" />
+                  <span className="text-sm text-zinc-400">
+                    A+ Content (7-module stack)
                   </span>
                 </li>
                 <li className="flex items-center gap-2">

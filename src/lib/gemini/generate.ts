@@ -6,7 +6,7 @@ import type {
 } from "@/types";
 import { getMarketplaceProfile } from "@/lib/marketplace/registry";
 import { getGeminiGenerateModel } from "./client";
-import { normalizeStringArray, normalizeStringRecord } from "./normalization";
+import { normalizeStringArray, normalizeStringRecord, normalizeAPlusModules } from "./normalization";
 
 /**
  * Generates a complete listing using Gemini, based on the product context,
@@ -17,6 +17,7 @@ export async function generateListing(
   marketplace: Marketplace
 ): Promise<ListingContent> {
   const profile = getMarketplaceProfile(marketplace);
+  const aplusModuleCount = productContext.aplus_module_count ?? 4;
 
   const researchSection = productContext.research_data
     ? `
@@ -46,6 +47,12 @@ RESEARCH DATA:
     .map((tip) => `  - ${tip}`)
     .join("\n");
 
+  // Inject module count into promptModifier (replace placeholder)
+  const resolvedPromptModifier = profile.promptModifier.replace(
+    "{APLUS_MODULE_COUNT}",
+    String(aplusModuleCount)
+  );
+
   const prompt = `You are an expert ecommerce copywriter generating a product listing for ${profile.displayName}.
 
 PRODUCT INFORMATION:
@@ -60,7 +67,7 @@ PRODUCT INFORMATION:
 ${researchSection}
 
 MARKETPLACE RULES:
-${profile.promptModifier}
+${resolvedPromptModifier}
 
 REQUIRED JSON FIELDS:
 ${fieldInstructions}
@@ -180,6 +187,14 @@ Generate the listing now. Respond with ONLY a valid JSON object.`;
   }
   if (listingData.category_hint) {
     content.category_hint = String(listingData.category_hint);
+  }
+
+  // Map A+ Content modules (Amazon only)
+  if (Array.isArray(listingData.a_plus_modules)) {
+    const modules = normalizeAPlusModules(listingData.a_plus_modules);
+    if (modules.length > 0) {
+      content.a_plus_modules = modules;
+    }
   }
 
   // Add photo recommendations from the marketplace profile

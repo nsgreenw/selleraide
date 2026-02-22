@@ -27,9 +27,9 @@ export const amazonProfile: MarketplaceProfile = {
       name: "description",
       maxLength: 2000,
       required: true,
-      htmlAllowed: true,
+      htmlAllowed: false,
       description:
-        "Product description. Supports basic HTML (<br>, <b>, <ul>, <li>). Expands on bullets with storytelling.",
+        "Product description. Plain text only — HTML deprecated since 2021. Expands on bullets with storytelling. Remains indexed by A9 even when A+ Content is active.",
     },
     {
       name: "backend_keywords",
@@ -183,7 +183,7 @@ export const amazonProfile: MarketplaceProfile = {
     },
     {
       criterion: "description_completeness",
-      weight: 0.15,
+      weight: 0.10,
       description: "Description depth/clarity",
     },
     {
@@ -193,8 +193,13 @@ export const amazonProfile: MarketplaceProfile = {
     },
     {
       criterion: "attribute_completeness",
-      weight: 0.10,
+      weight: 0.05,
       description: "Attribute completeness",
+    },
+    {
+      criterion: "a_plus_content",
+      weight: 0.10,
+      description: "A+ Content module quality",
     },
   ],
 
@@ -341,7 +346,37 @@ GENERAL:
 - Never use banned terms: #1, best seller, guarantee, 100%, free shipping, act now, limited time, FDA approved, clinically proven, cure, treats.
 - No emojis anywhere in the listing.
 - Write at an 8th-grade reading level for maximum accessibility.
-- Every claim must be substantiated or phrased as a benefit rather than an absolute.`,
+- Every claim must be substantiated or phrased as a benefit rather than an absolute.
+
+A+ CONTENT MODULE RULES:
+Generate exactly {APLUS_MODULE_COUNT} A+ Content modules in the "a_plus_modules" JSON array.
+Use the "aplus_module_count" value from the product context to determine how many modules to generate (default: 4).
+
+Each module object must have:
+- "type": one of the STANDARD_* module types listed below
+- "position": sequential integer starting at 1
+- "headline": conversion-focused headline (module-appropriate length)
+- "body": persuasive copy for conversion — NOT keyword-optimized
+- "image": { "alt_text": "100-char max, keyword-rich", "image_guidance": "describe the ideal photo" }
+
+INDEXING RULES (critical):
+- A+ body text is NOT indexed by Amazon's A9 search algorithm. Write for conversion, not SEO.
+- Image alt_text IS partially indexed. Use relevant product keywords in every alt_text field.
+- The standard "description" field remains indexed even when A+ Content is active. Keep it keyword-rich.
+
+DEFAULT 7-MODULE STACK (use all 7 for Pro/Agency; use modules 1, 2, 3, 5 for 4-module Starter):
+1. STANDARD_HEADER_IMAGE_TEXT — Hero banner: brand story headline + aspirational body (min 970x600px image)
+2. STANDARD_SINGLE_SIDE_IMAGE (imagePositionType: LEFT) — Primary benefit/USP
+3. STANDARD_SINGLE_SIDE_IMAGE (imagePositionType: RIGHT) — Secondary feature/differentiator
+4. STANDARD_THREE_IMAGE_TEXT — Three use cases or target customer segments (3 images required)
+5. STANDARD_SINGLE_IMAGE_HIGHLIGHTS — "Why choose us": body text + up to 5 bullet highlights
+6. STANDARD_TECH_SPECS — 4–8 key specifications as "specs" record (label: value pairs)
+7. STANDARD_PRODUCT_DESCRIPTION — Brand storytelling body (up to 6000 chars, no image required)
+
+For 4-module stack: generate modules 1, 2, 3, 5 (skip 4, 6, 7).
+
+BANNED TERMS apply to all A+ text fields — same list as the main listing.
+Never use pricing, shipping, or time-sensitive language in A+ content.`,
 
   listingShape: [
     "title",
@@ -351,5 +386,6 @@ GENERAL:
     "attributes",
     "compliance_notes",
     "assumptions",
+    "a_plus_modules",
   ],
 };

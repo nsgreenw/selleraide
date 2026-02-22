@@ -25,7 +25,8 @@ interface ChatResult {
 export async function handleChatMessage(
   conversationId: string,
   userMessage: string,
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  options?: { aplusModuleCount?: number }
 ): Promise<ChatResult> {
   // 1. Fetch conversation with messages
   const { data: conversation, error: convError } = await supabase
@@ -99,7 +100,11 @@ export async function handleChatMessage(
   // --- GENERATING phase: generate the listing ---
   if (currentStatus === "generating") {
     try {
-      listing = await generateListing(productContext, conv.marketplace);
+      const productContextWithCount = {
+        ...productContext,
+        aplus_module_count: options?.aplusModuleCount ?? 4,
+      };
+      listing = await generateListing(productContextWithCount, conv.marketplace);
 
       // Transition to refining
       await supabase

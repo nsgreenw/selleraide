@@ -771,6 +771,67 @@ const scoreConditionDisclosure: CriterionFn = ({ content }) => {
   };
 };
 
+// ── a_plus_content ────────────────────────────────────────────────────
+// Scores the quality of A+ Content modules (Amazon only).
+
+const scoreAPlusContent: CriterionFn = ({ content, marketplace }) => {
+  if (marketplace !== "amazon") {
+    return { score: 100, notes: "N/A for this marketplace" };
+  }
+
+  const modules = content.a_plus_modules;
+  if (!modules || modules.length === 0) {
+    return { score: 0, notes: "No A+ Content modules present" };
+  }
+
+  let score = 30; // base for having modules
+  const notes: string[] = [`${modules.length} module(s) present`];
+
+  // +20 if all modules have body text
+  const allHaveBody = modules.every((m) => m.body && m.body.trim().length > 0);
+  if (allHaveBody) {
+    score += 20;
+    notes.push("all modules have body text");
+  }
+
+  // +20 if all image slots have alt_text populated and within limit
+  const modulesWithImages = modules.filter((m) => m.image || (m.images && m.images.length > 0));
+  if (modulesWithImages.length > 0) {
+    const allHaveAlt = modulesWithImages.every((m) => {
+      if (m.image) return m.image.alt_text && m.image.alt_text.trim().length > 0 && m.image.alt_text.length <= 100;
+      if (m.images) return m.images.every((img) => img.alt_text && img.alt_text.trim().length > 0 && img.alt_text.length <= 100);
+      return false;
+    });
+    if (allHaveAlt) {
+      score += 20;
+      notes.push("all image alt texts populated");
+    }
+
+    // +15 if alt_text strings average ≥20 chars (keyword-rich)
+    const allAltTexts: string[] = [];
+    for (const m of modulesWithImages) {
+      if (m.image?.alt_text) allAltTexts.push(m.image.alt_text);
+      if (m.images) allAltTexts.push(...m.images.map((img) => img.alt_text).filter(Boolean));
+    }
+    if (allAltTexts.length > 0) {
+      const avgLen = allAltTexts.reduce((s, t) => s + t.length, 0) / allAltTexts.length;
+      if (avgLen >= 20) {
+        score += 15;
+        notes.push(`avg alt text ${Math.round(avgLen)} chars`);
+      }
+    }
+  }
+
+  // +15 if module variety: ≥3 distinct types used
+  const distinctTypes = new Set(modules.map((m) => m.type));
+  if (distinctTypes.size >= 3) {
+    score += 15;
+    notes.push(`${distinctTypes.size} distinct module types`);
+  }
+
+  return { score: Math.min(100, score), notes: notes.join(", ") };
+};
+
 // ── listing_completeness ──────────────────────────────────────────────
 // Checks eBay shipping/returns/category presence.
 
@@ -807,6 +868,7 @@ export const CRITERION_FUNCTIONS: Record<string, CriterionFn> = {
   condition_disclosure: scoreConditionDisclosure,
   listing_completeness: scoreListingCompleteness,
   item_specifics_completeness: scoreItemSpecificsCompleteness,
+  a_plus_content: scoreAPlusContent,
 };
 
 // ─── Main export ──────────────────────────────────────────────────────
