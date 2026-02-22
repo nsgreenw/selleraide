@@ -14,8 +14,8 @@ export default function PrivacyPolicy() {
 
       <p>
         SellerAide (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) operates the website at{" "}
-        <Link href="https://selleraide.vercel.app" className="text-sa-200 hover:underline">
-          selleraide.vercel.app
+        <Link href="https://selleraide.com" className="text-sa-200 hover:underline">
+          selleraide.com
         </Link>{" "}
         (the &quot;Service&quot;). This Privacy Policy explains how we collect, use, disclose, and
         safeguard your information when you use our Service.

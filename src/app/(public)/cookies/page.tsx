@@ -15,8 +15,8 @@ export default function CookiePolicy() {
       <p>
         This Cookie Policy explains how SellerAide (&quot;we,&quot; &quot;us,&quot; or
         &quot;our&quot;) uses cookies and similar tracking technologies on our website at{" "}
-        <Link href="https://selleraide.vercel.app" className="text-sa-200 hover:underline">
-          selleraide.vercel.app
+        <Link href="https://selleraide.com" className="text-sa-200 hover:underline">
+          selleraide.com
         </Link>.
       </p>
 

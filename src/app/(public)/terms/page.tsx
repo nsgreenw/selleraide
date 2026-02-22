@@ -14,8 +14,8 @@ export default function TermsOfService() {
 
       <p>
         Welcome to SellerAide. By accessing or using our website at{" "}
-        <Link href="https://selleraide.vercel.app" className="text-sa-200 hover:underline">
-          selleraide.vercel.app
+        <Link href="https://selleraide.com" className="text-sa-200 hover:underline">
+          selleraide.com
         </Link>{" "}
         (the &quot;Service&quot;), you agree to be bound by these Terms of Service
         (&quot;Terms&quot;). If you do not agree, do not use the Service.
