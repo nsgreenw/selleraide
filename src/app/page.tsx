@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import { Logo } from "@/components/ui/logo";
 import {
   Sparkles,
@@ -14,6 +17,8 @@ import {
 } from "lucide-react";
 
 export default function Home() {
+  const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("monthly");
+
   return (
     <div className="min-h-screen">
       {/* ── Navigation Bar ── */}
@@ -276,9 +281,31 @@ export default function Home() {
             <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-zinc-100 mb-4">
               Simple, transparent pricing
             </h2>
-            <p className="text-zinc-400">
+            <p className="text-zinc-400 mb-5">
               Starter and Pro include a 7-day free trial. Monthly and yearly billing available.
             </p>
+            <div className="inline-flex rounded-lg border border-white/10 bg-black/30 p-1 text-sm">
+              <button
+                onClick={() => setBillingInterval("monthly")}
+                className={`rounded-md px-4 py-2 transition ${
+                  billingInterval === "monthly"
+                    ? "bg-sa-200 text-zinc-950"
+                    : "text-zinc-400 hover:text-zinc-200"
+                }`}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setBillingInterval("yearly")}
+                className={`rounded-md px-4 py-2 transition ${
+                  billingInterval === "yearly"
+                    ? "bg-sa-200 text-zinc-950"
+                    : "text-zinc-400 hover:text-zinc-200"
+                }`}
+              >
+                Yearly
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -287,11 +314,12 @@ export default function Home() {
               <p className="label-kicker text-zinc-500 mb-3">STARTER</p>
               <div className="mb-1">
                 <span className="text-3xl font-semibold text-zinc-100">
-                  $19
+                  {billingInterval === "monthly" ? "$19" : "$199"}
                 </span>
-                <span className="text-sm text-zinc-500"> /month</span>
+                <span className="text-sm text-zinc-500">
+                  {billingInterval === "monthly" ? " /month" : " /year"}
+                </span>
               </div>
-              <p className="text-xs text-zinc-500 mb-1">or $199/year (save 13%)</p>
               <div className="border-t border-white/10 my-4" />
               <ul className="space-y-2 mb-6">
                 <li className="flex items-center gap-2">
@@ -326,7 +354,7 @@ export default function Home() {
                 </li>
               </ul>
               <Link href="/signup" className="btn-primary w-full mt-6">
-                Start Free Trial
+                Start 7-Day Free Trial
               </Link>
             </div>
 
@@ -337,10 +365,13 @@ export default function Home() {
               </span>
               <p className="label-kicker text-sa-200 mb-3">PRO</p>
               <div className="mb-1">
-                <span className="text-3xl font-semibold text-sa-100">$49</span>
-                <span className="text-sm text-zinc-500"> /month</span>
+                <span className="text-3xl font-semibold text-sa-100">
+                  {billingInterval === "monthly" ? "$49" : "$499"}
+                </span>
+                <span className="text-sm text-zinc-500">
+                  {billingInterval === "monthly" ? " /month" : " /year"}
+                </span>
               </div>
-              <p className="text-xs text-zinc-500 mb-1">or $499/year (save 15%)</p>
               <div className="border-t border-white/10 my-4" />
               <ul className="space-y-2 mb-6">
                 <li className="flex items-center gap-2">
@@ -381,7 +412,7 @@ export default function Home() {
                 </li>
               </ul>
               <Link href="/signup" className="btn-primary w-full mt-6">
-                Start Free Trial
+                Start 7-Day Free Trial
               </Link>
             </div>
 

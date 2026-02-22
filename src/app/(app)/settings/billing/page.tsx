@@ -44,6 +44,7 @@ export default function BillingPage() {
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   const [billingError, setBillingError] = useState<string | null>(null);
+  const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("monthly");
 
   useEffect(() => {
     async function fetchSubscription() {
@@ -70,7 +71,7 @@ export default function BillingPage() {
       const response = await fetch("/api/subscription/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan_id: planId, interval: "monthly" }),
+        body: JSON.stringify({ plan_id: planId, interval: billingInterval }),
       });
 
       const raw = await response.text();
@@ -199,7 +200,31 @@ export default function BillingPage() {
 
       {/* Plan Comparison */}
       <div>
-        <h2 className="label-kicker text-zinc-400 mb-4">Plans</h2>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="label-kicker text-zinc-400">Plans</h2>
+          <div className="inline-flex rounded-lg border border-white/10 bg-black/30 p-1 text-xs">
+            <button
+              onClick={() => setBillingInterval("monthly")}
+              className={`rounded-md px-3 py-1.5 transition ${
+                billingInterval === "monthly"
+                  ? "bg-sa-200 text-zinc-950"
+                  : "text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setBillingInterval("yearly")}
+              className={`rounded-md px-3 py-1.5 transition ${
+                billingInterval === "yearly"
+                  ? "bg-sa-200 text-zinc-950"
+                  : "text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              Yearly
+            </button>
+          </div>
+        </div>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {tierOrder.map((tierId) => {
             const plan = PLANS[tierId];
@@ -236,9 +261,11 @@ export default function BillingPage() {
                   ) : (
                     <>
                       <span className="text-2xl font-bold text-zinc-100">
-                        ${plan.priceMonthly}
+                        ${billingInterval === "monthly" ? plan.priceMonthly : plan.priceYearly}
                       </span>
-                      <span className="text-xs text-zinc-500">/mo</span>
+                      <span className="text-xs text-zinc-500">
+                        {billingInterval === "monthly" ? "/mo" : "/yr"}
+                      </span>
                     </>
                   )}
                 </div>
