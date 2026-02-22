@@ -32,6 +32,7 @@ function AuditContent() {
   const [bullets, setBullets] = useState<string[]>([""]);
   const [description, setDescription] = useState("");
   const [backendKeywords, setBackendKeywords] = useState("");
+  const [aPlusModules, setAPlusModules] = useState<unknown[]>([]);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<AuditResults | null>(null);
   const [error, setError] = useState("");
@@ -53,12 +54,14 @@ function AuditContent() {
           : [""];
       const decodedDescription: string = decoded.description || "";
       const decodedKeywords: string = decoded.backend_keywords || "";
+      const decodedAPlusModules: unknown[] = Array.isArray(decoded.a_plus_modules) ? decoded.a_plus_modules : [];
 
       setMarketplace(mp);
       setTitle(decodedTitle);
       setBullets(decodedBullets);
       setDescription(decodedDescription);
       setBackendKeywords(decodedKeywords);
+      setAPlusModules(decodedAPlusModules);
 
       // Auto-run audit using decoded values directly (avoids stale state)
       if (!decodedTitle || !decodedDescription) return;
@@ -74,6 +77,7 @@ function AuditContent() {
           bullets: decodedBullets.filter((b) => b.trim().length > 0),
           description: decodedDescription,
           ...(mp === "amazon" && decodedKeywords ? { backend_keywords: decodedKeywords } : {}),
+          ...(decodedAPlusModules.length > 0 ? { a_plus_modules: decodedAPlusModules } : {}),
         }),
       })
         .then((res) => res.json())
@@ -122,6 +126,7 @@ function AuditContent() {
           ...(marketplace === "amazon" && backendKeywords.trim()
             ? { backend_keywords: backendKeywords.trim() }
             : {}),
+          ...(aPlusModules.length > 0 ? { a_plus_modules: aPlusModules } : {}),
         }),
       });
 

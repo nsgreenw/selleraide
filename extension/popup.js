@@ -69,6 +69,7 @@ btnAudit.addEventListener('click', () => {
     description: descField.value.trim(),
     backend_keywords: listingData?.backend_keywords || '',
     asin: listingData?.asin || null,
+    a_plus_modules: listingData?.a_plus_modules || [],
   };
 
   try {

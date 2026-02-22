@@ -49,10 +49,28 @@ export const checkoutSchema = z.object({
   interval: z.enum(["monthly", "yearly"]),
 });
 
+const auditAPlusImageSlot = z.object({
+  alt_text: z.string(),
+  image_guidance: z.string().optional(),
+});
+
+const auditAPlusModule = z.object({
+  type: z.string(),
+  position: z.number().optional(),
+  headline: z.string().optional(),
+  body: z.string().optional(),
+  caption: z.string().optional(),
+  image: auditAPlusImageSlot.optional(),
+  images: z.array(auditAPlusImageSlot).optional(),
+  highlights: z.array(z.string()).optional(),
+  specs: z.record(z.string(), z.string()).optional(),
+});
+
 export const auditSchema = z.object({
   marketplace: z.enum(["amazon", "ebay"]),
   title: z.string().min(1),
   bullets: z.array(z.string()).default([]),
   description: z.string().min(1),
   backend_keywords: z.string().optional(),
+  a_plus_modules: z.array(auditAPlusModule).optional(),
 });

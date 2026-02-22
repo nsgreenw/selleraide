@@ -7,6 +7,70 @@ function detectMarketplace() {
   return null;
 }
 
+function extractAPlusModules() {
+  const container = document.querySelector('#aplus')
+    || document.querySelector('#aplus_feature_div')
+    || document.querySelector('#aplus3p_feature_div');
+  if (!container) return [];
+
+  const modules = [];
+
+  // Try data-module-type containers first (structured A+ with known type)
+  const moduleEls = container.querySelectorAll('[data-module-type]');
+
+  if (moduleEls.length > 0) {
+    moduleEls.forEach((el, i) => {
+      const type = el.getAttribute('data-module-type') || 'STANDARD_TEXT';
+      const headline = el.querySelector('h1, h2, h3, h4, .aplus-h2, .aplus-h3')?.textContent?.trim() || '';
+      const body = Array.from(el.querySelectorAll('p'))
+        .map(p => p.textContent?.trim())
+        .filter(Boolean)
+        .join(' ')
+        .slice(0, 2000);
+      const imgs = Array.from(el.querySelectorAll('img'))
+        .map(img => ({ alt_text: (img.getAttribute('alt') || '').trim().slice(0, 200), image_guidance: '' }))
+        .filter(img => img.alt_text);
+
+      modules.push({
+        type,
+        position: i + 1,
+        headline,
+        body,
+        ...(imgs[0] ? { image: imgs[0] } : {}),
+        ...(imgs.length > 1 ? { images: imgs } : {}),
+      });
+    });
+  } else {
+    // Fallback: treat each top-level child as a module
+    Array.from(container.querySelectorAll(':scope > div, :scope > section'))
+      .slice(0, 7)
+      .forEach((el, i) => {
+        const headline = el.querySelector('h1, h2, h3, h4')?.textContent?.trim() || '';
+        const body = Array.from(el.querySelectorAll('p'))
+          .map(p => p.textContent?.trim())
+          .filter(Boolean)
+          .join(' ')
+          .slice(0, 2000);
+        const imgs = Array.from(el.querySelectorAll('img'))
+          .map(img => ({ alt_text: (img.getAttribute('alt') || '').trim().slice(0, 200), image_guidance: '' }))
+          .filter(img => img.alt_text);
+
+        if (headline || body || imgs.length > 0) {
+          modules.push({
+            type: 'STANDARD_TEXT',
+            position: i + 1,
+            headline,
+            body,
+            ...(imgs[0] ? { image: imgs[0] } : {}),
+            ...(imgs.length > 1 ? { images: imgs } : {}),
+          });
+        }
+      });
+  }
+
+  return modules;
+}
+
 function extractAmazonData() {
   const url = window.location.href;
   const asinMatch = url.match(/\/dp\/([A-Z0-9]{10})/);
@@ -19,6 +83,7 @@ function extractAmazonData() {
   const description = document.querySelector('#productDescription')?.textContent?.trim()
     || document.querySelector('#aplus_feature_div')?.textContent?.trim()
     || '';
+  const a_plus_modules = extractAPlusModules();
 
   return {
     marketplace: 'amazon',
@@ -27,7 +92,8 @@ function extractAmazonData() {
     description,
     backend_keywords: '',
     asin,
-    item_specifics: null
+    item_specifics: null,
+    a_plus_modules,
   };
 }
 
