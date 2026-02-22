@@ -73,12 +73,20 @@ export default function BillingPage() {
         body: JSON.stringify({ plan_id: planId, interval: "monthly" }),
       });
 
-      const data = await response.json();
+      const raw = await response.text();
+      let data: { url?: string; error?: string } | null = null;
+      if (raw) {
+        try {
+          data = JSON.parse(raw);
+        } catch {
+          data = null;
+        }
+      }
       if (!response.ok) {
         throw new Error(data?.error || "Failed to create checkout session");
       }
 
-      if (data.url) {
+      if (data?.url) {
         window.location.href = data.url;
         return;
       }
