@@ -21,23 +21,22 @@ function extractAPlusModules() {
   if (moduleEls.length > 0) {
     moduleEls.forEach((el, i) => {
       const type = el.getAttribute('data-module-type') || 'STANDARD_TEXT';
-      const headline = el.querySelector('h1, h2, h3, h4, .aplus-h2, .aplus-h3')?.textContent?.trim() || '';
+      const headline = el.querySelector('h1, h2, h3, h4, .aplus-h2, .aplus-h3')?.textContent?.trim().slice(0, 200) || '';
+      // Body only needs to be non-empty for scoring — cap at 300 chars to keep URL size small
       const body = Array.from(el.querySelectorAll('p'))
         .map(p => p.textContent?.trim())
         .filter(Boolean)
         .join(' ')
-        .slice(0, 2000);
-      const imgs = Array.from(el.querySelectorAll('img'))
-        .map(img => ({ alt_text: (img.getAttribute('alt') || '').trim().slice(0, 200), image_guidance: '' }))
-        .filter(img => img.alt_text);
+        .slice(0, 300);
+      const firstImg = el.querySelector('img[alt]');
+      const altText = firstImg ? (firstImg.getAttribute('alt') || '').trim().slice(0, 100) : '';
 
       modules.push({
         type,
         position: i + 1,
         headline,
         body,
-        ...(imgs[0] ? { image: imgs[0] } : {}),
-        ...(imgs.length > 1 ? { images: imgs } : {}),
+        ...(altText ? { image: { alt_text: altText, image_guidance: '' } } : {}),
       });
     });
   } else {
@@ -45,24 +44,22 @@ function extractAPlusModules() {
     Array.from(container.querySelectorAll(':scope > div, :scope > section'))
       .slice(0, 7)
       .forEach((el, i) => {
-        const headline = el.querySelector('h1, h2, h3, h4')?.textContent?.trim() || '';
+        const headline = el.querySelector('h1, h2, h3, h4')?.textContent?.trim().slice(0, 200) || '';
         const body = Array.from(el.querySelectorAll('p'))
           .map(p => p.textContent?.trim())
           .filter(Boolean)
           .join(' ')
-          .slice(0, 2000);
-        const imgs = Array.from(el.querySelectorAll('img'))
-          .map(img => ({ alt_text: (img.getAttribute('alt') || '').trim().slice(0, 200), image_guidance: '' }))
-          .filter(img => img.alt_text);
+          .slice(0, 300);
+        const firstImg = el.querySelector('img[alt]');
+        const altText = firstImg ? (firstImg.getAttribute('alt') || '').trim().slice(0, 100) : '';
 
-        if (headline || body || imgs.length > 0) {
+        if (headline || body || altText) {
           modules.push({
             type: 'STANDARD_TEXT',
             position: i + 1,
             headline,
             body,
-            ...(imgs[0] ? { image: imgs[0] } : {}),
-            ...(imgs.length > 1 ? { images: imgs } : {}),
+            ...(altText ? { image: { alt_text: altText, image_guidance: '' } } : {}),
           });
         }
       });
@@ -80,9 +77,11 @@ function extractAmazonData() {
   const bullets = Array.from(document.querySelectorAll('#feature-bullets .a-list-item'))
     .map(el => el.textContent?.trim())
     .filter(Boolean);
-  const description = document.querySelector('#productDescription')?.textContent?.trim()
+  const description = (
+    document.querySelector('#productDescription')?.textContent?.trim()
     || document.querySelector('#aplus_feature_div')?.textContent?.trim()
-    || '';
+    || ''
+  ).slice(0, 3000);
   const a_plus_modules = extractAPlusModules();
 
   return {
