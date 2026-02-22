@@ -2,12 +2,12 @@
   "manifest_version": 3,
   "name": "SellerAide Listing Audit",
   "version": "1.0.0",
-  "description": "Audit your Amazon and eBay listings with SellerAide",
+  "description": "Instantly audit your Amazon and eBay listings for quality, keyword coverage, and compliance — powered by SellerAide.",
+  "homepage_url": "https://selleraide.com",
   "permissions": ["activeTab"],
   "host_permissions": [
     "https://selleraide.com/*",
-    "https://www.selleraide.com/*",
-    "http://localhost:3000/*"
+    "https://www.selleraide.com/*"
   ],
   "action": {
     "default_popup": "popup.html",
