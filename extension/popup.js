@@ -107,15 +107,17 @@ function displayResults(result, payload) {
   gradeEl.textContent = result.grade || (score >= 80 ? 'Great' : score >= 50 ? 'Needs Work' : 'Poor');
 
   issuesList.innerHTML = '';
-  const issues = (result.issues || []).slice(0, 5);
+  const SEV_CLASS = { error: 'high', warning: 'medium', info: 'low' };
+  const issues = (result.validation || []).slice(0, 5);
   if (issues.length === 0) {
     issuesList.innerHTML = '<div class="issue" style="color:#4ade80">No major issues found!</div>';
   } else {
     issues.forEach(issue => {
       const div = document.createElement('div');
       div.className = 'issue';
-      const sev = issue.severity || 'medium';
-      div.innerHTML = `<span class="severity ${sev}">${sev.toUpperCase()}</span>${issue.message || issue}`;
+      const sev = issue.severity || 'warning';
+      const sevClass = SEV_CLASS[sev] || 'medium';
+      div.innerHTML = `<span class="severity ${sevClass}">${sev.toUpperCase()}</span>${issue.message || issue}`;
       issuesList.appendChild(div);
     });
   }

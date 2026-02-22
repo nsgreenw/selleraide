@@ -4,6 +4,11 @@
   "version": "1.0.0",
   "description": "Audit your Amazon and eBay listings with SellerAide",
   "permissions": ["activeTab"],
+  "host_permissions": [
+    "https://selleraide.com/*",
+    "https://www.selleraide.com/*",
+    "http://localhost:3000/*"
+  ],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
