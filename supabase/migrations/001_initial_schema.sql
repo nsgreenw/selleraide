@@ -121,35 +121,35 @@ DROP POLICY IF EXISTS "subscription_plans_select_authenticated" ON subscription_
 -- profiles
 CREATE POLICY "profiles_select_own"
     ON profiles FOR SELECT
-    USING (auth.uid() = id);
+    USING ((select auth.uid()) = id);
 
 CREATE POLICY "profiles_update_own"
     ON profiles FOR UPDATE
-    USING (auth.uid() = id);
+    USING ((select auth.uid()) = id);
 
 -- conversations
 CREATE POLICY "conversations_select_own"
     ON conversations FOR SELECT
-    USING (auth.uid() = user_id);
+    USING ((select auth.uid()) = user_id);
 
 CREATE POLICY "conversations_insert_own"
     ON conversations FOR INSERT
-    WITH CHECK (auth.uid() = user_id);
+    WITH CHECK ((select auth.uid()) = user_id);
 
 CREATE POLICY "conversations_update_own"
     ON conversations FOR UPDATE
-    USING (auth.uid() = user_id);
+    USING ((select auth.uid()) = user_id);
 
 CREATE POLICY "conversations_delete_own"
     ON conversations FOR DELETE
-    USING (auth.uid() = user_id);
+    USING ((select auth.uid()) = user_id);
 
 -- messages
 CREATE POLICY "messages_select_own"
     ON messages FOR SELECT
     USING (
         conversation_id IN (
-            SELECT id FROM conversations WHERE user_id = auth.uid()
+            SELECT id FROM conversations WHERE user_id = (select auth.uid())
         )
     );
 
@@ -157,40 +157,40 @@ CREATE POLICY "messages_insert_own"
     ON messages FOR INSERT
     WITH CHECK (
         conversation_id IN (
-            SELECT id FROM conversations WHERE user_id = auth.uid()
+            SELECT id FROM conversations WHERE user_id = (select auth.uid())
         )
     );
 
 -- listings
 CREATE POLICY "listings_select_own"
     ON listings FOR SELECT
-    USING (auth.uid() = user_id);
+    USING ((select auth.uid()) = user_id);
 
 CREATE POLICY "listings_insert_own"
     ON listings FOR INSERT
-    WITH CHECK (auth.uid() = user_id);
+    WITH CHECK ((select auth.uid()) = user_id);
 
 CREATE POLICY "listings_update_own"
     ON listings FOR UPDATE
-    USING (auth.uid() = user_id);
+    USING ((select auth.uid()) = user_id);
 
 CREATE POLICY "listings_delete_own"
     ON listings FOR DELETE
-    USING (auth.uid() = user_id);
+    USING ((select auth.uid()) = user_id);
 
 -- usage_events
 CREATE POLICY "usage_events_select_own"
     ON usage_events FOR SELECT
-    USING (auth.uid() = user_id);
+    USING ((select auth.uid()) = user_id);
 
 CREATE POLICY "usage_events_insert_own"
     ON usage_events FOR INSERT
-    WITH CHECK (auth.uid() = user_id);
+    WITH CHECK ((select auth.uid()) = user_id);
 
 -- subscription_plans
 CREATE POLICY "subscription_plans_select_authenticated"
     ON subscription_plans FOR SELECT
-    USING (auth.role() = 'authenticated');
+    USING ((select auth.role()) = 'authenticated');
 
 -- ============================================================================
 -- 4. FUNCTIONS & TRIGGERS
