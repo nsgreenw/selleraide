@@ -66,18 +66,18 @@ export default function Home() {
         />
 
         <p className="label-kicker text-sa-200 mb-6 relative">
-          AI-POWERED LISTING OPTIMIZATION
+          AMAZON-COMPLIANT LISTING OPTIMIZATION
         </p>
 
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight text-zinc-100 mb-6 relative">
-          Create listings that sell.
+          Create listings that convert.
           <br />
-          Not just exist.
+          Stay compliant.
         </h1>
 
         <p className="text-lg sm:text-xl text-zinc-400 max-w-2xl mx-auto mb-10 relative">
-          SellerAide researches your product, optimizes for marketplace
-          algorithms, and generates high-converting listings for Amazon and eBay.
+          SellerAide helps brand owners draft high-converting content, audit for Amazon policy violations,
+          and optimize keyword strategy in minutes.
         </p>
 
         <div className="flex gap-4 justify-center relative">
@@ -100,16 +100,16 @@ export default function Home() {
       {/* ── Social Proof / Marketplace Strip ── */}
       <section className="py-12 border-y border-white/10">
         <div className="max-w-5xl mx-auto px-6 text-center">
-          <p className="label-kicker text-zinc-500 mb-6">OPTIMIZED FOR</p>
+          <p className="label-kicker text-zinc-500 mb-6">OPTIMIZED FOR BRAND OWNERS ON</p>
 
           <div className="flex flex-wrap justify-center gap-4">
             <div className="card-subtle px-6 py-3 flex items-center gap-3">
               <ShoppingCart className="size-5 text-zinc-400" />
-              <span className="text-zinc-300 text-sm font-medium">Amazon</span>
+              <span className="text-zinc-300 text-sm font-medium">Amazon Seller Central</span>
             </div>
             <div className="card-subtle px-6 py-3 flex items-center gap-3">
               <Tag className="size-5 text-zinc-400" />
-              <span className="text-zinc-300 text-sm font-medium">eBay</span>
+              <span className="text-zinc-300 text-sm font-medium">eBay Stores</span>
             </div>
           </div>
         </div>
@@ -121,11 +121,10 @@ export default function Home() {
           <div className="text-center mb-14">
             <p className="label-kicker text-sa-200 mb-4">FEATURES</p>
             <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-zinc-100 mb-4">
-              Everything you need to dominate
+              Data-driven brand growth
             </h2>
             <p className="text-zinc-400 max-w-2xl mx-auto">
-              From AI-powered generation to automated quality checks, SellerAide
-              gives you every tool to create marketplace-winning listings.
+              Ensure your catalog meets strict marketplace standards while maximizing visibility.
             </p>
           </div>
 
@@ -136,12 +135,11 @@ export default function Home() {
                 <MessageSquare className="size-5 text-sa-200" />
               </div>
               <h3 className="text-lg font-semibold text-zinc-100 mb-2">
-                AI Chat Assistant
+                Listing Assistant
               </h3>
               <p className="text-sm text-zinc-400">
-                Have a conversation about your product. Our AI asks the right
-                questions, researches your market, and generates optimized
-                listings.
+                Draft professional product descriptions and bullet points that highlight key features
+                while adhering to style guides.
               </p>
             </div>
 
@@ -151,11 +149,11 @@ export default function Home() {
                 <Search className="size-5 text-sa-200" />
               </div>
               <h3 className="text-lg font-semibold text-zinc-100 mb-2">
-                Smart Research
+                Keyword Intelligence
               </h3>
               <p className="text-sm text-zinc-400">
-                Automatic keyword research, competitor analysis, and trend
-                identification for your product category.
+                Identify high-opportunity search terms relevant to your brand and category
+                without keyword stuffing.
               </p>
             </div>
 
@@ -168,7 +166,7 @@ export default function Home() {
                 Marketplace Optimization
               </h3>
               <p className="text-sm text-zinc-400">
-                Listings tailored to each marketplace&apos;s algorithm — Amazon A9 and eBay Cassini.
+                Tailor your content for specific algorithms (Amazon A9, eBay Cassini) to improve organic ranking.
               </p>
             </div>
 
@@ -178,11 +176,11 @@ export default function Home() {
                 <Shield className="size-5 text-sa-200" />
               </div>
               <h3 className="text-lg font-semibold text-zinc-100 mb-2">
-                QA & Compliance
+                Policy Compliance
               </h3>
               <p className="text-sm text-zinc-400">
-                Automated quality checks catch banned terms, character limits,
-                and policy violations before you publish.
+                Automatically audit drafts for banned terms, claim violations, and character limits
+                before you publish.
               </p>
             </div>
 
@@ -192,11 +190,10 @@ export default function Home() {
                 <BarChart3 className="size-5 text-sa-200" />
               </div>
               <h3 className="text-lg font-semibold text-zinc-100 mb-2">
-                Scoring & Grading
+                Listing Health Score
               </h3>
               <p className="text-sm text-zinc-400">
-                Every listing scored 0-100 with detailed breakdowns. Know
-                exactly where to improve.
+                Get a 0-100 quality score for every SKU based on image count, title structure, and completeness.
               </p>
             </div>
 
@@ -206,11 +203,10 @@ export default function Home() {
                 <Download className="size-5 text-sa-200" />
               </div>
               <h3 className="text-lg font-semibold text-zinc-100 mb-2">
-                Export Anywhere
+                Multi-Channel Sync
               </h3>
               <p className="text-sm text-zinc-400">
-                Copy to clipboard, download as PDF or CSV. Ready to paste into
-                Seller Central, Marketplace, or your store.
+                Maintain brand consistency across channels. Export optimized data for Seller Central or eBay.
               </p>
             </div>
           </div>

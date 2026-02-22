@@ -51,8 +51,8 @@ export default function PrivacyPolicy() {
 
       <h2>2. How We Use Your Information</h2>
       <ul>
-        <li><strong>Service Delivery:</strong> To operate your account, generate listings, and manage subscriptions.</li>
-        <li><strong>AI Processing:</strong> Your product descriptions are sent to Anthropic Claude API to generate and optimize listings. We do not use your data to train AI models.</li>
+        <li><strong>Service Delivery:</strong> To operate your account, audit listings, and manage subscriptions.</li>
+        <li><strong>AI Processing:</strong> Your product descriptions are sent to Anthropic Claude API to draft and optimize listings. We do not use your data to train AI models.</li>
         <li><strong>Analytics:</strong> To understand usage patterns and improve the Service.</li>
         <li><strong>Marketing:</strong> To deliver relevant advertising via Meta Pixel and communicate product updates via email (with your consent).</li>
         <li><strong>Security:</strong> To detect and prevent fraud, abuse, and unauthorized access.</li>
@@ -63,13 +63,24 @@ export default function PrivacyPolicy() {
       <ul>
         <li><strong>Supabase</strong> — Authentication and database hosting (stores account data, conversations, and listings).</li>
         <li><strong>Stripe</strong> — Payment processing and subscription management.</li>
-        <li><strong>Anthropic Claude API</strong> — AI-powered listing generation. Product descriptions you provide are sent to Anthropic&apos;s servers for processing.</li>
+        <li><strong>Anthropic Claude API</strong> — AI-powered listing optimization. Product descriptions you provide are sent to Anthropic&apos;s servers for processing.</li>
         <li><strong>Google Analytics (GA4)</strong> — Website analytics and usage tracking.</li>
         <li><strong>Meta Pixel (Facebook)</strong> — Advertising conversion tracking and audience building.</li>
         <li><strong>Vercel</strong> — Application hosting and content delivery.</li>
       </ul>
 
-      <h2>4. Cookies &amp; Tracking Technologies</h2>
+      <h2>4. Amazon Data Protection Policy</h2>
+      <p>
+        SellerAide is committed to protecting the privacy of Amazon Sellers and Customers. In compliance with Amazon&apos;s Data Protection Policy:
+      </p>
+      <ul>
+        <li>We do not request, access, or store Personally Identifiable Information (PII) of Amazon Customers (such as names, shipping addresses, or phone numbers).</li>
+        <li>We do not sell, rent, or trade any data retrieved via Amazon Services APIs (SP-API or MWS).</li>
+        <li>Data retrieved from Amazon is used solely for the purpose of providing analytics and listing optimization tools to the authorized Seller.</li>
+        <li>We maintain strict access controls and encryption standards to protect Seller data.</li>
+      </ul>
+
+      <h2>5. Cookies &amp; Tracking Technologies</h2>
       <p>We use the following cookies and tracking technologies:</p>
       <ul>
         <li><strong>Essential Cookies:</strong> Supabase authentication session tokens required for the Service to function.</li>
@@ -81,7 +92,7 @@ export default function PrivacyPolicy() {
         <Link href="/cookies" className="text-sa-200 hover:underline">Cookie Policy</Link>.
       </p>
 
-      <h2>5. Data Retention &amp; Deletion</h2>
+      <h2>6. Data Retention &amp; Deletion</h2>
       <p>
         We retain your account data and generated listings for as long as your account is active.
         Conversation history is retained for up to 12 months after the last interaction. Payment

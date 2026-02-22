@@ -63,7 +63,20 @@ export default function TermsOfService() {
         removals, or marketplace penalties resulting from the use of AI-generated content.
       </p>
 
-      <h2>5. Acceptable Use</h2>
+      <h2>5. Marketplace Compliance</h2>
+      <p>
+        <strong>Amazon:</strong> You agree to comply with all applicable Amazon policies, including the Amazon Services Business Solutions Agreement, 
+        Amazon Selling Policies, and Code of Conduct. SellerAide is a third-party tool designed to assist with listing optimization 
+        but does not guarantee compliance or immunity from enforcement actions.
+      </p>
+      <p>
+        <strong>eBay:</strong> You agree to comply with eBay&apos;s User Agreement and listing policies.
+      </p>
+      <p>
+        SellerAide is not affiliated with, endorsed by, or sponsored by Amazon.com, Inc. or eBay Inc.
+      </p>
+
+      <h2>6. Acceptable Use</h2>
       <p>
         You agree to use the Service in compliance with all applicable laws and our{" "}
         <Link href="/acceptable-use" className="text-sa-200 hover:underline">Acceptable Use Policy</Link>.
@@ -71,7 +84,7 @@ export default function TermsOfService() {
         products, or to abuse, overload, or interfere with the Service.
       </p>
 
-      <h2>6. Intellectual Property</h2>
+      <h2>7. Intellectual Property</h2>
       <p>
         <strong>Your Content:</strong> You retain ownership of all product information you provide
         and the listings generated from your input. You grant us a limited license to process your
