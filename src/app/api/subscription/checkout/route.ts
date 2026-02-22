@@ -7,7 +7,7 @@ import { z } from "zod";
 import type { SubscriptionTier } from "@/types";
 
 const checkoutSchema = z.object({
-  plan_id: z.enum(["starter", "pro", "agency"]),
+  plan_id: z.enum(["starter", "pro"]),
   interval: z.enum(["monthly", "yearly"]),
 });
 

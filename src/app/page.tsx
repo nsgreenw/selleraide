@@ -277,7 +277,7 @@ export default function Home() {
               Simple, transparent pricing
             </h2>
             <p className="text-zinc-400">
-              All paid plans include a 7-day free trial. Monthly and yearly billing available.
+              Starter and Pro include a 7-day free trial. Monthly and yearly billing available.
             </p>
           </div>
 

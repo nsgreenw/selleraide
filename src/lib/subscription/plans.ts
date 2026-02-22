@@ -52,11 +52,11 @@ export const PLANS: Record<SubscriptionTier, PlanConfig> = {
   },
   agency: {
     name: "Agency",
-    priceMonthly: 99,
-    priceYearly: 990,
+    priceMonthly: 0,
+    priceYearly: 0,
     listingsPerMonth: null,
     features: [
-      "7-day free trial",
+      "Custom pricing",
       "Unlimited listings",
       "Amazon + eBay",
       "Full QA scoring",

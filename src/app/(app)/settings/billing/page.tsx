@@ -205,10 +205,19 @@ export default function BillingPage() {
                 </div>
 
                 <div className="mb-4">
-                  <span className="text-2xl font-bold text-zinc-100">
-                    ${plan.priceMonthly}
-                  </span>
-                  <span className="text-xs text-zinc-500">/mo</span>
+                  {tierId === "agency" ? (
+                    <>
+                      <span className="text-2xl font-bold text-zinc-100">Custom</span>
+                      <span className="text-xs text-zinc-500"> pricing</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-2xl font-bold text-zinc-100">
+                        ${plan.priceMonthly}
+                      </span>
+                      <span className="text-xs text-zinc-500">/mo</span>
+                    </>
+                  )}
                 </div>
 
                 <ul className="flex-1 space-y-2 mb-4">
@@ -227,6 +236,13 @@ export default function BillingPage() {
                   <div className="btn-secondary w-full opacity-60 cursor-default pointer-events-none">
                     Current Plan
                   </div>
+                ) : tierId === "agency" ? (
+                  <a
+                    href="mailto:support@selleraide.com"
+                    className="btn-secondary w-full"
+                  >
+                    Contact Sales
+                  </a>
                 ) : isUpgrade ? (
                   <button
                     onClick={() => handleUpgrade(tierId)}
