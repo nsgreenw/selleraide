@@ -6,12 +6,10 @@ import type {
   ProductContext,
 } from "@/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getAnthropicClient, getGeminiModel } from "./client";
+import { sendChatMessage, getGeminiModel } from "./client";
 import { buildSystemPrompt } from "./prompts/system";
 import { researchProduct } from "./research";
 import { generateListing } from "./generate";
-
-const CHAT_MODEL = "claude-sonnet-4-6";
 
 interface ChatResult {
   response: string;
@@ -199,14 +197,7 @@ export async function handleChatMessage(
   }
   claudeMessages.push({ role: "user", content: userMessage });
 
-  const claudeResult = await getAnthropicClient().messages.create({
-    model: CHAT_MODEL,
-    max_tokens: 2048,
-    system: fullSystemPrompt,
-    messages: claudeMessages,
-  });
-  const assistantResponse =
-    claudeResult.content[0].type === "text" ? claudeResult.content[0].text : "";
+  const assistantResponse = await sendChatMessage(fullSystemPrompt, claudeMessages, 2048);
 
   // --- Post-response processing for GATHERING phase ---
   let updatedStatus: ConversationStatus | undefined;
