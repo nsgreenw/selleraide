@@ -6,10 +6,12 @@ import type {
   ProductContext,
 } from "@/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getGeminiModel } from "./client";
+import { getAnthropicClient, getGeminiModel } from "./client";
 import { buildSystemPrompt } from "./prompts/system";
 import { researchProduct } from "./research";
 import { generateListing } from "./generate";
+
+const CHAT_MODEL = "claude-sonnet-4-6";
 
 interface ChatResult {
   response: string;
@@ -160,24 +162,51 @@ export async function handleChatMessage(
     }
   }
 
-  // --- GATHERING and REFINING phases: use conversational Gemini ---
-  const geminiMessages = buildGeminiHistory(
-    systemPrompt,
-    messageHistory,
-    userMessage,
-    currentStatus,
-    productContext
-  );
+  // --- GATHERING and REFINING phases: use Claude conversational API ---
 
-  const chat = getGeminiModel().startChat({
-    history: geminiMessages.slice(0, -1),
+  // Build status context to append to system prompt
+  let statusContext = "";
+  if (currentStatus === "refining") {
+    statusContext =
+      "\n\nThe listing has been generated. The user may now request refinements to specific fields. Only modify what they ask about.";
+  } else if (currentStatus === "gathering") {
+    const collected: string[] = [];
+    if (productContext.product_name)
+      collected.push(`Product: ${productContext.product_name}`);
+    if (productContext.brand) collected.push(`Brand: ${productContext.brand}`);
+    if (productContext.category)
+      collected.push(`Category: ${productContext.category}`);
+    if (productContext.key_features?.length)
+      collected.push(`Features: ${productContext.key_features.join(", ")}`);
+    if (productContext.target_audience)
+      collected.push(`Audience: ${productContext.target_audience}`);
+    if (collected.length > 0) {
+      statusContext = `\n\nInformation gathered so far:\n${collected.join("\n")}`;
+    }
+  }
+
+  const fullSystemPrompt = systemPrompt + statusContext;
+
+  // Build Claude-format message history (user/assistant alternating)
+  const claudeMessages: Array<{ role: "user" | "assistant"; content: string }> = [];
+  for (const msg of messageHistory) {
+    if (msg.role === "user") {
+      claudeMessages.push({ role: "user", content: msg.content });
+    } else if (msg.role === "assistant") {
+      claudeMessages.push({ role: "assistant", content: msg.content });
+    }
+    // Skip system messages — handled via the system parameter
+  }
+  claudeMessages.push({ role: "user", content: userMessage });
+
+  const claudeResult = await getAnthropicClient().messages.create({
+    model: CHAT_MODEL,
+    max_tokens: 2048,
+    system: fullSystemPrompt,
+    messages: claudeMessages,
   });
-
-  const lastMessage = geminiMessages[geminiMessages.length - 1];
-  const result = await chat.sendMessage(
-    lastMessage.parts.map((p) => p.text).join("")
-  );
-  const assistantResponse = result.response.text();
+  const assistantResponse =
+    claudeResult.content[0].type === "text" ? claudeResult.content[0].text : "";
 
   // --- Post-response processing for GATHERING phase ---
   let updatedStatus: ConversationStatus | undefined;
@@ -228,81 +257,6 @@ export async function handleChatMessage(
     listing,
     assistantMessage: savedMsg,
   };
-}
-
-/**
- * Builds Gemini chat history from the conversation messages.
- * Maps system/user/assistant messages to the Gemini Content format.
- */
-function buildGeminiHistory(
-  systemPrompt: string,
-  messageHistory: Message[],
-  userMessage: string,
-  status: ConversationStatus,
-  productContext: ProductContext
-): Array<{
-  role: "user" | "model";
-  parts: Array<{ text: string }>;
-}> {
-  const history: Array<{
-    role: "user" | "model";
-    parts: Array<{ text: string }>;
-  }> = [];
-
-  // Gemini uses the first user message to carry the system prompt context
-  // We prepend the system prompt to the first user message
-  let systemPrepended = false;
-
-  // Add status context to the system prompt
-  let statusContext = "";
-  if (status === "refining") {
-    statusContext =
-      "\n\nThe listing has been generated. The user may now request refinements to specific fields. Only modify what they ask about.";
-  } else if (status === "gathering") {
-    const collected: string[] = [];
-    if (productContext.product_name)
-      collected.push(`Product: ${productContext.product_name}`);
-    if (productContext.brand) collected.push(`Brand: ${productContext.brand}`);
-    if (productContext.category)
-      collected.push(`Category: ${productContext.category}`);
-    if (productContext.key_features?.length)
-      collected.push(
-        `Features: ${productContext.key_features.join(", ")}`
-      );
-    if (productContext.target_audience)
-      collected.push(`Audience: ${productContext.target_audience}`);
-
-    if (collected.length > 0) {
-      statusContext = `\n\nInformation gathered so far:\n${collected.join("\n")}`;
-    }
-  }
-
-  const fullSystemPrompt = systemPrompt + statusContext;
-
-  for (const msg of messageHistory) {
-    if (msg.role === "system") {
-      // System messages are skipped — handled via prepended system prompt
-      continue;
-    }
-
-    if (msg.role === "user") {
-      const text = !systemPrepended
-        ? `[System Instructions]\n${fullSystemPrompt}\n\n[User Message]\n${msg.content}`
-        : msg.content;
-      history.push({ role: "user", parts: [{ text }] });
-      systemPrepended = true;
-    } else if (msg.role === "assistant") {
-      history.push({ role: "model", parts: [{ text: msg.content }] });
-    }
-  }
-
-  // Add the new user message
-  const newUserText = !systemPrepended
-    ? `[System Instructions]\n${fullSystemPrompt}\n\n[User Message]\n${userMessage}`
-    : userMessage;
-  history.push({ role: "user", parts: [{ text: newUserText }] });
-
-  return history;
 }
 
 /**
