@@ -14,6 +14,8 @@ import {
   Wand2,
   Copy,
   Check,
+  Save,
+  ExternalLink,
 } from "lucide-react";
 import type { QAGrade, APlusModule } from "@/types";
 import type { ScoreBreakdown } from "@/lib/qa/scorer";
@@ -95,7 +97,13 @@ function AuditContent() {
   // Optimize state
   const [optimizing, setOptimizing] = useState(false);
   const [optimized, setOptimized] = useState<OptimizeResult | null>(null);
+  const [optimizedContent, setOptimizedContent] = useState<OptimizeResult | null>(null);
   const [optimizeError, setOptimizeError] = useState("");
+
+  // Save state
+  const [saving, setSaving] = useState(false);
+  const [savedId, setSavedId] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState("");
 
   // Read ?data= param from extension and auto-run audit
   useEffect(() => {
@@ -173,7 +181,10 @@ function AuditContent() {
     setError("");
     setResults(null);
     setOptimized(null);
+    setOptimizedContent(null);
     setOptimizeError("");
+    setSavedId(null);
+    setSaveError("");
     setLoading(true);
 
     try {
@@ -234,11 +245,49 @@ function AuditContent() {
         setOptimizeError(data.error || "Optimization failed");
       } else {
         setOptimized(data);
+        setOptimizedContent(data);
+        setSavedId(null);
+        setSaveError("");
       }
     } catch {
       setOptimizeError("Failed to connect to the server");
     } finally {
       setOptimizing(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!optimizedContent) return;
+    setSaving(true);
+    setSaveError("");
+    setSavedId(null);
+
+    try {
+      const res = await fetch("/api/listings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          marketplace,
+          content: {
+            title: optimizedContent.title,
+            bullets: optimizedContent.bullets,
+            description: optimizedContent.description,
+            ...(optimizedContent.backend_keywords ? { backend_keywords: optimizedContent.backend_keywords } : {}),
+            ...(optimizedContent.a_plus_modules ? { a_plus_modules: optimizedContent.a_plus_modules } : {}),
+          },
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setSaveError(data.error || "Failed to save listing");
+      } else {
+        setSavedId(data.listing.id as string);
+      }
+    } catch {
+      setSaveError("Failed to connect to the server");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -257,6 +306,7 @@ function AuditContent() {
     setBackendKeywords(newKeywords);
     setAPlusModules(newAPlusModules);
     setOptimized(null);
+    // optimizedContent intentionally kept — needed for Save and A+ display
     setResults(null);
     setOptimizeError("");
     setError("");
@@ -533,8 +583,92 @@ function AuditContent() {
             </div>
           )}
 
-          {/* Optimize CTA */}
-          {!optimized && (
+          {/* A+ Modules from optimization — persist through re-audit */}
+          {!optimized && optimizedContent?.a_plus_modules && optimizedContent.a_plus_modules.length > 0 && (
+            <div className="card-glass p-6 sm:p-8">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="label-kicker text-sa-200">A+ CONTENT MODULES</p>
+                  <p className="text-xs text-zinc-500 mt-1">From your optimization · Requires Amazon Brand Registry</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleSave}
+                    disabled={saving || !!savedId}
+                    className="btn-primary gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {saving ? (
+                      <><Loader2 className="size-4 animate-spin" />Saving...</>
+                    ) : savedId ? (
+                      <><Check className="size-4 text-emerald-400" />Saved</>
+                    ) : (
+                      <><Save className="size-4" />Save to Listings</>
+                    )}
+                  </button>
+                </div>
+              </div>
+              {savedId && (
+                <a
+                  href={`/listings/${savedId}`}
+                  className="mb-4 flex items-center gap-1.5 text-sm text-sa-200 hover:text-sa-100 transition-colors"
+                >
+                  <ExternalLink className="size-4" />
+                  View saved listing
+                </a>
+              )}
+              {saveError && (
+                <div className="mb-4 flex items-center gap-2 text-red-400 text-sm">
+                  <AlertCircle className="size-4 shrink-0" />
+                  {saveError}
+                </div>
+              )}
+              <div className="space-y-3">
+                {optimizedContent.a_plus_modules.map((mod, i) => (
+                  <div key={i} className="card-subtle p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs font-medium text-sa-200 bg-sa-200/10 px-2 py-0.5 rounded-lg">
+                        {APLUS_MODULE_LABELS[mod.type] ?? mod.type}
+                      </span>
+                      <span className="text-xs text-zinc-600">Module {mod.position}</span>
+                    </div>
+                    {mod.headline && (
+                      <p className="text-sm font-medium text-zinc-200 mb-1">{mod.headline}</p>
+                    )}
+                    {mod.body && (
+                      <p className="text-sm text-zinc-400 leading-relaxed mb-2">{mod.body}</p>
+                    )}
+                    {mod.highlights && mod.highlights.length > 0 && (
+                      <ul className="mb-2 space-y-1">
+                        {mod.highlights.map((h, j) => (
+                          <li key={j} className="text-xs text-zinc-400 flex items-start gap-1.5">
+                            <span className="text-sa-200/50 shrink-0 mt-0.5">•</span>
+                            {h}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {mod.image && (
+                      <div className="mt-2 pt-2 border-t border-white/5 text-xs space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-zinc-600">Alt text:</span>
+                          <span className="text-zinc-300">{mod.image.alt_text}</span>
+                          <span className={`ml-auto font-mono ${mod.image.alt_text.length > 90 ? "text-amber-400" : "text-zinc-600"}`}>
+                            {mod.image.alt_text.length}/100
+                          </span>
+                        </div>
+                        {mod.image.image_guidance && (
+                          <p className="text-zinc-500 italic">{mod.image.image_guidance}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Optimize CTA — hide if we already have optimized content */}
+          {!optimized && !optimizedContent && (
             <div className="card-glass p-6">
               <div className="flex items-center justify-between gap-4">
                 <div>
@@ -707,7 +841,7 @@ function AuditContent() {
             )}
 
             {/* Actions */}
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-3 pt-2 flex-wrap">
               <button
                 onClick={handleReaudit}
                 disabled={loading}
@@ -726,12 +860,49 @@ function AuditContent() {
                 )}
               </button>
               <button
+                onClick={handleSave}
+                disabled={saving || !!savedId}
+                className="btn-secondary gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : savedId ? (
+                  <>
+                    <Check className="size-4 text-emerald-400" />
+                    Saved
+                  </>
+                ) : (
+                  <>
+                    <Save className="size-4" />
+                    Save to Listings
+                  </>
+                )}
+              </button>
+              <button
                 onClick={() => setOptimized(null)}
                 className="btn-secondary px-4"
               >
                 Discard
               </button>
             </div>
+            {savedId && (
+              <a
+                href={`/listings/${savedId}`}
+                className="mt-3 flex items-center gap-1.5 text-sm text-sa-200 hover:text-sa-100 transition-colors"
+              >
+                <ExternalLink className="size-4" />
+                View saved listing
+              </a>
+            )}
+            {saveError && (
+              <div className="mt-3 flex items-center gap-2 text-red-400 text-sm">
+                <AlertCircle className="size-4 shrink-0" />
+                {saveError}
+              </div>
+            )}
           </div>
         </div>
       )}
