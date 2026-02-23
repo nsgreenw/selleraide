@@ -11,10 +11,14 @@ import {
   Plus,
   Loader2,
   ClipboardCheck,
+  Wand2,
+  Copy,
+  Check,
 } from "lucide-react";
 import type { QAGrade } from "@/types";
 import type { ScoreBreakdown } from "@/lib/qa/scorer";
 import type { QAResult } from "@/types";
+import type { OptimizeMode, OptimizeResult } from "@/lib/gemini/optimize";
 
 type Marketplace = "amazon" | "ebay";
 
@@ -24,6 +28,39 @@ interface AuditResults {
   breakdown: ScoreBreakdown[];
   validation: QAResult[];
 }
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(text).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <button
+      onClick={handleCopy}
+      className="p-1.5 text-zinc-500 hover:text-sa-200 transition-colors rounded-lg hover:bg-white/5"
+      title="Copy to clipboard"
+    >
+      {copied
+        ? <Check className="size-4 text-emerald-400" />
+        : <Copy className="size-4" />
+      }
+    </button>
+  );
+}
+
+const MODE_LABELS: Record<OptimizeMode, string> = {
+  targeted: "Targeted Fix",
+  moderate: "Moderate Rewrite",
+  full: "Full Rewrite",
+};
+
+const MODE_COLORS: Record<OptimizeMode, string> = {
+  targeted: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25",
+  moderate: "bg-yellow-500/15 text-yellow-400 border-yellow-500/25",
+  full: "bg-orange-500/15 text-orange-400 border-orange-500/25",
+};
 
 function AuditContent() {
   const searchParams = useSearchParams();
@@ -36,6 +73,11 @@ function AuditContent() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<AuditResults | null>(null);
   const [error, setError] = useState("");
+
+  // Optimize state
+  const [optimizing, setOptimizing] = useState(false);
+  const [optimized, setOptimized] = useState<OptimizeResult | null>(null);
+  const [optimizeError, setOptimizeError] = useState("");
 
   // Read ?data= param from extension and auto-run audit
   useEffect(() => {
@@ -112,6 +154,8 @@ function AuditContent() {
   const handleSubmit = async () => {
     setError("");
     setResults(null);
+    setOptimized(null);
+    setOptimizeError("");
     setLoading(true);
 
     try {
@@ -136,6 +180,83 @@ function AuditContent() {
       } else {
         setResults(data);
       }
+    } catch {
+      setError("Failed to connect to the server");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOptimize = async () => {
+    if (!results) return;
+    setOptimizeError("");
+    setOptimized(null);
+    setOptimizing(true);
+
+    try {
+      const res = await fetch("/api/audit/optimize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          marketplace,
+          title: title.trim(),
+          bullets: bullets.filter((b) => b.trim().length > 0),
+          description: description.trim(),
+          ...(marketplace === "amazon" && backendKeywords.trim()
+            ? { backend_keywords: backendKeywords.trim() }
+            : {}),
+          score: results.score,
+          validation: results.validation,
+          breakdown: results.breakdown,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setOptimizeError(data.error || "Optimization failed");
+      } else {
+        setOptimized(data);
+      }
+    } catch {
+      setOptimizeError("Failed to connect to the server");
+    } finally {
+      setOptimizing(false);
+    }
+  };
+
+  // Fill form with optimized content and re-run audit
+  const handleReaudit = async () => {
+    if (!optimized) return;
+    const newTitle = optimized.title;
+    const newBullets = optimized.bullets.length > 0 ? optimized.bullets : [""];
+    const newDescription = optimized.description;
+    const newKeywords = optimized.backend_keywords ?? "";
+
+    setTitle(newTitle);
+    setBullets(newBullets);
+    setDescription(newDescription);
+    setBackendKeywords(newKeywords);
+    setOptimized(null);
+    setResults(null);
+    setOptimizeError("");
+    setError("");
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/audit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          marketplace,
+          title: newTitle,
+          bullets: newBullets.filter((b) => b.trim().length > 0),
+          description: newDescription,
+          ...(marketplace === "amazon" && newKeywords ? { backend_keywords: newKeywords } : {}),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) setError(data.error || "Something went wrong");
+      else setResults(data);
     } catch {
       setError("Failed to connect to the server");
     } finally {
@@ -300,7 +421,7 @@ function AuditContent() {
         </button>
       </div>
 
-      {/* Results */}
+      {/* Audit Results */}
       {results && (
         <div className="space-y-6">
           {/* Score Overview */}
@@ -363,10 +484,7 @@ function AuditContent() {
               </p>
               <div className="space-y-3">
                 {sortedValidation.map((issue, i) => (
-                  <div
-                    key={i}
-                    className="card-subtle p-4 flex items-start gap-3"
-                  >
+                  <div key={i} className="card-subtle p-4 flex items-start gap-3">
                     {issue.severity === "error" && (
                       <AlertCircle className="size-5 text-red-400 shrink-0 mt-0.5" />
                     )}
@@ -393,6 +511,152 @@ function AuditContent() {
               <p className="text-emerald-400 text-sm">✓ No validation issues found</p>
             </div>
           )}
+
+          {/* Optimize CTA */}
+          {!optimized && (
+            <div className="card-glass p-6">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium text-zinc-200">Want a better listing?</p>
+                  <p className="text-xs text-zinc-500 mt-0.5">
+                    AI will{" "}
+                    {results.score >= 70
+                      ? "fix specific issues and tighten the copy"
+                      : results.score >= 40
+                      ? "restructure weak sections while keeping your product facts"
+                      : "rewrite the listing using your content as a product brief"}
+                    {" "}· uses 1 listing credit
+                  </p>
+                </div>
+                <button
+                  onClick={handleOptimize}
+                  disabled={optimizing}
+                  className="btn-primary shrink-0 gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {optimizing ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      Optimizing...
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="size-4" />
+                      Optimize with AI
+                    </>
+                  )}
+                </button>
+              </div>
+              {optimizeError && (
+                <div className="mt-4 flex items-center gap-2 text-red-400 text-sm">
+                  <AlertCircle className="size-4 shrink-0" />
+                  {optimizeError}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Optimized Listing */}
+      {optimized && (
+        <div className="mt-6 space-y-4">
+          {/* Header */}
+          <div className="card-glass p-6 sm:p-8">
+            <div className="flex items-center justify-between mb-6">
+              <p className="label-kicker text-sa-200">OPTIMIZED LISTING</p>
+              <span className={`px-3 py-1 rounded-lg border text-xs font-medium ${MODE_COLORS[optimized.mode]}`}>
+                {MODE_LABELS[optimized.mode]}
+              </span>
+            </div>
+
+            {/* Title */}
+            <div className="mb-5">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Title</span>
+                <CopyButton text={optimized.title} />
+              </div>
+              <div className="card-subtle p-4 text-sm text-zinc-200 leading-relaxed">
+                {optimized.title}
+              </div>
+              <p className="text-xs text-zinc-600 mt-1 text-right">{optimized.title.length} chars</p>
+            </div>
+
+            {/* Bullets */}
+            {optimized.bullets.length > 0 && (
+              <div className="mb-5">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                    Bullet Points
+                  </span>
+                  <CopyButton text={optimized.bullets.join("\n")} />
+                </div>
+                <div className="card-subtle p-4 space-y-2">
+                  {optimized.bullets.map((b, i) => (
+                    <div key={i} className="flex items-start gap-3 group">
+                      <span className="text-sa-200/60 text-xs mt-0.5 shrink-0 font-mono">{i + 1}</span>
+                      <p className="text-sm text-zinc-200 leading-relaxed flex-1">{b}</p>
+                      <CopyButton text={b} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Description */}
+            <div className="mb-5">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Description</span>
+                <CopyButton text={optimized.description} />
+              </div>
+              <div className="card-subtle p-4 text-sm text-zinc-200 leading-relaxed whitespace-pre-wrap">
+                {optimized.description}
+              </div>
+              <p className="text-xs text-zinc-600 mt-1 text-right">{optimized.description.length} chars</p>
+            </div>
+
+            {/* Backend Keywords (Amazon only) */}
+            {optimized.backend_keywords && (
+              <div className="mb-5">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Backend Keywords</span>
+                  <CopyButton text={optimized.backend_keywords} />
+                </div>
+                <div className="card-subtle p-4 text-sm text-zinc-200 font-mono leading-relaxed">
+                  {optimized.backend_keywords}
+                </div>
+                <p className="text-xs text-zinc-600 mt-1 text-right">
+                  {new TextEncoder().encode(optimized.backend_keywords).length} / 250 bytes
+                </p>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={handleReaudit}
+                disabled={loading}
+                className="btn-primary flex-1 gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <ClipboardCheck className="size-4" />
+                    Re-audit this version
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => setOptimized(null)}
+                className="btn-secondary px-4"
+              >
+                Discard
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </>

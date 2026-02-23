@@ -66,6 +66,26 @@ const auditAPlusModule = z.object({
   specs: z.record(z.string(), z.string()).optional(),
 });
 
+export const optimizeSchema = z.object({
+  marketplace: z.enum(["amazon", "ebay"]),
+  title: z.string().min(1),
+  bullets: z.array(z.string()).default([]),
+  description: z.string().min(1),
+  backend_keywords: z.string().optional(),
+  score: z.number().min(0).max(100),
+  validation: z.array(z.object({
+    severity: z.enum(["error", "warning", "info"]),
+    field: z.string(),
+    rule: z.string(),
+    message: z.string(),
+  })).default([]),
+  breakdown: z.array(z.object({
+    criterion: z.string(),
+    score: z.number(),
+    notes: z.string().optional(),
+  })).default([]),
+});
+
 export const auditSchema = z.object({
   marketplace: z.enum(["amazon", "ebay"]),
   title: z.string().min(1),
