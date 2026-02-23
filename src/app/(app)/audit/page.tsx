@@ -15,10 +15,28 @@ import {
   Copy,
   Check,
 } from "lucide-react";
-import type { QAGrade } from "@/types";
+import type { QAGrade, APlusModule } from "@/types";
 import type { ScoreBreakdown } from "@/lib/qa/scorer";
 import type { QAResult } from "@/types";
 import type { OptimizeMode, OptimizeResult } from "@/lib/gemini/optimize";
+
+const APLUS_MODULE_LABELS: Record<string, string> = {
+  STANDARD_HEADER_IMAGE_TEXT: "Hero Banner",
+  STANDARD_SINGLE_SIDE_IMAGE: "Feature Highlight",
+  STANDARD_THREE_IMAGE_TEXT: "Three-Column Features",
+  STANDARD_FOUR_IMAGE_TEXT: "Four-Column Features",
+  STANDARD_SINGLE_IMAGE_HIGHLIGHTS: "Benefits & Highlights",
+  STANDARD_SINGLE_IMAGE_SPECS_DETAIL: "Specs Detail",
+  STANDARD_TECH_SPECS: "Technical Specifications",
+  STANDARD_PRODUCT_DESCRIPTION: "Brand Story",
+  STANDARD_FOUR_IMAGE_TEXT_QUADRANT: "Feature Quadrant",
+  STANDARD_MULTIPLE_IMAGE_TEXT: "Image Carousel",
+  STANDARD_COMPARISON_TABLE: "Comparison Table",
+  STANDARD_TEXT: "Text Block",
+  STANDARD_COMPANY_LOGO: "Brand Logo",
+  STANDARD_IMAGE_TEXT_OVERLAY: "Full-Width Banner",
+  STANDARD_IMAGE_SIDEBAR: "Image Sidebar",
+};
 
 type Marketplace = "amazon" | "ebay";
 
@@ -231,11 +249,13 @@ function AuditContent() {
     const newBullets = optimized.bullets.length > 0 ? optimized.bullets : [""];
     const newDescription = optimized.description;
     const newKeywords = optimized.backend_keywords ?? "";
+    const newAPlusModules = (optimized.a_plus_modules ?? []) as APlusModule[];
 
     setTitle(newTitle);
     setBullets(newBullets);
     setDescription(newDescription);
     setBackendKeywords(newKeywords);
+    setAPlusModules(newAPlusModules);
     setOptimized(null);
     setResults(null);
     setOptimizeError("");
@@ -252,6 +272,7 @@ function AuditContent() {
           bullets: newBullets.filter((b) => b.trim().length > 0),
           description: newDescription,
           ...(marketplace === "amazon" && newKeywords ? { backend_keywords: newKeywords } : {}),
+          ...(newAPlusModules.length > 0 ? { a_plus_modules: newAPlusModules } : {}),
         }),
       });
       const data = await res.json();
@@ -525,7 +546,8 @@ function AuditContent() {
                       : results.score >= 40
                       ? "restructure weak sections while keeping your product facts"
                       : "rewrite the listing using your content as a product brief"}
-                    {" "}· uses 1 listing credit
+                    {marketplace === "amazon" ? ", generate A+ Content modules," : ""}
+                    {" "}and target 90+ · uses 1 listing credit
                   </p>
                 </div>
                 <button
@@ -627,6 +649,60 @@ function AuditContent() {
                 <p className="text-xs text-zinc-600 mt-1 text-right">
                   {new TextEncoder().encode(optimized.backend_keywords).length} / 250 bytes
                 </p>
+              </div>
+            )}
+
+            {/* A+ Content Modules (Amazon only) */}
+            {optimized.a_plus_modules && optimized.a_plus_modules.length > 0 && (
+              <div className="mb-5">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                    A+ Content Modules
+                  </span>
+                  <span className="text-xs text-zinc-600">Requires Amazon Brand Registry</span>
+                </div>
+                <div className="space-y-3">
+                  {optimized.a_plus_modules.map((mod, i) => (
+                    <div key={i} className="card-subtle p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xs font-medium text-sa-200 bg-sa-200/10 px-2 py-0.5 rounded-lg">
+                          {APLUS_MODULE_LABELS[mod.type] ?? mod.type}
+                        </span>
+                        <span className="text-xs text-zinc-600">Module {mod.position}</span>
+                      </div>
+                      {mod.headline && (
+                        <p className="text-sm font-medium text-zinc-200 mb-1">{mod.headline}</p>
+                      )}
+                      {mod.body && (
+                        <p className="text-sm text-zinc-400 leading-relaxed mb-2">{mod.body}</p>
+                      )}
+                      {mod.highlights && mod.highlights.length > 0 && (
+                        <ul className="mb-2 space-y-1">
+                          {mod.highlights.map((h, j) => (
+                            <li key={j} className="text-xs text-zinc-400 flex items-start gap-1.5">
+                              <span className="text-sa-200/50 shrink-0 mt-0.5">•</span>
+                              {h}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {mod.image && (
+                        <div className="mt-2 pt-2 border-t border-white/5 text-xs space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-zinc-600">Alt text:</span>
+                            <span className="text-zinc-300">{mod.image.alt_text}</span>
+                            <span className={`ml-auto font-mono ${mod.image.alt_text.length > 90 ? "text-amber-400" : "text-zinc-600"}`}>
+                              {mod.image.alt_text.length}/100
+                            </span>
+                          </div>
+                          {mod.image.image_guidance && (
+                            <p className="text-zinc-500 italic">{mod.image.image_guidance}</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
