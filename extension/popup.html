@@ -17,22 +17,31 @@
       line-height: 1.5;
     }
     .header {
-      padding: 16px 20px;
+      padding: 14px 20px;
       border-bottom: 1px solid #27272a;
-      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
-    .header h1 {
-      font-size: 20px;
-      font-weight: 700;
-      color: #f6cb63;
-      letter-spacing: -0.5px;
+    .header-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
-    .header .subtitle {
-      font-size: 11px;
-      color: #71717a;
+    .header-wordmark {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
       text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-top: 2px;
+      line-height: 1;
+      color: #f6cb63;
+    }
+    .header-wordmark span { color: #fce8b4; }
+    .header-subtitle {
+      font-size: 10px;
+      color: #52525b;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
     }
     .content { padding: 16px 20px; }
     .status {
@@ -106,8 +115,17 @@
 </head>
 <body>
   <div class="header">
-    <h1>SellerAide</h1>
-    <div class="subtitle">Listing Audit</div>
+    <div class="header-logo">
+      <!-- Logo icon — matches src/components/ui/logo.tsx -->
+      <svg width="32" height="32" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2" y="2" width="44" height="44" rx="12" stroke="#f6cb63" stroke-width="2.5" fill="rgba(246,203,99,0.06)"/>
+        <path d="M17 32.5C17 32.5 17 28.5 21.5 26.5C26 24.5 31 23 31 19C31 15 27 14 24 14C21 14 18.5 15.5 17.5 17" stroke="#f6cb63" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <path d="M31 15.5C31 15.5 31 19.5 26.5 21.5C22 23.5 17 25 17 29C17 33 21 34 24 34C27 34 29.5 32.5 30.5 31" stroke="#f6cb63" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <path d="M34 10L37.5 6.5M37.5 6.5L41 10M37.5 6.5V13" stroke="#fce8b4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="header-wordmark">Seller<span>Aide</span></div>
+    </div>
+    <div class="header-subtitle">Listing Audit</div>
   </div>
   <div class="content">
     <div class="status" id="status">Detecting listing...</div>
