@@ -81,8 +81,7 @@ export async function POST(req: NextRequest) {
 
     return jsonSuccess(finalResult);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("Optimize error:", msg);
-    return jsonError(`Optimization failed: ${msg}`, 500);
+    console.error("Optimize error:", err instanceof Error ? err.message : err);
+    return jsonError("Optimization failed. Please try again.", 500);
   }
 }
