@@ -38,6 +38,8 @@ export const sendMessageSchema = z.object({
 export const generateListingSchema = z.object({
   marketplace: marketplaceSchema,
   product_description: z.string().min(10).max(15000),
+  condition: z.string().optional(),
+  condition_notes: z.string().max(2000).optional(),
 });
 
 export const refineListingSchema = z.object({
@@ -72,6 +74,8 @@ export const optimizeSchema = z.object({
   bullets: z.array(z.string()).default([]),
   description: z.string().min(1),
   backend_keywords: z.string().optional(),
+  condition: z.string().optional(),
+  condition_notes: z.string().max(2000).optional(),
   score: z.number().min(0).max(100),
   validation: z.array(z.object({
     severity: z.enum(["error", "warning", "info"]),
@@ -93,4 +97,18 @@ export const auditSchema = z.object({
   description: z.string().min(1),
   backend_keywords: z.string().optional(),
   a_plus_modules: z.array(auditAPlusModule).optional(),
+});
+
+export const rewriteFieldSchema = z.object({
+  marketplace: marketplaceSchema,
+  field: z.enum(["title", "bullet", "description", "backend_keywords"]),
+  bullet_index: z.number().int().min(0).optional(),
+  current_value: z.string().min(1).max(5000),
+  listing: z.object({
+    title: z.string(),
+    bullets: z.array(z.string()),
+    description: z.string(),
+    backend_keywords: z.string().optional(),
+  }),
+  instructions: z.string().max(500).optional(),
 });

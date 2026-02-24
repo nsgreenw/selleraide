@@ -16,7 +16,12 @@ import {
   Check,
   Save,
   ExternalLink,
+  Download,
+  Puzzle,
+  X,
 } from "lucide-react";
+
+const EXTENSION_URL = process.env.NEXT_PUBLIC_EXTENSION_URL || null;
 import type { QAGrade, APlusModule } from "@/types";
 import type { ScoreBreakdown } from "@/lib/qa/scorer";
 import type { QAResult } from "@/types";
@@ -41,6 +46,21 @@ const APLUS_MODULE_LABELS: Record<string, string> = {
 };
 
 type Marketplace = "amazon" | "ebay";
+
+const EBAY_CONDITIONS = [
+  "New",
+  "Open Box",
+  "Certified Refurbished",
+  "Seller Refurbished",
+  "Like New",
+  "Very Good",
+  "Good",
+  "Acceptable",
+  "For Parts or Not Working",
+  "Pre-Owned",
+  "Vintage",
+  "Antique",
+] as const;
 
 interface AuditResults {
   score: number;
@@ -85,6 +105,8 @@ const MODE_COLORS: Record<OptimizeMode, string> = {
 function AuditContent() {
   const searchParams = useSearchParams();
   const [marketplace, setMarketplace] = useState<Marketplace>("amazon");
+  const [condition, setCondition] = useState("New");
+  const [conditionNotes, setConditionNotes] = useState("");
   const [title, setTitle] = useState("");
   const [bullets, setBullets] = useState<string[]>([""]);
   const [description, setDescription] = useState("");
@@ -100,10 +122,20 @@ function AuditContent() {
   const [optimizedContent, setOptimizedContent] = useState<OptimizeResult | null>(null);
   const [optimizeError, setOptimizeError] = useState("");
 
+  // Rewrite state
+  const [activeRewriteField, setActiveRewriteField] = useState<string | null>(null);
+  const [rewriteInstruction, setRewriteInstruction] = useState("");
+  const [rewriting, setRewriting] = useState(false);
+  const [rewriteError, setRewriteError] = useState<string | null>(null);
+
   // Save state
   const [saving, setSaving] = useState(false);
   const [savedId, setSavedId] = useState<string | null>(null);
   const [saveError, setSaveError] = useState("");
+
+  // Extension detection: null = checking, true = installed, false = not found
+  const [extensionInstalled, setExtensionInstalled] = useState<boolean | null>(null);
+  const [extPromptDismissed, setExtPromptDismissed] = useState(false);
 
   // Read ?data= param from extension and auto-run audit
   useEffect(() => {
@@ -124,6 +156,17 @@ function AuditContent() {
       const decodedKeywords: string = decoded.backend_keywords || "";
       const decodedAPlusModules: unknown[] = Array.isArray(decoded.a_plus_modules) ? decoded.a_plus_modules : [];
 
+      // Try to auto-select condition from item_specifics (eBay extension)
+      if (mp === "ebay" && decoded.item_specifics && typeof decoded.item_specifics === "object") {
+        const specifics = decoded.item_specifics as Record<string, string>;
+        const rawCondition = specifics["Condition"] ?? specifics["condition"] ?? "";
+        const matchedCondition = EBAY_CONDITIONS.find(
+          (c) => c.toLowerCase() === rawCondition.toLowerCase()
+        );
+        if (matchedCondition) setCondition(matchedCondition);
+      }
+
+      setExtensionInstalled(true); // data came from the extension — it's definitely installed
       setMarketplace(mp);
       setTitle(decodedTitle);
       setBullets(decodedBullets);
@@ -159,6 +202,24 @@ function AuditContent() {
       // Invalid or malformed data param — ignore, show blank form
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Detect whether the Chrome extension is installed
+  useEffect(() => {
+    const check = () => {
+      setExtensionInstalled(
+        document.documentElement.getAttribute("data-selleraide-ext") === "1"
+      );
+    };
+    // Listen for the custom event fired by content.js (covers late-loading cases)
+    const handler = () => setExtensionInstalled(true);
+    document.addEventListener("selleraide:installed", handler, { once: true });
+    // Fall back to attribute check after a short delay
+    const timer = setTimeout(check, 300);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("selleraide:installed", handler);
+    };
   }, []);
 
   const addBullet = () => {
@@ -233,6 +294,10 @@ function AuditContent() {
           description: description.trim(),
           ...(marketplace === "amazon" && backendKeywords.trim()
             ? { backend_keywords: backendKeywords.trim() }
+            : {}),
+          ...(marketplace === "ebay" ? { condition } : {}),
+          ...(marketplace === "ebay" && conditionNotes.trim()
+            ? { condition_notes: conditionNotes.trim() }
             : {}),
           score: results.score,
           validation: results.validation,
@@ -335,6 +400,81 @@ function AuditContent() {
     }
   };
 
+  const handleRewrite = async (fieldKey: string) => {
+    if (!optimized) return;
+    setRewriting(true);
+    setRewriteError(null);
+
+    const isBullet = fieldKey.startsWith("bullet_");
+    const bulletIndex = isBullet ? parseInt(fieldKey.split("_")[1], 10) : undefined;
+    const field = isBullet
+      ? ("bullet" as const)
+      : (fieldKey as "title" | "description" | "backend_keywords");
+
+    const currentValue = isBullet
+      ? (optimized.bullets[bulletIndex!] ?? "")
+      : field === "title"
+      ? optimized.title
+      : field === "description"
+      ? optimized.description
+      : (optimized.backend_keywords ?? "");
+
+    try {
+      const res = await fetch("/api/audit/rewrite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          marketplace,
+          field,
+          ...(bulletIndex !== undefined ? { bullet_index: bulletIndex } : {}),
+          current_value: currentValue,
+          listing: {
+            title: optimized.title,
+            bullets: optimized.bullets,
+            description: optimized.description,
+            ...(optimized.backend_keywords ? { backend_keywords: optimized.backend_keywords } : {}),
+          },
+          ...(rewriteInstruction.trim() ? { instructions: rewriteInstruction.trim() } : {}),
+        }),
+      });
+
+      const data = await res.json() as { value?: string; error?: string };
+      if (!res.ok) {
+        setRewriteError(data.error || "Rewrite failed");
+        return;
+      }
+
+      const newValue = data.value ?? currentValue;
+
+      if (isBullet && bulletIndex !== undefined) {
+        const newBullets = [...optimized.bullets];
+        newBullets[bulletIndex] = newValue;
+        const updated = { ...optimized, bullets: newBullets };
+        setOptimized(updated);
+        setOptimizedContent(updated);
+      } else if (field === "title") {
+        const updated = { ...optimized, title: newValue };
+        setOptimized(updated);
+        setOptimizedContent(updated);
+      } else if (field === "description") {
+        const updated = { ...optimized, description: newValue };
+        setOptimized(updated);
+        setOptimizedContent(updated);
+      } else if (field === "backend_keywords") {
+        const updated = { ...optimized, backend_keywords: newValue };
+        setOptimized(updated);
+        setOptimizedContent(updated);
+      }
+
+      setActiveRewriteField(null);
+      setRewriteInstruction("");
+    } catch {
+      setRewriteError("Failed to connect to the server");
+    } finally {
+      setRewriting(false);
+    }
+  };
+
   const scoreColor = (score: number) => {
     if (score >= 80) return "text-emerald-400";
     if (score >= 50) return "text-yellow-400";
@@ -362,6 +502,50 @@ function AuditContent() {
 
   return (
     <>
+      {/* Extension install prompt — shown only when extension is not detected */}
+      {extensionInstalled === false && !extPromptDismissed && (
+        <div className="mb-6 rounded-2xl border border-sa-200/20 bg-sa-200/5 p-5 flex items-start gap-4">
+          <div className="w-10 h-10 rounded-xl bg-sa-200/10 flex items-center justify-center shrink-0">
+            <Puzzle className="size-5 text-sa-200" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-zinc-200 mb-1">
+              Skip the copy-paste — use the Chrome extension
+            </p>
+            <p className="text-xs text-zinc-400 mb-3">
+              The SellerAide extension lets you audit any Amazon or eBay listing in one click directly from the product page.
+            </p>
+            <div className="flex items-center gap-3 flex-wrap">
+              {EXTENSION_URL ? (
+                <a
+                  href={EXTENSION_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-primary text-xs gap-1.5 py-2 px-4"
+                >
+                  <Download className="size-3.5" />
+                  Add to Chrome — Free
+                </a>
+              ) : (
+                <span className="text-xs text-zinc-500 italic">Extension coming soon</span>
+              )}
+              <button
+                onClick={() => setExtPromptDismissed(true)}
+                className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+              >
+                I'll audit manually
+              </button>
+            </div>
+          </div>
+          <button
+            onClick={() => setExtPromptDismissed(true)}
+            className="text-zinc-600 hover:text-zinc-400 transition-colors shrink-0"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+      )}
+
       {/* Form */}
       <div className="card-glass p-6 sm:p-8 mb-8">
         {/* Marketplace Toggle */}
@@ -369,7 +553,7 @@ function AuditContent() {
           <label className="text-sm font-medium text-zinc-300 block mb-3">Marketplace</label>
           <div className="flex gap-3">
             <button
-              onClick={() => setMarketplace("amazon")}
+              onClick={() => { setMarketplace("amazon"); setCondition("New"); setConditionNotes(""); }}
               className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium transition-all ${
                 marketplace === "amazon"
                   ? "rounded-xl border border-sa-200/50 bg-sa-200/10 text-sa-200"
@@ -392,6 +576,37 @@ function AuditContent() {
             </button>
           </div>
         </div>
+
+        {/* Condition (eBay only) */}
+        {marketplace === "ebay" && (
+          <div className="mb-6">
+            <label className="text-sm font-medium text-zinc-300 block mb-2">Condition</label>
+            <select
+              value={condition}
+              onChange={(e) => setCondition(e.target.value)}
+              className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-zinc-200 focus:border-sa-200/50 focus:outline-none"
+            >
+              {EBAY_CONDITIONS.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+            {condition !== "New" && (
+              <div className="mt-3">
+                <label className="text-sm font-medium text-zinc-300 block mb-2">
+                  Condition Notes
+                  <span className="ml-2 text-xs font-normal text-zinc-500">Describe any wear, flaws, or missing parts</span>
+                </label>
+                <textarea
+                  value={conditionNotes}
+                  onChange={(e) => setConditionNotes(e.target.value)}
+                  placeholder="e.g. Minor scratch on bottom left corner, all original accessories included, box has shelf wear"
+                  rows={3}
+                  className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-zinc-200 placeholder-zinc-600 focus:border-sa-200/50 focus:outline-none resize-none"
+                />
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Title */}
         <div className="mb-6">
@@ -729,12 +944,48 @@ function AuditContent() {
             <div className="mb-5">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Title</span>
-                <CopyButton text={optimized.title} />
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => { setActiveRewriteField(activeRewriteField === "title" ? null : "title"); setRewriteInstruction(""); setRewriteError(null); }}
+                    className="p-1 text-zinc-500 hover:text-sa-200 transition-colors"
+                    title="Rewrite with AI"
+                  >
+                    <Wand2 className="h-3.5 w-3.5" />
+                  </button>
+                  <CopyButton text={optimized.title} />
+                </div>
               </div>
               <div className="card-subtle p-4 text-sm text-zinc-200 leading-relaxed">
                 {optimized.title}
               </div>
               <p className="text-xs text-zinc-600 mt-1 text-right">{optimized.title.length} chars</p>
+              {activeRewriteField === "title" && (
+                <div className="mt-2 rounded-lg border border-sa-200/20 bg-sa-200/5 p-3 space-y-2">
+                  <textarea
+                    value={rewriteInstruction}
+                    onChange={(e) => setRewriteInstruction(e.target.value)}
+                    placeholder="Optional — e.g. 'make it more concise', or leave blank"
+                    rows={2}
+                    className="w-full resize-none rounded bg-black/30 border border-white/10 px-3 py-2 text-sm text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-sa-200/40"
+                  />
+                  {rewriteError && <p className="text-xs text-rose-400">{rewriteError}</p>}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => { setActiveRewriteField(null); setRewriteInstruction(""); setRewriteError(null); }}
+                      className="btn-secondary py-1 px-3 text-xs"
+                    >Cancel</button>
+                    <button
+                      onClick={() => handleRewrite("title")}
+                      disabled={rewriting}
+                      className="btn-primary py-1 px-3 text-xs gap-1.5"
+                    >
+                      {rewriting
+                        ? <><Loader2 className="h-3 w-3 animate-spin" /> Rewriting…</>
+                        : <><Wand2 className="h-3 w-3" /> Rewrite</>}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Bullets */}
@@ -747,13 +998,54 @@ function AuditContent() {
                   <CopyButton text={optimized.bullets.join("\n")} />
                 </div>
                 <div className="card-subtle p-4 space-y-2">
-                  {optimized.bullets.map((b, i) => (
-                    <div key={i} className="flex items-start gap-3 group">
-                      <span className="text-sa-200/60 text-xs mt-0.5 shrink-0 font-mono">{i + 1}</span>
-                      <p className="text-sm text-zinc-200 leading-relaxed flex-1">{b}</p>
-                      <CopyButton text={b} />
-                    </div>
-                  ))}
+                  {optimized.bullets.map((b, i) => {
+                    const fieldKey = `bullet_${i}`;
+                    return (
+                      <div key={i} className="space-y-0">
+                        <div className="flex items-start gap-3 group">
+                          <span className="text-sa-200/60 text-xs mt-0.5 shrink-0 font-mono">{i + 1}</span>
+                          <p className="text-sm text-zinc-200 leading-relaxed flex-1">{b}</p>
+                          <div className="flex items-center gap-0.5 shrink-0">
+                            <button
+                              onClick={() => { setActiveRewriteField(activeRewriteField === fieldKey ? null : fieldKey); setRewriteInstruction(""); setRewriteError(null); }}
+                              className="p-1 text-zinc-500 hover:text-sa-200 transition-colors"
+                              title="Rewrite with AI"
+                            >
+                              <Wand2 className="h-3.5 w-3.5" />
+                            </button>
+                            <CopyButton text={b} />
+                          </div>
+                        </div>
+                        {activeRewriteField === fieldKey && (
+                          <div className="mt-2 ml-6 rounded-lg border border-sa-200/20 bg-sa-200/5 p-3 space-y-2">
+                            <textarea
+                              value={rewriteInstruction}
+                              onChange={(e) => setRewriteInstruction(e.target.value)}
+                              placeholder="Optional — e.g. 'add a numeric spec', or leave blank"
+                              rows={2}
+                              className="w-full resize-none rounded bg-black/30 border border-white/10 px-3 py-2 text-sm text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-sa-200/40"
+                            />
+                            {rewriteError && <p className="text-xs text-rose-400">{rewriteError}</p>}
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => { setActiveRewriteField(null); setRewriteInstruction(""); setRewriteError(null); }}
+                                className="btn-secondary py-1 px-3 text-xs"
+                              >Cancel</button>
+                              <button
+                                onClick={() => handleRewrite(fieldKey)}
+                                disabled={rewriting}
+                                className="btn-primary py-1 px-3 text-xs gap-1.5"
+                              >
+                                {rewriting
+                                  ? <><Loader2 className="h-3 w-3 animate-spin" /> Rewriting…</>
+                                  : <><Wand2 className="h-3 w-3" /> Rewrite</>}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -762,12 +1054,48 @@ function AuditContent() {
             <div className="mb-5">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Description</span>
-                <CopyButton text={optimized.description} />
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => { setActiveRewriteField(activeRewriteField === "description" ? null : "description"); setRewriteInstruction(""); setRewriteError(null); }}
+                    className="p-1 text-zinc-500 hover:text-sa-200 transition-colors"
+                    title="Rewrite with AI"
+                  >
+                    <Wand2 className="h-3.5 w-3.5" />
+                  </button>
+                  <CopyButton text={optimized.description} />
+                </div>
               </div>
               <div className="card-subtle p-4 text-sm text-zinc-200 leading-relaxed whitespace-pre-wrap">
                 {optimized.description}
               </div>
               <p className="text-xs text-zinc-600 mt-1 text-right">{optimized.description.length} chars</p>
+              {activeRewriteField === "description" && (
+                <div className="mt-2 rounded-lg border border-sa-200/20 bg-sa-200/5 p-3 space-y-2">
+                  <textarea
+                    value={rewriteInstruction}
+                    onChange={(e) => setRewriteInstruction(e.target.value)}
+                    placeholder="Optional — e.g. 'make it shorter', or leave blank"
+                    rows={2}
+                    className="w-full resize-none rounded bg-black/30 border border-white/10 px-3 py-2 text-sm text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-sa-200/40"
+                  />
+                  {rewriteError && <p className="text-xs text-rose-400">{rewriteError}</p>}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => { setActiveRewriteField(null); setRewriteInstruction(""); setRewriteError(null); }}
+                      className="btn-secondary py-1 px-3 text-xs"
+                    >Cancel</button>
+                    <button
+                      onClick={() => handleRewrite("description")}
+                      disabled={rewriting}
+                      className="btn-primary py-1 px-3 text-xs gap-1.5"
+                    >
+                      {rewriting
+                        ? <><Loader2 className="h-3 w-3 animate-spin" /> Rewriting…</>
+                        : <><Wand2 className="h-3 w-3" /> Rewrite</>}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Backend Keywords (Amazon only) */}
@@ -775,7 +1103,16 @@ function AuditContent() {
               <div className="mb-5">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Backend Keywords</span>
-                  <CopyButton text={optimized.backend_keywords} />
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => { setActiveRewriteField(activeRewriteField === "backend_keywords" ? null : "backend_keywords"); setRewriteInstruction(""); setRewriteError(null); }}
+                      className="p-1 text-zinc-500 hover:text-sa-200 transition-colors"
+                      title="Rewrite with AI"
+                    >
+                      <Wand2 className="h-3.5 w-3.5" />
+                    </button>
+                    <CopyButton text={optimized.backend_keywords} />
+                  </div>
                 </div>
                 <div className="card-subtle p-4 text-sm text-zinc-200 font-mono leading-relaxed">
                   {optimized.backend_keywords}
@@ -783,6 +1120,33 @@ function AuditContent() {
                 <p className="text-xs text-zinc-600 mt-1 text-right">
                   {new TextEncoder().encode(optimized.backend_keywords).length} / 250 bytes
                 </p>
+                {activeRewriteField === "backend_keywords" && (
+                  <div className="mt-2 rounded-lg border border-sa-200/20 bg-sa-200/5 p-3 space-y-2">
+                    <textarea
+                      value={rewriteInstruction}
+                      onChange={(e) => setRewriteInstruction(e.target.value)}
+                      placeholder="Optional — e.g. 'add more long-tail keywords', or leave blank"
+                      rows={2}
+                      className="w-full resize-none rounded bg-black/30 border border-white/10 px-3 py-2 text-sm text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-sa-200/40"
+                    />
+                    {rewriteError && <p className="text-xs text-rose-400">{rewriteError}</p>}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { setActiveRewriteField(null); setRewriteInstruction(""); setRewriteError(null); }}
+                        className="btn-secondary py-1 px-3 text-xs"
+                      >Cancel</button>
+                      <button
+                        onClick={() => handleRewrite("backend_keywords")}
+                        disabled={rewriting}
+                        className="btn-primary py-1 px-3 text-xs gap-1.5"
+                      >
+                        {rewriting
+                          ? <><Loader2 className="h-3 w-3 animate-spin" /> Rewriting…</>
+                          : <><Wand2 className="h-3 w-3" /> Rewrite</>}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
