@@ -105,6 +105,8 @@ const MODE_COLORS: Record<OptimizeMode, string> = {
 function AuditContent() {
   const searchParams = useSearchParams();
   const [marketplace, setMarketplace] = useState<Marketplace>("amazon");
+  const [brand, setBrand] = useState("");
+  const [amazonCondition, setAmazonCondition] = useState("New");
   const [condition, setCondition] = useState("New");
   const [conditionNotes, setConditionNotes] = useState("");
   const [title, setTitle] = useState("");
@@ -238,6 +240,13 @@ function AuditContent() {
     }
   };
 
+  const buildAttributes = () => {
+    const attrs: Record<string, string> = {};
+    if (brand.trim()) attrs.brand = brand.trim();
+    if (marketplace === "amazon") attrs.condition = amazonCondition;
+    return Object.keys(attrs).length > 0 ? attrs : undefined;
+  };
+
   const handleSubmit = async () => {
     setError("");
     setResults(null);
@@ -260,6 +269,7 @@ function AuditContent() {
           ...(marketplace === "amazon" && backendKeywords.trim()
             ? { backend_keywords: backendKeywords.trim() }
             : {}),
+          ...(buildAttributes() ? { attributes: buildAttributes() } : {}),
           ...(aPlusModules.length > 0 ? { a_plus_modules: aPlusModules } : {}),
         }),
       });
@@ -295,6 +305,7 @@ function AuditContent() {
           ...(marketplace === "amazon" && backendKeywords.trim()
             ? { backend_keywords: backendKeywords.trim() }
             : {}),
+          ...(buildAttributes() ? { attributes: buildAttributes() } : {}),
           ...(marketplace === "ebay" ? { condition } : {}),
           ...(marketplace === "ebay" && conditionNotes.trim()
             ? { condition_notes: conditionNotes.trim() }
@@ -387,6 +398,7 @@ function AuditContent() {
           bullets: newBullets.filter((b) => b.trim().length > 0),
           description: newDescription,
           ...(marketplace === "amazon" && newKeywords ? { backend_keywords: newKeywords } : {}),
+          ...(buildAttributes() ? { attributes: buildAttributes() } : {}),
           ...(newAPlusModules.length > 0 ? { a_plus_modules: newAPlusModules } : {}),
         }),
       });
@@ -576,6 +588,38 @@ function AuditContent() {
             </button>
           </div>
         </div>
+
+        {/* Brand */}
+        <div className="mb-6">
+          <label className="text-sm font-medium text-zinc-300 block mb-2">
+            Brand
+            <span className="ml-2 text-xs font-normal text-zinc-500">Optional</span>
+          </label>
+          <input
+            value={brand}
+            onChange={(e) => setBrand(e.target.value)}
+            placeholder="e.g. Nike, Sony, Generic"
+            className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-zinc-200 placeholder-zinc-600 focus:border-sa-200/50 focus:outline-none"
+          />
+        </div>
+
+        {/* Condition (Amazon only) */}
+        {marketplace === "amazon" && (
+          <div className="mb-6">
+            <label className="text-sm font-medium text-zinc-300 block mb-2">Condition</label>
+            <select
+              value={amazonCondition}
+              onChange={(e) => setAmazonCondition(e.target.value)}
+              className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-zinc-200 focus:border-sa-200/50 focus:outline-none"
+            >
+              <option value="New">New</option>
+              <option value="Used - Like New">Used - Like New</option>
+              <option value="Used - Very Good">Used - Very Good</option>
+              <option value="Used - Good">Used - Good</option>
+              <option value="Used - Acceptable">Used - Acceptable</option>
+            </select>
+          </div>
+        )}
 
         {/* Condition (eBay only) */}
         {marketplace === "ebay" && (

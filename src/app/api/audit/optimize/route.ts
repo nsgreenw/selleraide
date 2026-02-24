@@ -51,6 +51,7 @@ export async function POST(req: NextRequest) {
       bullets: firstResult.bullets,
       description: firstResult.description,
       ...(firstResult.backend_keywords ? { backend_keywords: firstResult.backend_keywords } : {}),
+      ...(parsed.data.attributes ? { attributes: parsed.data.attributes } : {}),
       ...(firstResult.a_plus_modules ? { a_plus_modules: firstResult.a_plus_modules } : {}),
     };
     const firstAnalysis = analyzeListing(firstContent, parsed.data.marketplace);

@@ -74,6 +74,7 @@ export const optimizeSchema = z.object({
   bullets: z.array(z.string()).default([]),
   description: z.string().min(1),
   backend_keywords: z.string().optional(),
+  attributes: z.record(z.string(), z.string()).optional(),
   condition: z.string().optional(),
   condition_notes: z.string().max(2000).optional(),
   score: z.number().min(0).max(100),
@@ -96,6 +97,7 @@ export const auditSchema = z.object({
   bullets: z.array(z.string()).default([]),
   description: z.string().min(1),
   backend_keywords: z.string().optional(),
+  attributes: z.record(z.string(), z.string()).optional(),
   a_plus_modules: z.array(auditAPlusModule).optional(),
 });
 
