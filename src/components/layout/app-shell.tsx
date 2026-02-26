@@ -3,6 +3,7 @@
 import { useState, createContext, useContext, useCallback } from "react";
 import { Sidebar } from "./sidebar";
 import { MobileNav } from "./mobile-nav";
+import { TrialBanner } from "@/components/ui/trial-banner";
 
 interface AppShellContextValue {
   toggleMobileNav: () => void;
@@ -40,6 +41,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Main content */}
         <main className="flex-1 overflow-y-auto p-4">
+          <TrialBanner />
           {children}
         </main>
       </div>

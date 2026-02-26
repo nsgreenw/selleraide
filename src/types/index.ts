@@ -31,6 +31,8 @@ export interface Profile {
   stripe_subscription_id: string | null;
   listings_used_this_period: number;
   period_reset_at: string;
+  trial_expires_at: string | null;
+  trial_runs_used: number;
   created_at: string;
   updated_at: string;
 }
@@ -57,6 +59,8 @@ export interface ProductContext {
   compliance_info?: string;
   research_data?: ResearchData;
   aplus_module_count?: number; // set by API route based on subscription tier
+  condition?: string;          // eBay item condition, e.g. "Good", "Like New"
+  condition_notes?: string;    // user-provided flaw/wear description (single string)
 }
 
 export interface ResearchData {

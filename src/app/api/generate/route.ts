@@ -13,6 +13,7 @@ import {
   incrementListingCount,
   recordUsage,
 } from "@/lib/subscription/usage";
+import { getTrialStatus, incrementTrialRun } from "@/lib/subscription/trial";
 import type { Marketplace } from "@/types";
 
 export async function POST(request: NextRequest) {
@@ -30,31 +31,43 @@ export async function POST(request: NextRequest) {
       return jsonError("Please provide a product description (at least 10 characters) and marketplace.", 400);
     }
 
-    const { marketplace, product_description } = parsed.data;
+    const { marketplace, product_description, condition, condition_notes } = parsed.data;
     if (!isMarketplaceEnabled(marketplace)) {
       return jsonError("Marketplace is currently disabled.", 403);
     }
 
     const supabase = await createClient();
 
-    // Check usage limits
+    // Check usage limits (trial-aware)
     const { data: profile } = await supabase
       .from("profiles")
-      .select("subscription_tier, listings_used_this_period")
+      .select("subscription_tier, subscription_status, listings_used_this_period, trial_expires_at, trial_runs_used")
       .eq("id", user.id)
       .single();
 
     if (profile) {
-      const allowed = canGenerateListing(
-        profile.subscription_tier,
-        profile.listings_used_this_period
-      );
-
-      if (!allowed) {
-        return jsonError(
-          "You have reached your listing limit for this billing period. Please upgrade your plan.",
-          403
+      if (profile.subscription_status === "trialing") {
+        const trial = getTrialStatus(profile);
+        if (!trial.canGenerate) {
+          const reason = trial.daysRemaining <= 0
+            ? "Your 7-day free trial has ended."
+            : `You've used all ${trial.runsUsed} free trial generations.`;
+          return jsonError(
+            `${reason} Upgrade to keep generating listings.`,
+            403
+          );
+        }
+      } else {
+        const allowed = canGenerateListing(
+          profile.subscription_tier,
+          profile.listings_used_this_period
         );
+        if (!allowed) {
+          return jsonError(
+            "You have reached your listing limit for this billing period. Please upgrade your plan.",
+            403
+          );
+        }
       }
     }
 
@@ -63,6 +76,10 @@ export async function POST(request: NextRequest) {
       product_description,
       marketplace
     );
+
+    // Overlay condition from user selection (eBay)
+    if (condition) productContext.condition = condition;
+    if (condition_notes) productContext.condition_notes = condition_notes;
 
     // Step 2: Research product category, keywords, competitors
     let researchData;
@@ -129,10 +146,18 @@ export async function POST(request: NextRequest) {
       .eq("id", listing.id);
 
     // Step 6: Track usage (non-blocking — don't fail the request if tracking fails)
-    try {
-      await incrementListingCount(supabase, user.id);
-    } catch {
-      // Usage increment failed — non-critical
+    if (profile?.subscription_status === "trialing") {
+      try {
+        await incrementTrialRun(supabase, user.id);
+      } catch {
+        // Non-critical
+      }
+    } else {
+      try {
+        await incrementListingCount(supabase, user.id);
+      } catch {
+        // Non-critical
+      }
     }
     try {
       await recordUsage(supabase, user.id, "listing_generated", conversation.id);
