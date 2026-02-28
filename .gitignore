@@ -42,3 +42,4 @@ next-env.d.ts
 
 # Local-only experiments
 tiktok-marketing/
+meta-ads/node_modules/
