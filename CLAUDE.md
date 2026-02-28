@@ -1,65 +1,50 @@
-# CLAUDE.md
+# AGENTS.md - SellerAide
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## ⚠️ CRITICAL CONTEXT
 
-## Build & Development Commands
+**Repo was reverted on 2026-02-27** to commit `dd688eb` after a previous Codex session damaged main branch. The Codex eBay integration attempt is preserved on `ebay-attempt-backup` branch (uncommitted changes in `git stash`).
 
-```bash
-npm run dev          # Start dev server (Turbopack)
-npm run build        # Production build
-npm run start        # Start production server
-npm run lint         # ESLint
-npx vitest run       # Run all tests
-npx vitest run tests/lib/some.test.ts  # Run a single test file
-npx vitest --watch   # Watch mode
-```
+**Current state (main @ `d727554`):**
+- Free trial feature: code complete, migration `005_free_trial.sql` applied to Supabase
+- AI provider switching: working (`AI_PROVIDER` env var)
+- QA engine: working (`src/lib/qa/`)
+- Chrome extension: built, submitted to Chrome Web Store
+- Anthropic SDK added as dependency
+- `.gitignore` updated to exclude `meta-ads/node_modules/`
 
-## Environment Variables
+**What was lost in the revert:**
+- Codex's eBay integration attempt (preserved on `ebay-attempt-backup` branch)
+- Any work between `dd688eb` and the revert
 
-Copy `.env.local.example` to `.env.local`. Required: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_APP_URL`.
+## Git Rules (MANDATORY)
+1. **Never work directly on main.** Create `feature/` branches for all work.
+2. **Merge and delete branches when done.**
+3. **Run `npm run build` before committing.** If it fails, fix it.
+4. **Don't `git add -A` blindly** — check what you're staging.
 
-## Architecture
+## Stack
+- Next.js 15 (App Router) + TypeScript + Tailwind + shadcn/ui
+- Supabase (Auth + Postgres + RLS)
+- Stripe (subscriptions)
+- AI: Gemini (default) or Anthropic (via `AI_PROVIDER` env)
 
-**SellerAide** is an AI-powered e-commerce listing generator. Users chat with Gemini AI to describe their product, the system researches keywords/trends, generates marketplace-optimized listings, runs QA validation and scoring, and exports to PDF/CSV.
+## Key Files
+- `src/lib/gemini/client.ts` — AI provider switching logic
+- `src/lib/subscription/` — plans, trial logic, Stripe helpers
+- `src/lib/qa/` — listing quality analysis engine
+- `src/app/api/generate/route.ts` — main listing generation endpoint
+- `supabase/migrations/` — 5 migrations (all applied)
+- `extension/` — Chrome extension source
+- `specs/` — feature specs (FREE_TRIAL_SPEC.md, EBAY_INTEGRATION_SPEC.md)
 
-### API Routes (17 total)
-- `auth/` — login, logout, signup, reset-password (all require no prior auth)
-- `chat/` — create conversation (`POST /chat`), get/delete (`/chat/[id]`), send message (`/chat/[id]/messages`)
-- `listings/` — list/create (`/listings`), get/update/delete (`/listings/[id]`), refine (`/listings/[id]/refine`), export PDF/CSV (`/listings/[id]/export`)
-- `subscription/` — get status (`/subscription`), create checkout (`/subscription/checkout`), billing portal (`/subscription/portal`)
-- `generate/` — standalone listing generation (used internally)
-- `audit/` — **public** (no auth required) QA endpoint; calls `analyzeListing()` directly, useful for testing QA logic
-- `webhooks/stripe/` — receives Stripe events, syncs subscription state to profiles
+## Supabase
+- URL: `https://wbvizvrqfhrguwdjlbuu.supabase.co` (check Vercel env vars)
+- Migrations 001-005 applied
+- RLS enabled on all tables
+- `increment_listing_count` and `increment_trial_run` RPCs exist
 
-### Chat State Machine (core flow)
-Conversations progress through phases: `gathering` → `researching` → `generating` → `refining` → `completed`. The state machine lives in `src/lib/gemini/chat.ts` — it reads the current conversation status, calls the appropriate Gemini function for that phase, then advances status. The `refining` ↔ `generating` loop lets users iterate on listings through chat.
-
-### Marketplace-Driven Architecture
-Each marketplace (Amazon, Walmart, eBay, Shopify) is a self-contained `MarketplaceProfile` object (`src/lib/marketplace/`) that defines field constraints (char/byte limits, HTML rules), banned terms with regex patterns, scoring weights, keyword strategy, photo slots, and a `listingShape` array of expected JSON keys. These profiles drive everything: Gemini prompt construction, listing validation, and QA scoring. To add a new marketplace, create a profile file and register it in `registry.ts`.
-
-### QA System (`src/lib/qa/`)
-Two-stage pipeline: `validator.ts` runs deterministic field checks (lengths, banned terms, HTML compliance) producing `QAResult[]` sorted by severity. `scorer.ts` computes a weighted 0–100 score across ~8 criteria (title keyword richness, description depth, compliance coverage, etc.) using per-marketplace weights. Combined via `analyzeListing()` in `index.ts`. Tests live in `tests/lib/qa/` (scorer.test.ts, validator.test.ts).
-
-### API Route Pattern
-All API routes follow: `requireAuth()` from `src/lib/api/auth-guard.ts` → parse body with Zod schema from `src/lib/api/contracts.ts` → business logic → respond with `jsonSuccess(data)` or `jsonError(message, status)` from `src/lib/api/response.ts`.
-
-### Authentication & Authorization
-Supabase email/password auth with `@supabase/ssr` middleware (`src/middleware.ts`). Protected paths (`/chat`, `/listings`, `/settings`) redirect to `/login` without a session. All database tables use RLS policies scoping to `auth.uid()`.
-
-### Subscription & Usage
-Four tiers (free/starter/pro/agency) defined in `src/lib/subscription/plans.ts` with listing quotas. Stripe handles checkout, subscriptions, and billing portal. Webhooks (`/api/webhooks/stripe`) sync subscription state to the `profiles` table. Usage is tracked via `listings_used_this_period` counter with monthly reset.
-
-## Key Conventions
-
-- **External client initialization**: Always use lazy singleton getters (`getStripe()`, `getGeminiModel()`, `getSupabaseAdmin()`) — never instantiate at module scope or env vars will throw during Next.js build.
-- **Path alias**: `@/` maps to `./src/` (configured in both `tsconfig.json` and `vitest.config.ts`).
-- **Tailwind CSS 4**: Uses `@import "tailwindcss"` with `@theme inline` block in `globals.css` — not Tailwind v3 `@tailwind` directives.
-- **Design system**: Dark-only "Canary style" — glassmorphic cards (`card-glass`, `card-subtle`), gold accent (`--sa-200: #f6cb63`), `btn-primary`/`btn-secondary` utility classes, `label-kicker` for IBM Plex Mono uppercase labels.
-- **Fonts**: Manrope (primary body/headings), IBM Plex Mono (labels, technical text). Both loaded via `next/font`.
-- **Icons**: `lucide-react` exclusively — no other icon libraries.
-- **HTML sanitization**: DOMPurify via `src/lib/utils/sanitize.ts` for any AI-generated HTML content.
-- **AI output normalization**: `src/lib/gemini/normalization.ts` provides `toSafeString()` and related helpers for safely coercing Gemini's JSON output to expected types before validation.
-- **Types**: All shared TypeScript types live in `src/types/index.ts`.
-- **Route groups**: `(auth)` for public auth pages, `(app)` for authenticated pages wrapped in `AppProvider`.
-- **Glob tool caveat**: Parenthesized route groups like `(app)` break the Glob tool — use Grep or Bash find for those paths.
-- **Database schema**: Single migration at `supabase/migrations/001_initial_schema.sql` — tables: profiles, conversations, messages, listings, usage_events, subscription_plans.
+## What NOT to do
+- Don't touch migration files that are already applied
+- Don't add `node_modules` to git (check `.gitignore`)
+- Don't change Stripe product/price IDs without coordinating
+- Don't modify the Chrome extension without bumping its version
