@@ -16,6 +16,8 @@ export default function NewListingPage() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isFirstTime, setIsFirstTime] = useState(false);
+  const [condition, setCondition] = useState("New");
+  const [conditionNotes, setConditionNotes] = useState("");
 
   useEffect(() => {
     async function checkFirstTime() {
@@ -41,6 +43,10 @@ export default function NewListingPage() {
         body: JSON.stringify({
           marketplace,
           product_description: trimmed,
+          ...(marketplace === "ebay" && {
+            condition,
+            ...(condition !== "New" && conditionNotes && { condition_notes: conditionNotes }),
+          }),
         }),
       });
 
@@ -103,6 +109,10 @@ export default function NewListingPage() {
               value={marketplace}
               onChange={setMarketplace}
               disabled={generating}
+              condition={condition}
+              onConditionChange={setCondition}
+              conditionNotes={conditionNotes}
+              onConditionNotesChange={setConditionNotes}
             />
           </div>
 
