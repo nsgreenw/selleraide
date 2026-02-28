@@ -20,7 +20,7 @@ export async function GET() {
   const { data: profile, error } = await supabase
     .from("profiles")
     .select(
-      "subscription_tier, subscription_status, listings_used_this_period, period_reset_at, stripe_customer_id, stripe_subscription_id"
+      "subscription_tier, subscription_status, listings_used_this_period, period_reset_at, stripe_customer_id, stripe_subscription_id, trial_runs_used"
     )
     .eq("id", user.id)
     .single();
@@ -32,6 +32,9 @@ export async function GET() {
   const tier = profile.subscription_tier as SubscriptionTier;
   const plan = PLANS[tier];
 
+  const isTrialing = profile.subscription_status === "trialing";
+  const TRIAL_MAX_RUNS = 3;
+
   return jsonSuccess({
     subscription: {
       tier,
@@ -40,10 +43,14 @@ export async function GET() {
       stripe_subscription_id: profile.stripe_subscription_id,
     },
     usage: {
-      listings_used: profile.listings_used_this_period,
-      listings_limit: plan.listingsPerMonth,
+      listings_used: isTrialing
+        ? ((profile as Record<string, unknown>).trial_runs_used as number ?? 0)
+        : profile.listings_used_this_period,
+      listings_limit: isTrialing ? TRIAL_MAX_RUNS : plan.listingsPerMonth,
       period_reset_at: profile.period_reset_at,
-      can_generate: canGenerateListing(tier, profile.listings_used_this_period),
+      can_generate: isTrialing
+        ? (((profile as Record<string, unknown>).trial_runs_used as number ?? 0) < TRIAL_MAX_RUNS)
+        : canGenerateListing(tier, profile.listings_used_this_period),
     },
     plan: {
       name: plan.name,
