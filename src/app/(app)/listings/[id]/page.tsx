@@ -6,6 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import ListingDetail from "@/components/listing/listing-detail";
 import ExportMenu from "@/components/listing/export-menu";
+import RepurposeMenu from "@/components/listing/repurpose-menu";
 import type { Listing } from "@/types";
 
 export default function ListingDetailPage({
@@ -74,10 +75,16 @@ export default function ListingDetailPage({
             <h2 className="text-lg font-semibold text-zinc-100 line-clamp-1">
               {listing.content.title || "Untitled Listing"}
             </h2>
-            <ExportMenu
-              listingId={listing.id}
-              marketplace={listing.marketplace}
-            />
+            <div className="flex items-center gap-2">
+              <RepurposeMenu
+                listingId={listing.id}
+                currentMarketplace={listing.marketplace}
+              />
+              <ExportMenu
+                listingId={listing.id}
+                marketplace={listing.marketplace}
+              />
+            </div>
           </div>
 
           {/* Full listing detail */}

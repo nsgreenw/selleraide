@@ -42,6 +42,10 @@ export const generateListingSchema = z.object({
   condition_notes: z.string().max(2000).optional(),
 });
 
+export const repurposeSchema = z.object({
+  marketplace: marketplaceSchema,
+});
+
 export const refineListingSchema = z.object({
   instruction: z.string().min(1).max(5000),
 });

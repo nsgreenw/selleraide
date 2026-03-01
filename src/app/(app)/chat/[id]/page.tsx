@@ -6,6 +6,7 @@ import { ArrowLeft, Download, Copy, FileText, Check, Send, Loader2 } from "lucid
 import { Header } from "@/components/layout/header";
 import ListingPreview from "@/components/chat/listing-preview";
 import QAResultsCard from "@/components/chat/qa-results-card";
+import RepurposeMenu from "@/components/listing/repurpose-menu";
 import { createClient } from "@/lib/supabase/client";
 import type { Conversation, Listing, Marketplace } from "@/types";
 
@@ -195,6 +196,10 @@ export default function ListingResultPage({
             </button>
 
             <div className="flex items-center gap-2">
+              <RepurposeMenu
+                listingId={listing.id}
+                currentMarketplace={conversation.marketplace as Marketplace}
+              />
               <button
                 onClick={handleCopyToClipboard}
                 className="btn-secondary text-xs py-2 gap-2"
