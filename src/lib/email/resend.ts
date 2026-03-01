@@ -21,7 +21,7 @@ export async function sendFeedbackEmail(
   const resend = getResend();
 
   await resend.emails.send({
-    from: "SellerAide Feedback <onboarding@resend.dev>",
+    from: "SellerAide Feedback <feedback@selleraide.com>",
     to: FEEDBACK_EMAIL,
     subject: `Feedback from ${userEmail}`,
     text: [
