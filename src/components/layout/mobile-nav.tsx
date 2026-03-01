@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Plus, Cog, LogOut, X } from "lucide-react";
+import { Plus, Cog, LogOut, X, MessageSquare } from "lucide-react";
+import { useState } from "react";
+import { FeedbackDialog } from "@/components/layout/feedback-dialog";
 import { useApp } from "@/components/providers";
 import { useConversations } from "@/hooks/use-conversations";
 import { createClient } from "@/lib/supabase/client";
@@ -24,6 +26,7 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
   const router = useRouter();
   const { profile } = useApp();
   const { conversations, loading } = useConversations();
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   async function handleLogout() {
     const supabase = createClient();
@@ -119,6 +122,13 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
               {profile.email}
             </p>
           )}
+          <button
+            onClick={() => setFeedbackOpen(true)}
+            className="btn-secondary w-full gap-2 text-xs py-2 mb-2"
+          >
+            <MessageSquare className="h-3.5 w-3.5" />
+            Feedback
+          </button>
           <div className="flex items-center gap-2">
             <Link
               href="/settings"
@@ -138,6 +148,8 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
           </div>
         </div>
       </div>
+
+      <FeedbackDialog open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </div>
   );
 }

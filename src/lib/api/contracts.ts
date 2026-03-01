@@ -101,6 +101,11 @@ export const auditSchema = z.object({
   a_plus_modules: z.array(auditAPlusModule).optional(),
 });
 
+export const feedbackSchema = z.object({
+  message: z.string().min(10, "Please provide at least 10 characters").max(2000),
+  page_url: z.string().optional(),
+});
+
 export const rewriteFieldSchema = z.object({
   marketplace: marketplaceSchema,
   field: z.enum(["title", "bullet", "description", "backend_keywords"]),

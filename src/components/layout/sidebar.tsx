@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Plus, Cog, LogOut, X, Zap, Search, Megaphone } from "lucide-react";
+import { Plus, Cog, LogOut, X, Zap, Search, Megaphone, MessageSquare } from "lucide-react";
 import { useState } from "react";
 import { Logo } from "@/components/ui/logo";
+import { FeedbackDialog } from "@/components/layout/feedback-dialog";
 import { useApp } from "@/components/providers";
 import { useConversations } from "@/hooks/use-conversations";
 import { createClient } from "@/lib/supabase/client";
@@ -36,6 +37,7 @@ export function Sidebar() {
   const { profile } = useApp();
   const { conversations, loading, refresh } = useConversations();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const activeTool = getActiveTool(pathname);
 
@@ -182,6 +184,13 @@ export function Sidebar() {
             {profile.email}
           </p>
         )}
+        <button
+          onClick={() => setFeedbackOpen(true)}
+          className="btn-secondary w-full gap-2 text-xs py-2 mb-2"
+        >
+          <MessageSquare className="h-3.5 w-3.5" />
+          Feedback
+        </button>
         <div className="flex items-center gap-2">
           <Link
             href="/settings"
@@ -199,6 +208,8 @@ export function Sidebar() {
           </button>
         </div>
       </div>
+
+      <FeedbackDialog open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </aside>
   );
 }
