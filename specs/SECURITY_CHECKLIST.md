@@ -35,14 +35,14 @@ Audit performed 2026-03-02 after shipping security headers + CSRF origin checkin
 
 ### H4. jsPDF has 3 high-severity CVEs
 - **Category**: Dependencies
-- **Status**: [ ] Open
+- **Status**: [x] Fixed (2026-03-02) — upgraded jspdf 4.1.0 → 4.2.0
 - **Package**: `jspdf <=4.1.0`
 - **CVEs**:
   - GHSA-p5xg-68wr-hm3m — PDF injection via AcroForm (arbitrary JS execution)
   - GHSA-9vjf-qc39-jprp — PDF object injection via addJS
   - GHSA-67pg-wm7f-q7fj — DoS via malicious GIF dimensions
 - **Risk**: Listing content exported to PDF could trigger JS execution in PDF viewers.
-- **Fix**: Run `npm audit fix` or upgrade jsPDF if a patched version exists. If no patch, sanitize all inputs to jsPDF methods.
+- **Fix**: Upgraded jspdf to 4.2.0 which patches all three CVEs.
 
 ### H5. CSRF fails open when env var is unset
 - **Category**: Security patterns
