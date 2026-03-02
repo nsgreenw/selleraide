@@ -21,7 +21,7 @@ Audit performed 2026-03-02 after shipping security headers + CSRF origin checkin
 
 ### H2. DOMPurify is a no-op on server side
 - **Category**: XSS
-- **Status**: [ ] Open
+- **Status**: [x] Fixed (2026-03-02) — swapped dompurify for isomorphic-dompurify
 - **File**: `src/lib/utils/sanitize.ts:4`
 - **Risk**: `sanitizeHtml()` returns raw HTML when `typeof window === "undefined"`. Any server-side caller gets zero sanitization. Combined with H3, AI-generated HTML goes to DB unsanitized.
 - **Fix**: Use `isomorphic-dompurify` or `dompurify` + `jsdom` for server-side sanitization. Remove the `typeof window` guard.

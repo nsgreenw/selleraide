@@ -1,7 +1,6 @@
-import DOMPurify from "dompurify";
+import DOMPurify from "isomorphic-dompurify";
 
 export function sanitizeHtml(dirty: string): string {
-  if (typeof window === "undefined") return dirty;
   return DOMPurify.sanitize(dirty, {
     ALLOWED_TAGS: [
       "b", "i", "em", "strong", "br", "p", "ul", "ol", "li",
