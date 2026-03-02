@@ -118,10 +118,10 @@ Audit performed 2026-03-02 after shipping security headers + CSRF origin checkin
 
 ### L1. Missing max length on multiple input fields
 - **Category**: Input validation
-- **Status**: [ ] Open
+- **Status**: [x] Fixed (2026-03-02)
 - **File**: `src/lib/api/contracts.ts`
-- **Fields**: `auditSchema.title`, `auditSchema.description`, `optimizeSchema.title`, `optimizeSchema.description`, `rewriteFieldSchema.listing` sub-fields, `createConversationSchema.title`
-- **Fix**: Add `.max()` constraints matching marketplace limits or reasonable defaults (e.g., 500 for titles, 10000 for descriptions).
+- **Fields**: `auditSchema`, `optimizeSchema`, `rewriteFieldSchema.listing`, `createConversationSchema.title`, `auditAPlusModule`, `batchRowSchema`, `generateListingSchema.condition`
+- **Fix**: Added `.max()` constraints: titles 500, descriptions 10000, bullets 1000×20, backend_keywords 2000, conditions 200, A+ module fields capped, conversation title 200.
 
 ### L2. Subscription route returns Stripe IDs to client
 - **Category**: Data exposure

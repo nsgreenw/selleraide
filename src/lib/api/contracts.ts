@@ -36,7 +36,7 @@ const marketplaceSchema = z
 
 export const createConversationSchema = z.object({
   marketplace: marketplaceSchema,
-  title: z.string().optional(),
+  title: z.string().max(200).optional(),
 });
 
 export const sendMessageSchema = z.object({
@@ -46,7 +46,7 @@ export const sendMessageSchema = z.object({
 export const generateListingSchema = z.object({
   marketplace: marketplaceSchema,
   product_description: z.string().min(10).max(15000),
-  condition: z.string().optional(),
+  condition: z.string().max(200).optional(),
   condition_notes: z.string().max(2000).optional(),
 });
 
@@ -64,30 +64,30 @@ export const checkoutSchema = z.object({
 });
 
 const auditAPlusImageSlot = z.object({
-  alt_text: z.string(),
-  image_guidance: z.string().optional(),
+  alt_text: z.string().max(500),
+  image_guidance: z.string().max(1000).optional(),
 });
 
 const auditAPlusModule = z.object({
-  type: z.string(),
+  type: z.string().max(100),
   position: z.number().optional(),
-  headline: z.string().optional(),
-  body: z.string().optional(),
-  caption: z.string().optional(),
+  headline: z.string().max(500).optional(),
+  body: z.string().max(10000).optional(),
+  caption: z.string().max(1000).optional(),
   image: auditAPlusImageSlot.optional(),
-  images: z.array(auditAPlusImageSlot).optional(),
-  highlights: z.array(z.string()).optional(),
-  specs: z.record(z.string(), z.string()).optional(),
+  images: z.array(auditAPlusImageSlot).max(10).optional(),
+  highlights: z.array(z.string().max(500)).max(20).optional(),
+  specs: z.record(z.string().max(200), z.string().max(500)).optional(),
 });
 
 export const optimizeSchema = z.object({
   marketplace: z.enum(["amazon", "ebay"]),
-  title: z.string().min(1),
-  bullets: z.array(z.string()).default([]),
-  description: z.string().min(1),
-  backend_keywords: z.string().optional(),
-  attributes: z.record(z.string(), z.string()).optional(),
-  condition: z.string().optional(),
+  title: z.string().min(1).max(500),
+  bullets: z.array(z.string().max(1000)).max(20).default([]),
+  description: z.string().min(1).max(10000),
+  backend_keywords: z.string().max(2000).optional(),
+  attributes: z.record(z.string().max(200), z.string().max(500)).optional(),
+  condition: z.string().max(200).optional(),
   condition_notes: z.string().max(2000).optional(),
   score: z.number().min(0).max(100),
   validation: z.array(z.object({
@@ -105,12 +105,12 @@ export const optimizeSchema = z.object({
 
 export const auditSchema = z.object({
   marketplace: z.enum(["amazon", "ebay"]),
-  title: z.string().min(1),
-  bullets: z.array(z.string()).default([]),
-  description: z.string().min(1),
-  backend_keywords: z.string().optional(),
-  attributes: z.record(z.string(), z.string()).optional(),
-  a_plus_modules: z.array(auditAPlusModule).optional(),
+  title: z.string().min(1).max(500),
+  bullets: z.array(z.string().max(1000)).max(20).default([]),
+  description: z.string().min(1).max(10000),
+  backend_keywords: z.string().max(2000).optional(),
+  attributes: z.record(z.string().max(200), z.string().max(500)).optional(),
+  a_plus_modules: z.array(auditAPlusModule).max(7).optional(),
 });
 
 const photoRecommendation = z.object({
@@ -165,8 +165,8 @@ export const patchListingSchema = z.object({
 });
 
 export const batchRowSchema = z.object({
-  product_description: z.string().min(10, "Product description must be at least 10 characters"),
-  condition: z.string().optional(),
+  product_description: z.string().min(10, "Product description must be at least 10 characters").max(15000),
+  condition: z.string().max(200).optional(),
   condition_notes: z.string().max(2000).optional(),
 });
 
@@ -180,10 +180,10 @@ export const rewriteFieldSchema = z.object({
   bullet_index: z.number().int().min(0).optional(),
   current_value: z.string().min(1).max(5000),
   listing: z.object({
-    title: z.string(),
-    bullets: z.array(z.string()),
-    description: z.string(),
-    backend_keywords: z.string().optional(),
+    title: z.string().max(500),
+    bullets: z.array(z.string().max(1000)).max(20),
+    description: z.string().max(10000),
+    backend_keywords: z.string().max(2000).optional(),
   }),
   instructions: z.string().max(500).optional(),
 });
