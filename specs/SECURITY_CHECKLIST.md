@@ -100,10 +100,10 @@ Audit performed 2026-03-02 after shipping security headers + CSRF origin checkin
 
 ### M6. GA_ID interpolated into inline script unescaped
 - **Category**: Env exposure
-- **Status**: [ ] Open
+- **Status**: [x] Fixed (2026-03-02)
 - **File**: `src/app/layout.tsx:50`
 - **Risk**: If `NEXT_PUBLIC_GA_ID` contained a single quote or script-breaking characters, it could cause script injection. Requires control over env vars.
-- **Fix**: Use `JSON.stringify()` to escape the value, or pass via `data-*` attribute.
+- **Fix**: Used `JSON.stringify()` for the inline script value and `encodeURIComponent()` for the script src URL.
 
 ### M7. sanitizeHtml() never called on AI content storage path
 - **Category**: XSS
