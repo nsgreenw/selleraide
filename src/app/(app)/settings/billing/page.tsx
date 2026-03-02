@@ -18,8 +18,7 @@ interface SubscriptionData {
   subscription: {
     tier: SubscriptionTier;
     status: string;
-    stripe_customer_id: string | null;
-    stripe_subscription_id: string | null;
+    has_subscription: boolean;
   };
   usage: {
     listings_used: number;
@@ -186,7 +185,7 @@ export default function BillingPage() {
         </div>
 
         {/* Manage Subscription */}
-        {subData?.subscription.stripe_subscription_id && (
+        {subData?.subscription.has_subscription && (
           <button
             onClick={handleManageSubscription}
             disabled={portalLoading}

@@ -39,8 +39,7 @@ export async function GET() {
     subscription: {
       tier,
       status: profile.subscription_status,
-      stripe_customer_id: profile.stripe_customer_id,
-      stripe_subscription_id: profile.stripe_subscription_id,
+      has_subscription: !!profile.stripe_subscription_id,
     },
     usage: {
       listings_used: isTrialing

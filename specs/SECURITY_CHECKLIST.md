@@ -125,9 +125,9 @@ Audit performed 2026-03-02 after shipping security headers + CSRF origin checkin
 
 ### L2. Subscription route returns Stripe IDs to client
 - **Category**: Data exposure
-- **Status**: [ ] Open
+- **Status**: [x] Fixed (2026-03-02)
 - **File**: `src/app/api/subscription/route.ts:43-44`
-- **Fix**: Strip `stripe_customer_id` and `stripe_subscription_id` from the response. Return only the fields the UI needs.
+- **Fix**: Replaced `stripe_customer_id` and `stripe_subscription_id` with a boolean `has_subscription` flag. Updated billing page to use the new field.
 
 ### L3. Login returns full Supabase User object
 - **Category**: Data exposure
