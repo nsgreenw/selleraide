@@ -155,10 +155,10 @@ Audit performed 2026-03-02 after shipping security headers + CSRF origin checkin
 
 ### L7. Blog page uses dangerouslySetInnerHTML
 - **Category**: XSS
-- **Status**: [ ] Open
-- **File**: `src/app/(public)/blog/amazon-banned-words/page.tsx:532`
+- **Status**: [x] Fixed (2026-03-02)
+- **File**: `src/app/(public)/blog/amazon-banned-words/page.tsx:530`
 - **Risk**: Not exploitable — content is hardcoded JSON-LD. Flagged for awareness only.
-- **Fix**: Use Next.js `<Script>` component with `strategy="afterInteractive"` or a typed JSON-LD helper.
+- **Fix**: Replaced `dangerouslySetInnerHTML` with a `{JSON.stringify()}` child text node inside the `<script>` tag.
 
 ---
 

@@ -527,34 +527,31 @@ export default function AmazonBannedWordsPage() {
       </section>
 
       {/* ── Schema.org Article structured data ── */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Article",
-            headline: "Amazon Banned Words List 2026: The Complete Guide for Sellers",
-            description:
-              "The complete list of banned words and restricted phrases that cause Amazon listing suppression in 2026.",
-            datePublished: "2026-02-26",
-            dateModified: "2026-02-26",
-            author: {
-              "@type": "Organization",
-              name: "SellerAide",
-              url: "https://selleraide.com",
-            },
-            publisher: {
-              "@type": "Organization",
-              name: "SellerAide",
-              url: "https://selleraide.com",
-            },
-            mainEntityOfPage: {
-              "@type": "WebPage",
-              "@id": "https://selleraide.com/blog/amazon-banned-words",
-            },
-          }),
-        }}
-      />
+      <script type="application/ld+json">
+        {JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Article",
+          headline: "Amazon Banned Words List 2026: The Complete Guide for Sellers",
+          description:
+            "The complete list of banned words and restricted phrases that cause Amazon listing suppression in 2026.",
+          datePublished: "2026-02-26",
+          dateModified: "2026-02-26",
+          author: {
+            "@type": "Organization",
+            name: "SellerAide",
+            url: "https://selleraide.com",
+          },
+          publisher: {
+            "@type": "Organization",
+            name: "SellerAide",
+            url: "https://selleraide.com",
+          },
+          mainEntityOfPage: {
+            "@type": "WebPage",
+            "@id": "https://selleraide.com/blog/amazon-banned-words",
+          },
+        })}
+      </script>
     </article>
   );
 }
