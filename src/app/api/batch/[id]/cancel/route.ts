@@ -2,13 +2,17 @@ import { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/api/auth-guard";
 import { createClient } from "@/lib/supabase/server";
 import { jsonError, jsonSuccess, jsonRateLimited } from "@/lib/api/response";
+import { checkCsrfOrigin } from "@/lib/api/csrf";
 import { getStandardLimiter } from "@/lib/api/rate-limit";
 
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const csrfError = checkCsrfOrigin(request);
+    if (csrfError) return jsonError(csrfError, 403);
+
     const auth = await requireAuth();
     if (auth.error) {
       return jsonError(auth.error, 401);
@@ -53,7 +57,6 @@ export async function POST(
     return jsonSuccess({ cancelled: true });
   } catch (err) {
     console.error("[POST /api/batch/[id]/cancel] Error:", err);
-    const message = err instanceof Error ? err.message : "Internal server error";
-    return jsonError(message, 500);
+    return jsonError("Internal server error", 500);
   }
 }

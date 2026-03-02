@@ -1,8 +1,12 @@
+import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { jsonError, jsonSuccess } from "@/lib/api/response";
+import { checkCsrfOrigin } from "@/lib/api/csrf";
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
+    const csrfError = checkCsrfOrigin(request);
+    if (csrfError) return jsonError(csrfError, 403);
     const supabase = await createClient();
     const { error } = await supabase.auth.signOut();
 

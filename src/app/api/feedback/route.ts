@@ -3,11 +3,15 @@ import { requireAuth } from "@/lib/api/auth-guard";
 import { createClient } from "@/lib/supabase/server";
 import { feedbackSchema } from "@/lib/api/contracts";
 import { jsonError, jsonSuccess, jsonRateLimited } from "@/lib/api/response";
+import { checkCsrfOrigin } from "@/lib/api/csrf";
 import { getStandardLimiter } from "@/lib/api/rate-limit";
 import { sendFeedbackEmail } from "@/lib/email/resend";
 
 export async function POST(request: NextRequest) {
   try {
+    const csrfError = checkCsrfOrigin(request);
+    if (csrfError) return jsonError(csrfError, 403);
+
     const auth = await requireAuth();
     if (auth.error) {
       return jsonError(auth.error, 401);

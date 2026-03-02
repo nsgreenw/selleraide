@@ -1,5 +1,7 @@
+import { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/api/auth-guard";
 import { jsonError, jsonSuccess } from "@/lib/api/response";
+import { checkCsrfOrigin } from "@/lib/api/csrf";
 import { createClient } from "@/lib/supabase/server";
 import { getStripe } from "@/lib/subscription/stripe";
 import { z } from "zod";
@@ -22,8 +24,11 @@ function getStripePriceId(
   return process.env[envKey];
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const csrfError = checkCsrfOrigin(request);
+    if (csrfError) return jsonError(csrfError, 403);
+
     const auth = await requireAuth();
     if (auth.error) {
       return jsonError(auth.error, 401);
@@ -50,10 +55,8 @@ export async function POST(request: Request) {
     // Resolve the Stripe price ID
     const priceId = getStripePriceId(plan_id, interval);
     if (!priceId) {
-      return jsonError(
-        `Stripe price not configured for ${plan_id} ${interval}. Set STRIPE_PRICE_${plan_id.toUpperCase()}_${interval.toUpperCase()} env var.`,
-        500
-      );
+      console.error(`Missing Stripe price env var: STRIPE_PRICE_${plan_id.toUpperCase()}_${interval.toUpperCase()}`);
+      return jsonError("Pricing not configured. Please contact support.", 500);
     }
 
     const supabase = await createClient();
@@ -134,7 +137,6 @@ export async function POST(request: Request) {
     return jsonSuccess({ url: session.url });
   } catch (err) {
     console.error("Checkout session error:", err);
-    const message = err instanceof Error ? err.message : "Failed to start Stripe checkout";
-    return jsonError(message, 500);
+    return jsonError("Failed to start checkout session. Please try again.", 500);
   }
 }

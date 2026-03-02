@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireAuth } from "@/lib/api/auth-guard";
 import { createClient } from "@/lib/supabase/server";
 import { jsonError, jsonSuccess } from "@/lib/api/response";
+import { checkCsrfOrigin } from "@/lib/api/csrf";
 import { generateListingPDF } from "@/lib/export/pdf";
 import { generateListingCSV } from "@/lib/export/csv";
 import { formatListingForClipboard } from "@/lib/export/clipboard";
@@ -18,6 +19,9 @@ const exportSchema = z.object({
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
+    const csrfError = checkCsrfOrigin(request);
+    if (csrfError) return jsonError(csrfError, 403);
+
     const auth = await requireAuth();
     if (auth.error || !auth.user) {
       return jsonError(auth.error ?? "Unauthorized", 401);

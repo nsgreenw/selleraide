@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/api/auth-guard";
 import { createClient } from "@/lib/supabase/server";
 import { refineListingSchema } from "@/lib/api/contracts";
 import { jsonError, jsonSuccess, jsonRateLimited } from "@/lib/api/response";
+import { checkCsrfOrigin } from "@/lib/api/csrf";
 import { getStandardLimiter } from "@/lib/api/rate-limit";
 import { getGeminiGenerateModel } from "@/lib/gemini/client";
 import {
@@ -20,6 +21,9 @@ interface RouteParams {
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
+    const csrfError = checkCsrfOrigin(request);
+    if (csrfError) return jsonError(csrfError, 403);
+
     // 1. Auth check
     const auth = await requireAuth();
     if (auth.error || !auth.user) {

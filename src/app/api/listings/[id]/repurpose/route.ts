@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/api/auth-guard";
 import { createClient } from "@/lib/supabase/server";
 import { repurposeSchema } from "@/lib/api/contracts";
 import { jsonError, jsonSuccess, jsonRateLimited } from "@/lib/api/response";
+import { checkCsrfOrigin } from "@/lib/api/csrf";
 import { getStandardLimiter } from "@/lib/api/rate-limit";
 import { researchProduct } from "@/lib/gemini/research";
 import { generateListing } from "@/lib/gemini/generate";
@@ -21,6 +22,9 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const csrfError = checkCsrfOrigin(request);
+    if (csrfError) return jsonError(csrfError, 403);
+
     const auth = await requireAuth();
     if (auth.error) {
       return jsonError(auth.error, 401);
@@ -217,8 +221,7 @@ export async function POST(
     }, 201);
   } catch (err) {
     console.error("[/api/listings/[id]/repurpose] Error:", err);
-    const message = err instanceof Error ? err.message : "Internal server error";
-    return jsonError(message, 500);
+    return jsonError("Internal server error", 500);
   }
 }
 

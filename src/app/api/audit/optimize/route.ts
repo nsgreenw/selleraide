@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/api/auth-guard";
 import { createClient } from "@/lib/supabase/server";
 import { optimizeSchema } from "@/lib/api/contracts";
 import { jsonError, jsonSuccess, jsonRateLimited } from "@/lib/api/response";
+import { checkCsrfOrigin } from "@/lib/api/csrf";
 import { getStandardLimiter } from "@/lib/api/rate-limit";
 import { optimizeListing } from "@/lib/gemini/optimize";
 import { analyzeListing } from "@/lib/qa";
@@ -12,6 +13,9 @@ import type { ListingContent } from "@/types";
 
 export async function POST(req: NextRequest) {
   try {
+    const csrfError = checkCsrfOrigin(req);
+    if (csrfError) return jsonError(csrfError, 403);
+
     const auth = await requireAuth();
     if (auth.error) return jsonError(auth.error, 401);
     const user = auth.user!;

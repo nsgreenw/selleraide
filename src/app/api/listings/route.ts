@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/api/auth-guard";
 import { createClient } from "@/lib/supabase/server";
 import { jsonError, jsonSuccess } from "@/lib/api/response";
+import { checkCsrfOrigin } from "@/lib/api/csrf";
 import { analyzeListing } from "@/lib/qa";
 import type { ListingContent, Marketplace } from "@/types";
 
@@ -33,6 +34,9 @@ export async function GET(_request: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const csrfError = checkCsrfOrigin(req);
+    if (csrfError) return jsonError(csrfError, 403);
+
     const auth = await requireAuth();
     if (auth.error) return jsonError(auth.error, 401);
     const user = auth.user!;
