@@ -11,12 +11,15 @@ import {
   AlertCircle,
   Info,
   Layers,
+  Sparkles,
 } from "lucide-react";
 import ScoreBadge from "./score-badge";
+import TitleVariants from "./title-variants";
 import type { Listing, Marketplace, QAResult, APlusModule } from "@/types";
 
 interface ListingDetailProps {
   listing: Listing;
+  onListingUpdated?: (listing: Listing) => void;
 }
 
 const marketplaceIcons: Record<Marketplace, React.ReactNode> = {
@@ -375,10 +378,11 @@ function QAResultsSection({ results }: { results: QAResult[] }) {
   );
 }
 
-export default function ListingDetail({ listing }: ListingDetailProps) {
+export default function ListingDetail({ listing, onListingUpdated }: ListingDetailProps) {
   const { content, marketplace } = listing;
   const isAmazon = marketplace === "amazon";
   const [activeTab, setActiveTab] = useState<"listing" | "aplus">("listing");
+  const [showVariants, setShowVariants] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -433,7 +437,36 @@ export default function ListingDetail({ listing }: ListingDetailProps) {
       {(!isAmazon || activeTab === "listing") && (
         <>
           {/* Title */}
-          <FieldSection label="Title" value={content.title} />
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <FieldSection label="Title" value={content.title} />
+              </div>
+              {onListingUpdated && (
+                <button
+                  onClick={() => setShowVariants(!showVariants)}
+                  className={`btn-secondary flex items-center gap-1.5 shrink-0 self-start mt-1 px-3 py-1.5 text-xs ${
+                    showVariants ? "text-sa-200 border-sa-200/30" : ""
+                  }`}
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Variants
+                </button>
+              )}
+            </div>
+            {showVariants && onListingUpdated && (
+              <TitleVariants
+                listingId={listing.id}
+                marketplace={marketplace}
+                currentTitle={content.title}
+                onTitleUpdated={(updated) => {
+                  onListingUpdated(updated);
+                  setShowVariants(false);
+                }}
+                onClose={() => setShowVariants(false)}
+              />
+            )}
+          </div>
 
           {/* Subtitle (eBay) */}
           {content.subtitle && (

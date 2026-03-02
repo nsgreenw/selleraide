@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Globe, Layers, ShoppingCart, Store, Tag } from "lucide-react";
-import type { APlusModule, ListingContent, Marketplace } from "@/types";
+import { Globe, Layers, ShoppingCart, Sparkles, Store, Tag } from "lucide-react";
+import TitleVariants from "@/components/listing/title-variants";
+import type { APlusModule, Listing, ListingContent, Marketplace } from "@/types";
 
 function MarketplaceBadge({ marketplace }: { marketplace: Marketplace }) {
   const config: Record<
@@ -80,14 +81,19 @@ function APlusModulePreview({ mod }: { mod: APlusModule }) {
 interface ListingPreviewProps {
   content: ListingContent;
   marketplace: Marketplace;
+  listingId?: string;
+  onListingUpdated?: (listing: Listing) => void;
 }
 
 export default function ListingPreview({
   content,
   marketplace,
+  listingId,
+  onListingUpdated,
 }: ListingPreviewProps) {
   const isAmazon = marketplace === "amazon";
   const [activeTab, setActiveTab] = useState<"listing" | "aplus">("listing");
+  const [showVariants, setShowVariants] = useState(false);
 
   return (
     <div className="card-glass p-5 space-y-4">
@@ -132,14 +138,41 @@ export default function ListingPreview({
       {(!isAmazon || activeTab === "listing") && (
         <>
           {/* Title */}
-          <div className="card-subtle p-3">
-            <div className="flex items-center justify-between mb-1">
-              <span className="label-kicker text-zinc-500">TITLE</span>
-              <span className="text-xs text-zinc-500">
-                {content.title.length} chars
-              </span>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <div className="flex-1 card-subtle p-3">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="label-kicker text-zinc-500">TITLE</span>
+                  <span className="text-xs text-zinc-500">
+                    {content.title.length} chars
+                  </span>
+                </div>
+                <p className="text-sm text-zinc-100">{content.title}</p>
+              </div>
+              {listingId && onListingUpdated && (
+                <button
+                  onClick={() => setShowVariants(!showVariants)}
+                  className={`btn-secondary flex items-center gap-1.5 shrink-0 self-start mt-1 px-3 py-1.5 text-xs ${
+                    showVariants ? "text-sa-200 border-sa-200/30" : ""
+                  }`}
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Variants
+                </button>
+              )}
             </div>
-            <p className="text-sm text-zinc-100">{content.title}</p>
+            {showVariants && listingId && onListingUpdated && (
+              <TitleVariants
+                listingId={listingId}
+                marketplace={marketplace}
+                currentTitle={content.title}
+                onTitleUpdated={(updated) => {
+                  onListingUpdated(updated);
+                  setShowVariants(false);
+                }}
+                onClose={() => setShowVariants(false)}
+              />
+            )}
           </div>
 
           {/* Subtitle */}

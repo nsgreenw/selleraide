@@ -110,6 +110,17 @@ export const feedbackSchema = z.object({
   page_url: z.string().optional(),
 });
 
+export const patchListingSchema = z.object({
+  content: z
+    .object({
+      title: z.string().min(1).max(500).optional(),
+    })
+    .refine(
+      (obj) => Object.values(obj).some((v) => v !== undefined),
+      "At least one field required"
+    ),
+});
+
 export const rewriteFieldSchema = z.object({
   marketplace: marketplaceSchema,
   field: z.enum(["title", "bullet", "description", "backend_keywords"]),

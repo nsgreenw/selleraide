@@ -2,7 +2,8 @@
 
 import { use, useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Download, Copy, FileText, Check, Send, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, Download, Copy, ExternalLink, FileText, Check, List, Send, Loader2 } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import ListingPreview from "@/components/chat/listing-preview";
 import QAResultsCard from "@/components/chat/qa-results-card";
@@ -187,13 +188,29 @@ export default function ListingResultPage({
         <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
           {/* Top actions bar */}
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <button
-              onClick={() => router.push("/chat")}
-              className="btn-secondary text-xs py-2 gap-2"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              New Listing
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => router.push("/chat")}
+                className="btn-secondary text-xs py-2 gap-2"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                New Listing
+              </button>
+              <Link
+                href="/listings"
+                className="btn-secondary text-xs py-2 gap-2 inline-flex items-center"
+              >
+                <List className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">All Listings</span>
+              </Link>
+              <Link
+                href={`/listings/${listing.id}`}
+                className="btn-secondary text-xs py-2 gap-2 inline-flex items-center"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Details</span>
+              </Link>
+            </div>
 
             <div className="flex items-center gap-2">
               <RepurposeMenu
@@ -232,6 +249,8 @@ export default function ListingResultPage({
           <ListingPreview
             content={listing.content}
             marketplace={conversation.marketplace as Marketplace}
+            listingId={listing.id}
+            onListingUpdated={setListing}
           />
 
           {/* QA results */}

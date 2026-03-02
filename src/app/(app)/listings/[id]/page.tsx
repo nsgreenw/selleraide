@@ -88,7 +88,7 @@ export default function ListingDetailPage({
           </div>
 
           {/* Full listing detail */}
-          <ListingDetail listing={listing} />
+          <ListingDetail listing={listing} onListingUpdated={setListing} />
         </>
       )}
     </div>

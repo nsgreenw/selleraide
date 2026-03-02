@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  ExternalLink,
   Search,
   Trash2,
   Plus,
@@ -308,7 +309,16 @@ export default function ListingsPage() {
                     {listing.version}
                   </p>
 
-                  {/* Delete button */}
+                  {/* Detail + Delete buttons */}
+                  <div className="flex items-center gap-1">
+                    <Link
+                      href={`/listings/${listing.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="pointer-events-auto rounded-lg p-1.5 text-zinc-600 opacity-0 group-hover:opacity-100 hover:text-sa-200 hover:bg-sa-200/10 transition"
+                      aria-label="View listing details"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </Link>
                   {isConfirming ? (
                     <div className="flex items-center gap-1.5 pointer-events-auto">
                       <button
@@ -346,6 +356,7 @@ export default function ListingsPage() {
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   )}
+                  </div>
                 </div>
               </div>
             );
