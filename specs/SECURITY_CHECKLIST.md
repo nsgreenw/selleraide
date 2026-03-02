@@ -107,7 +107,7 @@ Audit performed 2026-03-02 after shipping security headers + CSRF origin checkin
 
 ### M7. sanitizeHtml() never called on AI content storage path
 - **Category**: XSS
-- **Status**: [ ] Open
+- **Status**: [x] Fixed (2026-03-02) — added sanitizeListingContent() to all 5 storage paths
 - **Files**: All listing creation routes — generate, chat/messages, refine, repurpose, batch/processor
 - **Risk**: AI-generated content (especially eBay HTML descriptions) goes to DB unsanitized. React auto-escapes on render, but any future `dangerouslySetInnerHTML` use on listing content would be immediately exploitable.
 - **Fix**: Add a sanitization pass before DB insert in all listing creation paths. Depends on H2 (server-side DOMPurify) being fixed first.

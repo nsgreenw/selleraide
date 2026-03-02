@@ -7,6 +7,7 @@ import { checkCsrfOrigin } from "@/lib/api/csrf";
 import { getStandardLimiter } from "@/lib/api/rate-limit";
 import { handleChatMessage } from "@/lib/gemini/chat";
 import { analyzeListing } from "@/lib/qa";
+import { sanitizeListingContent } from "@/lib/utils/sanitize";
 import { canGenerateListing } from "@/lib/subscription/plans";
 import {
   incrementListingCount,
@@ -125,9 +126,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       conversation: updatedConv,
     };
 
-    // If a listing was generated, save it and run QA
+    // If a listing was generated, sanitize and save it, then run QA
     if (chatResult.listing) {
-      const listingContent = chatResult.listing;
+      const listingContent = sanitizeListingContent(chatResult.listing);
 
       // Determine the next version number
       const { data: existingListings } = await supabase

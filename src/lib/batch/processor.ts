@@ -4,6 +4,7 @@ import { extractProductContextFromDescription } from "@/lib/gemini/extract";
 import { researchProduct } from "@/lib/gemini/research";
 import { generateListing } from "@/lib/gemini/generate";
 import { analyzeListing } from "@/lib/qa";
+import { sanitizeListingContent } from "@/lib/utils/sanitize";
 import {
   incrementListingCount,
   recordUsage,
@@ -70,8 +71,10 @@ export async function processBatch(
         // Research is best-effort — continue without it
       }
 
-      // Step 3: Generate listing
-      const listingContent = await generateListing(productContext, marketplace);
+      // Step 3: Generate listing and sanitize before storage
+      const listingContent = sanitizeListingContent(
+        await generateListing(productContext, marketplace)
+      );
 
       // Step 4: Create conversation record
       const title = productContext.product_name

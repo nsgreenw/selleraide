@@ -9,6 +9,7 @@ import { extractProductContextFromDescription } from "@/lib/gemini/extract";
 import { researchProduct } from "@/lib/gemini/research";
 import { generateListing } from "@/lib/gemini/generate";
 import { analyzeListing } from "@/lib/qa";
+import { sanitizeListingContent } from "@/lib/utils/sanitize";
 import { isMarketplaceEnabled } from "@/lib/marketplace/registry";
 import { canGenerateListing } from "@/lib/subscription/plans";
 import {
@@ -98,8 +99,10 @@ export async function POST(request: NextRequest) {
       // Research is best-effort — continue without it
     }
 
-    // Step 3: Generate the listing
-    const listingContent = await generateListing(productContext, marketplace);
+    // Step 3: Generate the listing and sanitize before storage
+    const listingContent = sanitizeListingContent(
+      await generateListing(productContext, marketplace)
+    );
 
     // Step 4: Create a conversation record to store this listing
     const title =

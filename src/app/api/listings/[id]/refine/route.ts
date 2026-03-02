@@ -12,6 +12,7 @@ import {
 } from "@/lib/gemini/normalization";
 import { getMarketplaceProfile, isMarketplaceEnabled } from "@/lib/marketplace/registry";
 import { analyzeListing } from "@/lib/qa";
+import { sanitizeListingContent } from "@/lib/utils/sanitize";
 import { recordUsage } from "@/lib/subscription/usage";
 import type { Listing, ListingContent, Marketplace } from "@/types";
 
@@ -260,8 +261,9 @@ Modify the listing according to the seller's request. Keep all other fields unch
       refinedContent.collections = currentContent.collections;
     }
 
-    // 8. Run QA analysis on the refined content
-    const qaAnalysis = analyzeListing(refinedContent, marketplace);
+    // 8. Sanitize refined content and run QA analysis
+    const sanitizedContent = sanitizeListingContent(refinedContent);
+    const qaAnalysis = analyzeListing(sanitizedContent, marketplace);
 
     // 9. Save as a new version (increment version number)
     const newVersion = typedListing.version + 1;
@@ -273,7 +275,7 @@ Modify the listing according to the seller's request. Keep all other fields unch
         user_id: user.id,
         marketplace,
         version: newVersion,
-        content: refinedContent,
+        content: sanitizedContent,
         qa_results: qaAnalysis.validation,
         score: qaAnalysis.score,
       })

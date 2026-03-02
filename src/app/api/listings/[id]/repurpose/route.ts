@@ -8,6 +8,7 @@ import { getStandardLimiter } from "@/lib/api/rate-limit";
 import { researchProduct } from "@/lib/gemini/research";
 import { generateListing } from "@/lib/gemini/generate";
 import { analyzeListing } from "@/lib/qa";
+import { sanitizeListingContent } from "@/lib/utils/sanitize";
 import { isMarketplaceEnabled } from "@/lib/marketplace/registry";
 import { canGenerateListing } from "@/lib/subscription/plans";
 import {
@@ -127,8 +128,10 @@ export async function POST(
       // Research is best-effort — continue without it
     }
 
-    // Generate listing for the target marketplace
-    const listingContent = await generateListing(productContext, targetMarketplace);
+    // Generate listing for the target marketplace and sanitize before storage
+    const listingContent = sanitizeListingContent(
+      await generateListing(productContext, targetMarketplace)
+    );
 
     // Create conversation record
     const sourceMarketplaceLabel = sourceListing.marketplace.charAt(0).toUpperCase() + sourceListing.marketplace.slice(1);
