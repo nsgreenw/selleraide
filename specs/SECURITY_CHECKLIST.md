@@ -80,10 +80,10 @@ Audit performed 2026-03-02 after shipping security headers + CSRF origin checkin
 
 ### M3. Password policy only requires 6 characters
 - **Category**: Input validation
-- **Status**: [ ] Open
-- **File**: `src/lib/api/contracts.ts` — `loginSchema`, `signupSchema`, `updatePasswordSchema`
+- **Status**: [x] Fixed (2026-03-02)
+- **File**: `src/lib/api/contracts.ts` — `signupSchema`, `updatePasswordSchema`
 - **Risk**: Users can set trivially guessable passwords like "123456".
-- **Fix**: Require min 8 chars with at least one uppercase, one lowercase, and one digit. Consider checking against common password lists.
+- **Fix**: Shared `strongPassword` schema: min 8 chars, max 128, requires lowercase + uppercase + digit. Login schema keeps min 1 so existing users with weak passwords can still sign in.
 
 ### M4. IP spoofing via X-Forwarded-For
 - **Category**: Rate limiting
