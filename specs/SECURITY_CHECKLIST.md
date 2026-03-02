@@ -87,16 +87,16 @@ Audit performed 2026-03-02 after shipping security headers + CSRF origin checkin
 
 ### M4. IP spoofing via X-Forwarded-For
 - **Category**: Rate limiting
-- **Status**: [ ] Open
-- **File**: `src/lib/api/rate-limit.ts:58-63`
+- **Status**: [x] Fixed (2026-03-02)
+- **File**: `src/lib/api/rate-limit.ts:57-70`
 - **Risk**: `getIP()` trusts `x-forwarded-for` without validation. Safe on Vercel (which strips/rewrites these headers) but risky if deployed behind a different proxy.
-- **Fix**: Document the Vercel dependency. If multi-platform deployment is planned, add trusted proxy validation.
+- **Fix**: Documented the Vercel dependency in the JSDoc for `getIP()` with guidance for non-Vercel deployments.
 
 ### M5. No session invalidation on password change
 - **Category**: Auth
-- **Status**: [ ] Open
+- **Status**: [x] Fixed (2026-03-02)
 - **Risk**: After password reset, existing sessions on other devices remain active. Supabase limitation.
-- **Fix**: Call `supabase.auth.signOut({ scope: 'global' })` after password change to invalidate all sessions. Requires adding a password-update route.
+- **Fix**: Created `POST /api/auth/update-password` route that updates the password via `supabase.auth.updateUser()` then calls `signOut({ scope: "others" })` to invalidate all other sessions. Uses strict rate limiter, CSRF, and the strong password schema.
 
 ### M6. GA_ID interpolated into inline script unescaped
 - **Category**: Env exposure

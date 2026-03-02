@@ -54,7 +54,15 @@ export function getPublicLimiter(): Ratelimit {
   return publicLimiter;
 }
 
-/** Extract client IP from request headers */
+/**
+ * Extract client IP from request headers.
+ *
+ * IMPORTANT: This trusts `x-forwarded-for` without validation, which is safe
+ * on Vercel (it strips and rewrites these headers at the edge). If the app is
+ * deployed behind a different proxy or directly exposed, an attacker could
+ * spoof this header to bypass IP-based rate limiting. In that case, add
+ * trusted proxy validation or use a platform-specific header.
+ */
 export function getIP(request: NextRequest): string {
   return (
     request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??

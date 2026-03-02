@@ -21,6 +21,7 @@ const PROTECTED_ROUTES = [
   "auth/signup/route.ts",
   "auth/reset-password/route.ts",
   "auth/logout/route.ts",
+  "auth/update-password/route.ts",
   "chat/route.ts",
   "chat/[id]/route.ts",
   "chat/[id]/messages/route.ts",
