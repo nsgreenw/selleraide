@@ -6,7 +6,9 @@ import type { SubscriptionTier } from "@/types";
 
 export const runtime = "nodejs";
 
-const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
+function getWebhookSecret(): string | undefined {
+  return process.env.STRIPE_WEBHOOK_SECRET;
+}
 
 /**
  * Map a plan_id string from checkout metadata to a SubscriptionTier.
@@ -21,7 +23,8 @@ function toSubscriptionTier(planId: string | undefined): SubscriptionTier {
 }
 
 export async function POST(request: NextRequest) {
-  if (!WEBHOOK_SECRET) {
+  const webhookSecret = getWebhookSecret();
+  if (!webhookSecret) {
     return NextResponse.json(
       { error: "Webhook secret not configured" },
       { status: 500 }
@@ -42,7 +45,7 @@ export async function POST(request: NextRequest) {
   let event: Stripe.Event;
 
   try {
-    event = getStripe().webhooks.constructEvent(body, signature, WEBHOOK_SECRET);
+    event = getStripe().webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err) {
     console.error("Webhook signature verification failed:", err);
     return NextResponse.json(

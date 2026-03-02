@@ -143,9 +143,9 @@ Audit performed 2026-03-02 after shipping security headers + CSRF origin checkin
 
 ### L5. Webhook secret captured at module scope
 - **Category**: Security patterns
-- **Status**: [ ] Open
+- **Status**: [x] Fixed (2026-03-02)
 - **File**: `src/app/api/webhooks/stripe/route.ts:9`
-- **Fix**: Move to a lazy getter for consistency: `function getWebhookSecret() { return process.env.STRIPE_WEBHOOK_SECRET; }`.
+- **Fix**: Replaced module-scope `const` with `getWebhookSecret()` lazy getter, consistent with other external client patterns.
 
 ### L6. No explicit Supabase cookie security options
 - **Category**: Security patterns
