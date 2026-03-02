@@ -3,11 +3,13 @@ import { requireAuth } from "@/lib/api/auth-guard";
 import { createClient } from "@/lib/supabase/server";
 import { generateListingSchema } from "@/lib/api/contracts";
 import { jsonError, jsonSuccess, jsonRateLimited } from "@/lib/api/response";
+import { checkCsrfOrigin } from "@/lib/api/csrf";
 import { getStandardLimiter } from "@/lib/api/rate-limit";
 import { extractProductContextFromDescription } from "@/lib/gemini/extract";
 import { researchProduct } from "@/lib/gemini/research";
 import { generateListing } from "@/lib/gemini/generate";
 import { analyzeListing } from "@/lib/qa";
+import { sanitizeListingContent } from "@/lib/utils/sanitize";
 import { isMarketplaceEnabled } from "@/lib/marketplace/registry";
 import { canGenerateListing } from "@/lib/subscription/plans";
 import {
@@ -19,6 +21,9 @@ import type { Marketplace } from "@/types";
 
 export async function POST(request: NextRequest) {
   try {
+    const csrfError = checkCsrfOrigin(request);
+    if (csrfError) return jsonError(csrfError, 403);
+
     const auth = await requireAuth();
     if (auth.error) {
       return jsonError(auth.error, 401);
@@ -94,8 +99,10 @@ export async function POST(request: NextRequest) {
       // Research is best-effort — continue without it
     }
 
-    // Step 3: Generate the listing
-    const listingContent = await generateListing(productContext, marketplace);
+    // Step 3: Generate the listing and sanitize before storage
+    const listingContent = sanitizeListingContent(
+      await generateListing(productContext, marketplace)
+    );
 
     // Step 4: Create a conversation record to store this listing
     const title =
@@ -186,7 +193,6 @@ export async function POST(request: NextRequest) {
     }, 201);
   } catch (err) {
     console.error("[/api/generate] Error:", err);
-    const message = err instanceof Error ? err.message : "Internal server error";
-    return jsonError(message, 500);
+    return jsonError("Internal server error", 500);
   }
 }

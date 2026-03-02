@@ -50,7 +50,6 @@ export async function GET(
     });
   } catch (err) {
     console.error("[GET /api/batch/[id]] Error:", err);
-    const message = err instanceof Error ? err.message : "Internal server error";
-    return jsonError(message, 500);
+    return jsonError("Internal server error", 500);
   }
 }

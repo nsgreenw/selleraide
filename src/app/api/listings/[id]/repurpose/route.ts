@@ -3,10 +3,12 @@ import { requireAuth } from "@/lib/api/auth-guard";
 import { createClient } from "@/lib/supabase/server";
 import { repurposeSchema } from "@/lib/api/contracts";
 import { jsonError, jsonSuccess, jsonRateLimited } from "@/lib/api/response";
+import { checkCsrfOrigin } from "@/lib/api/csrf";
 import { getStandardLimiter } from "@/lib/api/rate-limit";
 import { researchProduct } from "@/lib/gemini/research";
 import { generateListing } from "@/lib/gemini/generate";
 import { analyzeListing } from "@/lib/qa";
+import { sanitizeListingContent } from "@/lib/utils/sanitize";
 import { isMarketplaceEnabled } from "@/lib/marketplace/registry";
 import { canGenerateListing } from "@/lib/subscription/plans";
 import {
@@ -21,6 +23,9 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const csrfError = checkCsrfOrigin(request);
+    if (csrfError) return jsonError(csrfError, 403);
+
     const auth = await requireAuth();
     if (auth.error) {
       return jsonError(auth.error, 401);
@@ -123,8 +128,10 @@ export async function POST(
       // Research is best-effort — continue without it
     }
 
-    // Generate listing for the target marketplace
-    const listingContent = await generateListing(productContext, targetMarketplace);
+    // Generate listing for the target marketplace and sanitize before storage
+    const listingContent = sanitizeListingContent(
+      await generateListing(productContext, targetMarketplace)
+    );
 
     // Create conversation record
     const sourceMarketplaceLabel = sourceListing.marketplace.charAt(0).toUpperCase() + sourceListing.marketplace.slice(1);
@@ -217,8 +224,7 @@ export async function POST(
     }, 201);
   } catch (err) {
     console.error("[/api/listings/[id]/repurpose] Error:", err);
-    const message = err instanceof Error ? err.message : "Internal server error";
-    return jsonError(message, 500);
+    return jsonError("Internal server error", 500);
   }
 }
 

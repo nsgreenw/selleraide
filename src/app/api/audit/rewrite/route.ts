@@ -2,12 +2,16 @@ import { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/api/auth-guard";
 import { rewriteFieldSchema } from "@/lib/api/contracts";
 import { jsonError, jsonSuccess, jsonRateLimited } from "@/lib/api/response";
+import { checkCsrfOrigin } from "@/lib/api/csrf";
 import { getStandardLimiter } from "@/lib/api/rate-limit";
 import { rewriteField } from "@/lib/gemini/rewrite";
 import type { Marketplace } from "@/types";
 
 export async function POST(req: NextRequest) {
   try {
+    const csrfError = checkCsrfOrigin(req);
+    if (csrfError) return jsonError(csrfError, 403);
+
     const auth = await requireAuth();
     if (auth.error) return jsonError(auth.error, 401);
     const user = auth.user!;

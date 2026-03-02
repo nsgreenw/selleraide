@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/api/auth-guard";
 import { createClient } from "@/lib/supabase/server";
 import { jsonError, jsonSuccess, jsonRateLimited } from "@/lib/api/response";
+import { checkCsrfOrigin } from "@/lib/api/csrf";
 import { getStandardLimiter } from "@/lib/api/rate-limit";
 import { analyzeListing } from "@/lib/qa";
 import { parseCSV, mapEbayRow } from "@/lib/csv/ebay-import";
@@ -38,6 +39,9 @@ interface ImportRowResult {
 
 export async function POST(req: NextRequest) {
   try {
+    const csrfError = checkCsrfOrigin(req);
+    if (csrfError) return jsonError(csrfError, 403);
+
     // 1. Auth
     const auth = await requireAuth();
     if (auth.error || !auth.user) {
@@ -84,7 +88,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Validate file
-    if (!file.name.toLowerCase().endsWith(".csv")) {
+    if (!file.name.toLowerCase().endsWith(".csv") || (file.type && file.type !== "text/csv")) {
       return jsonError("Only .csv files are accepted.", 400);
     }
     const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB

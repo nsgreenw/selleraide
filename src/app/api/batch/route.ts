@@ -3,6 +3,7 @@ import { after } from "next/server";
 import { requireAuth } from "@/lib/api/auth-guard";
 import { createClient } from "@/lib/supabase/server";
 import { jsonError, jsonSuccess, jsonRateLimited } from "@/lib/api/response";
+import { checkCsrfOrigin } from "@/lib/api/csrf";
 import { getStandardLimiter } from "@/lib/api/rate-limit";
 import { parseCSV } from "@/lib/csv/ebay-import";
 import { isMarketplaceEnabled } from "@/lib/marketplace/registry";
@@ -12,6 +13,9 @@ import type { Marketplace, SubscriptionTier } from "@/types";
 
 export async function POST(request: NextRequest) {
   try {
+    const csrfError = checkCsrfOrigin(request);
+    if (csrfError) return jsonError(csrfError, 403);
+
     const auth = await requireAuth();
     if (auth.error) {
       return jsonError(auth.error, 401);
@@ -34,6 +38,9 @@ export async function POST(request: NextRequest) {
     }
     if (!(file instanceof File)) {
       return jsonError("CSV file is required.", 400);
+    }
+    if (!file.name.toLowerCase().endsWith(".csv") || (file.type && file.type !== "text/csv")) {
+      return jsonError("Only .csv files are accepted.", 400);
     }
     if (file.size > 5 * 1024 * 1024) {
       return jsonError("File exceeds the 5 MB limit.", 400);
@@ -187,7 +194,6 @@ export async function POST(request: NextRequest) {
     );
   } catch (err) {
     console.error("[POST /api/batch] Error:", err);
-    const message = err instanceof Error ? err.message : "Internal server error";
-    return jsonError(message, 500);
+    return jsonError("Internal server error", 500);
   }
 }

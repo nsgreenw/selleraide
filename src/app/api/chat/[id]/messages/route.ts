@@ -3,9 +3,11 @@ import { requireAuth } from "@/lib/api/auth-guard";
 import { createClient } from "@/lib/supabase/server";
 import { sendMessageSchema } from "@/lib/api/contracts";
 import { jsonError, jsonSuccess, jsonRateLimited } from "@/lib/api/response";
+import { checkCsrfOrigin } from "@/lib/api/csrf";
 import { getStandardLimiter } from "@/lib/api/rate-limit";
 import { handleChatMessage } from "@/lib/gemini/chat";
 import { analyzeListing } from "@/lib/qa";
+import { sanitizeListingContent } from "@/lib/utils/sanitize";
 import { canGenerateListing } from "@/lib/subscription/plans";
 import {
   incrementListingCount,
@@ -19,6 +21,9 @@ interface RouteParams {
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
+    const csrfError = checkCsrfOrigin(request);
+    if (csrfError) return jsonError(csrfError, 403);
+
     const auth = await requireAuth();
     if (auth.error) {
       return jsonError(auth.error, 401);
@@ -121,9 +126,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       conversation: updatedConv,
     };
 
-    // If a listing was generated, save it and run QA
+    // If a listing was generated, sanitize and save it, then run QA
     if (chatResult.listing) {
-      const listingContent = chatResult.listing;
+      const listingContent = sanitizeListingContent(chatResult.listing);
 
       // Determine the next version number
       const { data: existingListings } = await supabase

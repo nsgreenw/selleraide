@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAuth } from "@/lib/api/auth-guard";
 import { createClient } from "@/lib/supabase/server";
-import { jsonError, jsonSuccess } from "@/lib/api/response";
+import { jsonError, jsonSuccess, jsonRateLimited } from "@/lib/api/response";
+import { checkCsrfOrigin } from "@/lib/api/csrf";
+import { getStrictLimiter } from "@/lib/api/rate-limit";
 import { generateListingPDF } from "@/lib/export/pdf";
 import { generateListingCSV } from "@/lib/export/csv";
 import { formatListingForClipboard } from "@/lib/export/clipboard";
@@ -18,11 +20,17 @@ const exportSchema = z.object({
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
+    const csrfError = checkCsrfOrigin(request);
+    if (csrfError) return jsonError(csrfError, 403);
+
     const auth = await requireAuth();
     if (auth.error || !auth.user) {
       return jsonError(auth.error ?? "Unauthorized", 401);
     }
     const user = auth.user;
+
+    const { success, reset } = await getStrictLimiter().limit(user.id);
+    if (!success) return jsonRateLimited(Math.ceil((reset - Date.now()) / 1000));
 
     const body = await request.json();
     const parsed = exportSchema.safeParse(body);

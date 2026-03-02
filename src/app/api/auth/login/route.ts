@@ -3,9 +3,13 @@ import { createClient } from "@/lib/supabase/server";
 import { loginSchema } from "@/lib/api/contracts";
 import { jsonError, jsonSuccess, jsonRateLimited } from "@/lib/api/response";
 import { getStrictLimiter, getIP } from "@/lib/api/rate-limit";
+import { checkCsrfOrigin } from "@/lib/api/csrf";
 
 export async function POST(request: NextRequest) {
   try {
+    const csrfError = checkCsrfOrigin(request);
+    if (csrfError) return jsonError(csrfError, 403);
+
     const { success, reset } = await getStrictLimiter().limit(getIP(request));
     if (!success) return jsonRateLimited(Math.ceil((reset - Date.now()) / 1000));
 
@@ -28,7 +32,7 @@ export async function POST(request: NextRequest) {
       return jsonError("Invalid email or password", 401);
     }
 
-    return jsonSuccess({ user: data.user });
+    return jsonSuccess({ user: { id: data.user.id, email: data.user.email } });
   } catch (err) {
     console.error("Login error:", err instanceof Error ? err.message : err);
     return jsonError("An unexpected error occurred. Please try again.", 500);

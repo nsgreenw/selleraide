@@ -3,9 +3,13 @@ import { createClient } from "@/lib/supabase/server";
 import { signupSchema } from "@/lib/api/contracts";
 import { jsonError, jsonSuccess, jsonRateLimited } from "@/lib/api/response";
 import { getStrictLimiter, getIP } from "@/lib/api/rate-limit";
+import { checkCsrfOrigin } from "@/lib/api/csrf";
 
 export async function POST(request: NextRequest) {
   try {
+    const csrfError = checkCsrfOrigin(request);
+    if (csrfError) return jsonError(csrfError, 403);
+
     const { success, reset } = await getStrictLimiter().limit(getIP(request));
     if (!success) return jsonRateLimited(Math.ceil((reset - Date.now()) / 1000));
 
