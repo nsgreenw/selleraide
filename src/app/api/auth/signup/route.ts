@@ -23,6 +23,8 @@ export async function POST(request: NextRequest) {
     const { email, password, full_name } = parsed.data;
     const supabase = await createClient();
 
+    const siteUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -30,6 +32,7 @@ export async function POST(request: NextRequest) {
         data: {
           full_name: full_name ?? "",
         },
+        emailRedirectTo: `${siteUrl}/login`,
       },
     });
 
