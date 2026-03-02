@@ -5,6 +5,8 @@ import { researchProduct } from "@/lib/gemini/research";
 import { generateListing } from "@/lib/gemini/generate";
 import { analyzeListing } from "@/lib/qa";
 import { sanitizeListingContent } from "@/lib/utils/sanitize";
+import { canGenerateListing } from "@/lib/subscription/plans";
+import { getTrialStatus, incrementTrialRun } from "@/lib/subscription/trial";
 import {
   incrementListingCount,
   recordUsage,
@@ -53,6 +55,28 @@ export async function processBatch(
     const row = rows[i];
 
     try {
+      // Step 0: Re-check usage limits before each row (prevents over-generation)
+      const { data: rowProfile } = await supabase
+        .from("profiles")
+        .select("subscription_tier, subscription_status, listings_used_this_period, trial_expires_at, trial_runs_used")
+        .eq("id", userId)
+        .single();
+
+      if (rowProfile) {
+        if (rowProfile.subscription_status === "trialing") {
+          const trial = getTrialStatus(rowProfile);
+          if (!trial.canGenerate) {
+            console.warn(`[batch/${batchId}] Row ${i + 1}: trial limit reached, stopping`);
+            break;
+          }
+        } else {
+          if (!canGenerateListing(rowProfile.subscription_tier, rowProfile.listings_used_this_period)) {
+            console.warn(`[batch/${batchId}] Row ${i + 1}: subscription limit reached, stopping`);
+            break;
+          }
+        }
+      }
+
       // Step 1: Extract product context
       const productContext = await extractProductContextFromDescription(
         row.product_description,
@@ -129,9 +153,13 @@ export async function processBatch(
         })
         .eq("id", listing.id);
 
-      // Step 7: Track usage (non-critical)
+      // Step 7: Track usage (non-critical, trial-aware)
       try {
-        await incrementListingCount(supabase, userId);
+        if (rowProfile?.subscription_status === "trialing") {
+          await incrementTrialRun(supabase, userId);
+        } else {
+          await incrementListingCount(supabase, userId);
+        }
       } catch {
         // Non-critical
       }

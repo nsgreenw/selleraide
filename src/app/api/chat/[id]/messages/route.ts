@@ -5,14 +5,11 @@ import { sendMessageSchema } from "@/lib/api/contracts";
 import { jsonError, jsonSuccess, jsonRateLimited } from "@/lib/api/response";
 import { checkCsrfOrigin } from "@/lib/api/csrf";
 import { getStandardLimiter } from "@/lib/api/rate-limit";
+import { requireUsageGate, trackUsage } from "@/lib/api/usage-gate";
 import { handleChatMessage } from "@/lib/gemini/chat";
 import { analyzeListing } from "@/lib/qa";
 import { sanitizeListingContent } from "@/lib/utils/sanitize";
-import { canGenerateListing } from "@/lib/subscription/plans";
-import {
-  incrementListingCount,
-  recordUsage,
-} from "@/lib/subscription/usage";
+import { recordUsage } from "@/lib/subscription/usage";
 import type { Conversation, ListingContent, Marketplace } from "@/types";
 
 interface RouteParams {
@@ -58,36 +55,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const conv = conversation as Conversation;
 
-    // Always fetch profile for usage check + A+ module count
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("subscription_tier, listings_used_this_period")
-      .eq("id", user.id)
-      .single();
-
-    // Check usage limits if the conversation is about to generate a listing
-    if (
-      conv.status === "researching" ||
-      conv.status === "generating"
-    ) {
-      if (profile) {
-        const allowed = canGenerateListing(
-          profile.subscription_tier,
-          profile.listings_used_this_period
-        );
-
-        if (!allowed) {
-          return jsonError(
-            "You have reached your listing limit for this billing period. Please upgrade your plan.",
-            403
-          );
-        }
-      }
-    }
+    // Usage gate — check trial + subscription limits before any AI call
+    // Chat can trigger AI at any state (gathering extracts context, researching/generating produce listings)
+    const gate = await requireUsageGate(supabase, user.id);
+    if (!gate.allowed) return jsonError(gate.error, 403);
+    const profile = gate.profile;
 
     // Derive A+ module count from subscription tier
     // Starter gets 4-module stack; Pro/Agency get full 7-module stack
-    const aplusModuleCount = profile?.subscription_tier === "starter" ? 4 : 7;
+    const aplusModuleCount = profile.subscription_tier === "starter" ? 4 : 7;
 
     // Insert user message into DB
     const { data: userMsg, error: userMsgError } = await supabase
@@ -179,8 +155,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         .eq("id", listing.id);
 
       // Increment usage counters
-      await incrementListingCount(supabase, user.id);
-      await recordUsage(supabase, user.id, "listing_generated", id);
+      try {
+        await trackUsage(supabase, user.id, profile.subscription_status);
+      } catch { /* Non-critical */ }
+      try {
+        await recordUsage(supabase, user.id, "listing_generated", id);
+      } catch { /* Non-critical */ }
 
       response.listing = {
         ...listing,

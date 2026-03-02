@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { jsonError, jsonSuccess, jsonRateLimited } from "@/lib/api/response";
 import { checkCsrfOrigin } from "@/lib/api/csrf";
 import { getStandardLimiter } from "@/lib/api/rate-limit";
+import { requireUsageGate } from "@/lib/api/usage-gate";
 import { getGeminiGenerateModel } from "@/lib/gemini/client";
 import { getMarketplaceProfile } from "@/lib/marketplace/registry";
 import { scoreTitleVariant } from "@/lib/qa/title-scorer";
@@ -85,6 +86,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const { id } = await params;
     const supabase = await createClient();
+
+    // Usage gate — title variants don't count as a "run" but require active access
+    const gate = await requireUsageGate(supabase, user.id);
+    if (!gate.allowed) return jsonError(gate.error, 403);
 
     // Fetch listing and verify ownership
     const { data: listing, error: listingError } = await supabase

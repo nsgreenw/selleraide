@@ -2,6 +2,7 @@ import { requireAuth } from "@/lib/api/auth-guard";
 import { jsonError, jsonSuccess } from "@/lib/api/response";
 import { createClient } from "@/lib/supabase/server";
 import { PLANS, canGenerateListing } from "@/lib/subscription/plans";
+import { getTrialStatus, TRIAL_MAX_RUNS } from "@/lib/subscription/trial";
 import { resetPeriodIfNeeded } from "@/lib/subscription/usage";
 import type { SubscriptionTier } from "@/types";
 
@@ -20,7 +21,7 @@ export async function GET() {
   const { data: profile, error } = await supabase
     .from("profiles")
     .select(
-      "subscription_tier, subscription_status, listings_used_this_period, period_reset_at, stripe_customer_id, stripe_subscription_id, trial_runs_used"
+      "subscription_tier, subscription_status, listings_used_this_period, period_reset_at, stripe_customer_id, stripe_subscription_id, trial_runs_used, trial_expires_at"
     )
     .eq("id", user.id)
     .single();
@@ -33,7 +34,7 @@ export async function GET() {
   const plan = PLANS[tier];
 
   const isTrialing = profile.subscription_status === "trialing";
-  const TRIAL_MAX_RUNS = 3;
+  const trial = isTrialing ? getTrialStatus(profile) : null;
 
   return jsonSuccess({
     subscription: {
@@ -43,12 +44,12 @@ export async function GET() {
     },
     usage: {
       listings_used: isTrialing
-        ? ((profile as Record<string, unknown>).trial_runs_used as number ?? 0)
+        ? (trial?.runsUsed ?? 0)
         : profile.listings_used_this_period,
       listings_limit: isTrialing ? TRIAL_MAX_RUNS : plan.listingsPerMonth,
       period_reset_at: profile.period_reset_at,
       can_generate: isTrialing
-        ? (((profile as Record<string, unknown>).trial_runs_used as number ?? 0) < TRIAL_MAX_RUNS)
+        ? (trial?.canGenerate ?? false)
         : canGenerateListing(tier, profile.listings_used_this_period),
     },
     plan: {
