@@ -27,9 +27,9 @@ export const ebayProfile: MarketplaceProfile = {
       name: "description",
       maxLength: null,
       required: true,
-      htmlAllowed: true,
+      htmlAllowed: false,
       description:
-        "Full HTML description with no character limit. Supports rich formatting, tables, and embedded images. Must be mobile-responsive. eBay is moving away from active content (JavaScript, iframes).",
+        "Full plain-text description with no character limit. Use clear section headers, bullet-style lists, and line breaks for readability. eBay's standard listing editor does not render raw HTML.",
     },
     {
       name: "item_specifics",
@@ -284,8 +284,10 @@ SUBTITLE RULES:
 
 DESCRIPTION RULES:
 - No character limit, but be comprehensive without being verbose.
-- Use clean, mobile-responsive HTML. Supported: <h2>, <h3>, <p>, <br>, <b>, <strong>, <em>, <ul>, <ol>, <li>, <table>, <tr>, <td>.
-- NO active content: no JavaScript, no iframes, no external CSS, no forms.
+- Output PLAIN TEXT only — do NOT use any HTML tags. eBay's standard listing editor does not render HTML.
+- Use ALL-CAPS section headers on their own line (e.g. PRODUCT OVERVIEW, FEATURES & SPECIFICATIONS).
+- Use dashes (-) or asterisks (*) for bullet lists.
+- Separate sections with a blank line for readability.
 - Structure with clear sections: Product Overview, Features & Specifications, What's Included, Condition Details, Shipping & Returns.
 - eBay buyers are detail-oriented — include specifications, dimensions, materials, compatibility, and condition notes.
 
