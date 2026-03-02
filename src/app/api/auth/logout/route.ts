@@ -1,12 +1,17 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { jsonError, jsonSuccess } from "@/lib/api/response";
+import { jsonError, jsonSuccess, jsonRateLimited } from "@/lib/api/response";
 import { checkCsrfOrigin } from "@/lib/api/csrf";
+import { getStrictLimiter, getIP } from "@/lib/api/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
     const csrfError = checkCsrfOrigin(request);
     if (csrfError) return jsonError(csrfError, 403);
+
+    const { success, reset } = await getStrictLimiter().limit(getIP(request));
+    if (!success) return jsonRateLimited(Math.ceil((reset - Date.now()) / 1000));
+
     const supabase = await createClient();
     const { error } = await supabase.auth.signOut();
 

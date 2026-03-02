@@ -57,7 +57,7 @@ Audit performed 2026-03-02 after shipping security headers + CSRF origin checkin
 
 ### M1. 9 mutation routes lack rate limiting
 - **Category**: Rate limiting
-- **Status**: [ ] Open
+- **Status**: [x] Fixed (2026-03-02)
 - **Routes missing limiters**:
   - `POST /api/chat` (create conversation)
   - `DELETE /api/chat/[id]`

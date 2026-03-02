@@ -1,8 +1,9 @@
 import { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/api/auth-guard";
 import { createClient } from "@/lib/supabase/server";
-import { jsonError, jsonSuccess } from "@/lib/api/response";
+import { jsonError, jsonSuccess, jsonRateLimited } from "@/lib/api/response";
 import { checkCsrfOrigin } from "@/lib/api/csrf";
+import { getStandardLimiter } from "@/lib/api/rate-limit";
 import { patchListingSchema } from "@/lib/api/contracts";
 import { analyzeListing } from "@/lib/qa";
 
@@ -49,6 +50,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
     const user = auth.user!;
 
+    const { success, reset } = await getStandardLimiter().limit(user.id);
+    if (!success) return jsonRateLimited(Math.ceil((reset - Date.now()) / 1000));
+
     const { id } = await params;
     const supabase = await createClient();
 
@@ -90,6 +94,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       return jsonError(auth.error, 401);
     }
     const user = auth.user!;
+
+    const { success, reset } = await getStandardLimiter().limit(user.id);
+    if (!success) return jsonRateLimited(Math.ceil((reset - Date.now()) / 1000));
 
     const { id } = await params;
     const supabase = await createClient();

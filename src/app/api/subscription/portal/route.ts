@@ -1,48 +1,56 @@
 import { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/api/auth-guard";
-import { jsonError, jsonSuccess } from "@/lib/api/response";
+import { jsonError, jsonSuccess, jsonRateLimited } from "@/lib/api/response";
 import { checkCsrfOrigin } from "@/lib/api/csrf";
+import { getStrictLimiter } from "@/lib/api/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { getStripe } from "@/lib/subscription/stripe";
 
 export async function POST(request: NextRequest) {
-  const csrfError = checkCsrfOrigin(request);
-  if (csrfError) return jsonError(csrfError, 403);
+  try {
+    const csrfError = checkCsrfOrigin(request);
+    if (csrfError) return jsonError(csrfError, 403);
 
-  const auth = await requireAuth();
-  if (auth.error) {
-    return jsonError(auth.error, 401);
+    const auth = await requireAuth();
+    if (auth.error) {
+      return jsonError(auth.error, 401);
+    }
+    const user = auth.user!;
+
+    const { success, reset } = await getStrictLimiter().limit(user.id);
+    if (!success) return jsonRateLimited(Math.ceil((reset - Date.now()) / 1000));
+
+    const supabase = await createClient();
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("stripe_customer_id")
+      .eq("id", user.id)
+      .single();
+
+    if (profileError || !profile) {
+      return jsonError("Failed to fetch profile", 500);
+    }
+
+    if (!profile.stripe_customer_id) {
+      return jsonError(
+        "No billing account found. Please subscribe to a plan first.",
+        400
+      );
+    }
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+    if (!appUrl) {
+      return jsonError("Application URL not configured. Set NEXT_PUBLIC_APP_URL.", 500);
+    }
+
+    const session = await getStripe().billingPortal.sessions.create({
+      customer: profile.stripe_customer_id,
+      return_url: `${appUrl}/settings/billing`,
+    });
+
+    return jsonSuccess({ url: session.url });
+  } catch {
+    return jsonError("Internal server error", 500);
   }
-  const user = auth.user!;
-
-  const supabase = await createClient();
-
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("stripe_customer_id")
-    .eq("id", user.id)
-    .single();
-
-  if (profileError || !profile) {
-    return jsonError("Failed to fetch profile", 500);
-  }
-
-  if (!profile.stripe_customer_id) {
-    return jsonError(
-      "No billing account found. Please subscribe to a plan first.",
-      400
-    );
-  }
-
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-  if (!appUrl) {
-    return jsonError("Application URL not configured. Set NEXT_PUBLIC_APP_URL.", 500);
-  }
-
-  const session = await getStripe().billingPortal.sessions.create({
-    customer: profile.stripe_customer_id,
-    return_url: `${appUrl}/settings/billing`,
-  });
-
-  return jsonSuccess({ url: session.url });
 }
