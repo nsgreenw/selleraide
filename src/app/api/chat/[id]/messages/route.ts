@@ -2,7 +2,8 @@ import { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/api/auth-guard";
 import { createClient } from "@/lib/supabase/server";
 import { sendMessageSchema } from "@/lib/api/contracts";
-import { jsonError, jsonSuccess } from "@/lib/api/response";
+import { jsonError, jsonSuccess, jsonRateLimited } from "@/lib/api/response";
+import { getStandardLimiter } from "@/lib/api/rate-limit";
 import { handleChatMessage } from "@/lib/gemini/chat";
 import { analyzeListing } from "@/lib/qa";
 import { canGenerateListing } from "@/lib/subscription/plans";
@@ -23,6 +24,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return jsonError(auth.error, 401);
     }
     const user = auth.user!;
+
+    const { success, reset } = await getStandardLimiter().limit(user.id);
+    if (!success) return jsonRateLimited(Math.ceil((reset - Date.now()) / 1000));
 
     const body = await request.json();
     const parsed = sendMessageSchema.safeParse(body);

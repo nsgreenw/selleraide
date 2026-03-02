@@ -1,10 +1,14 @@
 import { NextRequest } from "next/server";
 import { auditSchema } from "@/lib/api/contracts";
 import { analyzeListing } from "@/lib/qa";
-import { jsonSuccess, jsonError } from "@/lib/api/response";
+import { jsonSuccess, jsonError, jsonRateLimited } from "@/lib/api/response";
+import { getPublicLimiter, getIP } from "@/lib/api/rate-limit";
 import type { ListingContent, Marketplace } from "@/types";
 
 export async function POST(req: NextRequest) {
+  const { success, reset } = await getPublicLimiter().limit(getIP(req));
+  if (!success) return jsonRateLimited(Math.ceil((reset - Date.now()) / 1000));
+
   let body: unknown;
   try {
     body = await req.json();

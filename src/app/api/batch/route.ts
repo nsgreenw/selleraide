@@ -2,7 +2,8 @@ import { NextRequest } from "next/server";
 import { after } from "next/server";
 import { requireAuth } from "@/lib/api/auth-guard";
 import { createClient } from "@/lib/supabase/server";
-import { jsonError, jsonSuccess } from "@/lib/api/response";
+import { jsonError, jsonSuccess, jsonRateLimited } from "@/lib/api/response";
+import { getStandardLimiter } from "@/lib/api/rate-limit";
 import { parseCSV } from "@/lib/csv/ebay-import";
 import { isMarketplaceEnabled } from "@/lib/marketplace/registry";
 import { PLANS, canGenerateListing } from "@/lib/subscription/plans";
@@ -16,6 +17,9 @@ export async function POST(request: NextRequest) {
       return jsonError(auth.error, 401);
     }
     const user = auth.user!;
+
+    const { success, reset } = await getStandardLimiter().limit(user.id);
+    if (!success) return jsonRateLimited(Math.ceil((reset - Date.now()) / 1000));
 
     // Parse multipart form data
     const formData = await request.formData();

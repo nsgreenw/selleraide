@@ -2,7 +2,8 @@ import { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/api/auth-guard";
 import { createClient } from "@/lib/supabase/server";
 import { repurposeSchema } from "@/lib/api/contracts";
-import { jsonError, jsonSuccess } from "@/lib/api/response";
+import { jsonError, jsonSuccess, jsonRateLimited } from "@/lib/api/response";
+import { getStandardLimiter } from "@/lib/api/rate-limit";
 import { researchProduct } from "@/lib/gemini/research";
 import { generateListing } from "@/lib/gemini/generate";
 import { analyzeListing } from "@/lib/qa";
@@ -25,6 +26,9 @@ export async function POST(
       return jsonError(auth.error, 401);
     }
     const user = auth.user!;
+
+    const { success, reset } = await getStandardLimiter().limit(user.id);
+    if (!success) return jsonRateLimited(Math.ceil((reset - Date.now()) / 1000));
 
     const { id: sourceListingId } = await params;
 

@@ -11,3 +11,16 @@ export function jsonError(message: string, status: number = 400) {
 export function jsonSuccess<T>(data: T, status: number = 200) {
   return NextResponse.json(data, { status, headers: NO_CACHE_HEADERS });
 }
+
+export function jsonRateLimited(retryAfter: number = 60) {
+  return NextResponse.json(
+    { error: "Too many requests" },
+    {
+      status: 429,
+      headers: {
+        ...NO_CACHE_HEADERS,
+        "Retry-After": String(Math.ceil(retryAfter)),
+      },
+    }
+  );
+}

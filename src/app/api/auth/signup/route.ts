@@ -1,10 +1,14 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { signupSchema } from "@/lib/api/contracts";
-import { jsonError, jsonSuccess } from "@/lib/api/response";
+import { jsonError, jsonSuccess, jsonRateLimited } from "@/lib/api/response";
+import { getStrictLimiter, getIP } from "@/lib/api/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
+    const { success, reset } = await getStrictLimiter().limit(getIP(request));
+    if (!success) return jsonRateLimited(Math.ceil((reset - Date.now()) / 1000));
+
     const body = await request.json();
     const parsed = signupSchema.safeParse(body);
 
