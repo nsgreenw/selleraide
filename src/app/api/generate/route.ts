@@ -5,18 +5,14 @@ import { generateListingSchema } from "@/lib/api/contracts";
 import { jsonError, jsonSuccess, jsonRateLimited } from "@/lib/api/response";
 import { checkCsrfOrigin } from "@/lib/api/csrf";
 import { getStandardLimiter } from "@/lib/api/rate-limit";
+import { requireUsageGate, trackUsage } from "@/lib/api/usage-gate";
 import { extractProductContextFromDescription } from "@/lib/gemini/extract";
 import { researchProduct } from "@/lib/gemini/research";
 import { generateListing } from "@/lib/gemini/generate";
 import { analyzeListing } from "@/lib/qa";
 import { sanitizeListingContent } from "@/lib/utils/sanitize";
 import { isMarketplaceEnabled } from "@/lib/marketplace/registry";
-import { canGenerateListing } from "@/lib/subscription/plans";
-import {
-  incrementListingCount,
-  recordUsage,
-} from "@/lib/subscription/usage";
-import { getTrialStatus, incrementTrialRun } from "@/lib/subscription/trial";
+import { recordUsage } from "@/lib/subscription/usage";
 import type { Marketplace } from "@/types";
 
 export async function POST(request: NextRequest) {
@@ -48,37 +44,9 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
 
     // Check usage limits (trial-aware)
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("subscription_tier, subscription_status, listings_used_this_period, trial_expires_at, trial_runs_used")
-      .eq("id", user.id)
-      .single();
-
-    if (profile) {
-      if (profile.subscription_status === "trialing") {
-        const trial = getTrialStatus(profile);
-        if (!trial.canGenerate) {
-          const reason = trial.daysRemaining <= 0
-            ? "Your 7-day free trial has ended."
-            : `You've used all ${trial.runsUsed} free trial generations.`;
-          return jsonError(
-            `${reason} Upgrade to keep generating listings.`,
-            403
-          );
-        }
-      } else {
-        const allowed = canGenerateListing(
-          profile.subscription_tier,
-          profile.listings_used_this_period
-        );
-        if (!allowed) {
-          return jsonError(
-            "You have reached your listing limit for this billing period. Please upgrade your plan.",
-            403
-          );
-        }
-      }
-    }
+    const gate = await requireUsageGate(supabase, user.id);
+    if (!gate.allowed) return jsonError(gate.error, 403);
+    const profile = gate.profile;
 
     // Step 1: Extract structured product context from the description
     const productContext = await extractProductContextFromDescription(
@@ -157,24 +125,12 @@ export async function POST(request: NextRequest) {
       .eq("id", listing.id);
 
     // Step 6: Track usage (non-blocking — don't fail the request if tracking fails)
-    if (profile?.subscription_status === "trialing") {
-      try {
-        await incrementTrialRun(supabase, user.id);
-      } catch {
-        // Non-critical
-      }
-    } else {
-      try {
-        await incrementListingCount(supabase, user.id);
-      } catch {
-        // Non-critical
-      }
-    }
+    try {
+      await trackUsage(supabase, user.id, profile.subscription_status);
+    } catch { /* Non-critical */ }
     try {
       await recordUsage(supabase, user.id, "listing_generated", conversation.id);
-    } catch {
-      // Usage event recording failed — non-critical
-    }
+    } catch { /* Non-critical */ }
 
     return jsonSuccess({
       conversation,

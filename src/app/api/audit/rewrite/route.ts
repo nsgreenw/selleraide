@@ -4,7 +4,10 @@ import { rewriteFieldSchema } from "@/lib/api/contracts";
 import { jsonError, jsonSuccess, jsonRateLimited } from "@/lib/api/response";
 import { checkCsrfOrigin } from "@/lib/api/csrf";
 import { getStandardLimiter } from "@/lib/api/rate-limit";
+import { requireUsageGate, trackUsage } from "@/lib/api/usage-gate";
+import { createClient } from "@/lib/supabase/server";
 import { rewriteField } from "@/lib/gemini/rewrite";
+import { recordUsage } from "@/lib/subscription/usage";
 import type { Marketplace } from "@/types";
 
 export async function POST(req: NextRequest) {
@@ -18,6 +21,10 @@ export async function POST(req: NextRequest) {
 
     const { success, reset } = await getStandardLimiter().limit(user.id);
     if (!success) return jsonRateLimited(Math.ceil((reset - Date.now()) / 1000));
+
+    const supabase = await createClient();
+    const gate = await requireUsageGate(supabase, user.id);
+    if (!gate.allowed) return jsonError(gate.error, 403);
 
     let body: unknown;
     try {
@@ -35,6 +42,14 @@ export async function POST(req: NextRequest) {
       ...parsed.data,
       marketplace: parsed.data.marketplace as Marketplace,
     });
+
+    // Track usage — rewrite counts as a run
+    try {
+      await trackUsage(supabase, user.id, gate.profile.subscription_status);
+    } catch { /* Non-critical */ }
+    try {
+      await recordUsage(supabase, user.id, "field_rewritten");
+    } catch { /* Non-critical */ }
 
     return jsonSuccess(result);
   } catch (err) {

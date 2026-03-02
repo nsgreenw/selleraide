@@ -21,10 +21,17 @@ const APLUS_MODULE_LABELS: Record<string, string> = {
 };
 
 function escapeCSV(value: string): string {
-  if (value.includes(",") || value.includes('"') || value.includes("\n")) {
-    return '"' + value.replace(/"/g, '""') + '"';
+  // Neutralize formula injection: leading =, +, -, @, tab, or CR
+  // Prepend a single quote which Excel/Sheets treat as a text prefix
+  let safe = value;
+  if (/^[=+\-@\t\r]/.test(safe)) {
+    safe = "'" + safe;
   }
-  return value;
+
+  if (safe.includes(",") || safe.includes('"') || safe.includes("\n")) {
+    return '"' + safe.replace(/"/g, '""') + '"';
+  }
+  return safe;
 }
 
 export function generateListingCSV(content: ListingContent, marketplace: Marketplace): string {

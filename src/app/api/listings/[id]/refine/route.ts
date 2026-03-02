@@ -5,6 +5,7 @@ import { refineListingSchema } from "@/lib/api/contracts";
 import { jsonError, jsonSuccess, jsonRateLimited } from "@/lib/api/response";
 import { checkCsrfOrigin } from "@/lib/api/csrf";
 import { getStandardLimiter } from "@/lib/api/rate-limit";
+import { requireUsageGate } from "@/lib/api/usage-gate";
 import { getGeminiGenerateModel } from "@/lib/gemini/client";
 import {
   normalizeStringArray,
@@ -52,11 +53,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
     const { instruction } = parsed.data;
 
-    // 3. Resolve listing ID from route params
-    const { id: listingId } = await params;
-
-    // 4. Fetch the listing and verify ownership
+    // 3. Usage gate — refine doesn't count as a "run" but requires active access
     const supabase = await createClient();
+    const gate = await requireUsageGate(supabase, user.id);
+    if (!gate.allowed) return jsonError(gate.error, 403);
+
+    // 4. Resolve listing ID from route params
+    const { id: listingId } = await params;
 
     const { data: listing, error: listingError } = await supabase
       .from("listings")

@@ -159,12 +159,11 @@ describe("checkCsrfOrigin", () => {
       ).toBe("Cross-origin request blocked");
     });
 
-    it("allows http origin against https app URL (protocol-agnostic host check)", () => {
-      // The CSRF check compares hosts, not protocols.
-      // HSTS header prevents browsers from making HTTP requests anyway.
+    it("rejects http origin against https app URL (scheme mismatch)", () => {
+      // The CSRF check compares full origin (scheme + host), so http ≠ https
       expect(
         checkCsrfOrigin(makeRequest("http://app.selleraide.com"))
-      ).toBeNull();
+      ).toBe("Cross-origin request blocked");
     });
 
     it("rejects origin with trailing dot (FQDN notation)", () => {

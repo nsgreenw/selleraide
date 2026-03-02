@@ -5,10 +5,10 @@ import { optimizeSchema } from "@/lib/api/contracts";
 import { jsonError, jsonSuccess, jsonRateLimited } from "@/lib/api/response";
 import { checkCsrfOrigin } from "@/lib/api/csrf";
 import { getStandardLimiter } from "@/lib/api/rate-limit";
+import { requireUsageGate, trackUsage } from "@/lib/api/usage-gate";
 import { optimizeListing } from "@/lib/gemini/optimize";
 import { analyzeListing } from "@/lib/qa";
-import { canGenerateListing } from "@/lib/subscription/plans";
-import { incrementListingCount, recordUsage } from "@/lib/subscription/usage";
+import { recordUsage } from "@/lib/subscription/usage";
 import type { ListingContent } from "@/types";
 
 export async function POST(req: NextRequest) {
@@ -36,19 +36,8 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = await createClient();
-
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("subscription_tier, listings_used_this_period")
-      .eq("id", user.id)
-      .single();
-
-    if (!profile || !canGenerateListing(profile.subscription_tier, profile.listings_used_this_period)) {
-      return jsonError(
-        "You have reached your listing limit for this billing period. Upgrade your plan to continue optimizing.",
-        403
-      );
-    }
+    const gate = await requireUsageGate(supabase, user.id);
+    if (!gate.allowed) return jsonError(gate.error, 403);
 
     // First optimization pass
     const firstResult = await optimizeListing(parsed.data);
@@ -85,8 +74,12 @@ export async function POST(req: NextRequest) {
       finalResult = await optimizeListing(secondPassInput);
     }
 
-    await incrementListingCount(supabase, user.id);
-    await recordUsage(supabase, user.id, "listing_optimized");
+    try {
+      await trackUsage(supabase, user.id, gate.profile.subscription_status);
+    } catch { /* Non-critical */ }
+    try {
+      await recordUsage(supabase, user.id, "listing_optimized");
+    } catch { /* Non-critical */ }
 
     return jsonSuccess(finalResult);
   } catch (err) {

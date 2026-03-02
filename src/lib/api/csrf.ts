@@ -27,9 +27,9 @@ export function checkCsrfOrigin(request: NextRequest): string | null {
     return null;
   }
 
-  let appHost: string;
+  let appOrigin: string;
   try {
-    appHost = new URL(appUrl).host;
+    appOrigin = new URL(appUrl).origin;
   } catch {
     if (process.env.NODE_ENV === "production") {
       console.error(`[CSRF] NEXT_PUBLIC_APP_URL is not a valid URL: "${appUrl}" — blocking request`);
@@ -41,14 +41,14 @@ export function checkCsrfOrigin(request: NextRequest): string | null {
     return null;
   }
 
-  let originHost: string;
+  let requestOrigin: string;
   try {
-    originHost = new URL(origin).host;
+    requestOrigin = new URL(origin).origin;
   } catch {
     return "Invalid request origin";
   }
 
-  if (originHost !== appHost) {
+  if (requestOrigin !== appOrigin) {
     return "Cross-origin request blocked";
   }
 
