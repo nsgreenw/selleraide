@@ -14,7 +14,11 @@ import {
   BarChart3,
   Download,
   Check,
+  Puzzle,
+  ArrowUpRight,
 } from "lucide-react";
+
+const EXTENSION_URL = "https://chromewebstore.google.com/detail/selleraide-listing-audit/gfcoilmeghppmemfankehajkdpghdeio";
 
 export default function Home() {
   const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("monthly");
@@ -45,6 +49,15 @@ export default function Home() {
             >
               Pricing
             </Link>
+            <a
+              href={EXTENSION_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-zinc-400 hover:text-zinc-200 flex items-center gap-1.5"
+            >
+              <Puzzle className="size-3.5" />
+              Extension
+            </a>
             <Link href="/login" className="btn-secondary text-sm">
               Log In
             </Link>
@@ -129,6 +142,31 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Chrome Extension */}
+            <div className="card-glass p-6 relative overflow-hidden">
+              <span className="absolute top-3 right-3 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 text-[10px] font-semibold uppercase tracking-wider px-2.5 py-0.5">
+                Free
+              </span>
+              <div className="w-10 h-10 rounded-xl bg-sa-200/10 flex items-center justify-center mb-4">
+                <Puzzle className="size-5 text-sa-200" />
+              </div>
+              <h3 className="text-lg font-semibold text-zinc-100 mb-2">
+                Chrome Extension
+              </h3>
+              <p className="text-sm text-zinc-400 mb-3">
+                Audit any Amazon or eBay listing in one click directly from the product page — no copy-paste needed.
+              </p>
+              <a
+                href={EXTENSION_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-sa-200 hover:text-sa-100 transition-colors"
+              >
+                Add to Chrome — Free
+                <ArrowUpRight className="size-3.5" />
+              </a>
+            </div>
+
             {/* Feature 1 */}
             <div className="card-glass p-6">
               <div className="w-10 h-10 rounded-xl bg-sa-200/10 flex items-center justify-center mb-4">
@@ -535,6 +573,15 @@ export default function Home() {
             &copy; 2026 SellerAide. All rights reserved.
           </p>
           <div className="flex gap-6">
+            <a
+              href={EXTENSION_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-zinc-500 hover:text-zinc-300 flex items-center gap-1"
+            >
+              <Puzzle className="size-3" />
+              Chrome Extension
+            </a>
             <Link href="/privacy" className="text-xs text-zinc-500 hover:text-zinc-300">
               Privacy
             </Link>

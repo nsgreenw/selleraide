@@ -18,6 +18,7 @@ import {
   ExternalLink,
   Download,
   Puzzle,
+  ArrowUpRight,
   X,
 } from "lucide-react";
 
@@ -967,6 +968,25 @@ function AuditContent() {
                   {optimizeError}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Extension nudge — shown after results when extension is not installed */}
+          {extensionInstalled === false && EXTENSION_URL && (
+            <div className="card-subtle p-4 flex items-center gap-3">
+              <Puzzle className="size-4 text-zinc-500 shrink-0" />
+              <p className="text-xs text-zinc-500">
+                Skip the copy-paste next time — audit directly from Amazon or eBay.{" "}
+                <a
+                  href={EXTENSION_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sa-200 hover:text-sa-100 font-medium inline-flex items-center gap-1 transition-colors"
+                >
+                  Add to Chrome
+                  <ArrowUpRight className="size-3" />
+                </a>
+              </p>
             </div>
           )}
         </div>

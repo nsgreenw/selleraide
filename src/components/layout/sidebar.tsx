@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Plus, Cog, LogOut, X, Zap, Search, Megaphone, Layers, MessageSquare, List } from "lucide-react";
+import { Plus, Cog, LogOut, X, Zap, Search, Megaphone, Layers, MessageSquare, List, Puzzle, ArrowUpRight } from "lucide-react";
+
+const EXTENSION_URL = "https://chromewebstore.google.com/detail/selleraide-listing-audit/gfcoilmeghppmemfankehajkdpghdeio";
 import { useState } from "react";
 import { Logo } from "@/components/ui/logo";
 import { FeedbackDialog } from "@/components/layout/feedback-dialog";
@@ -202,6 +204,16 @@ export function Sidebar() {
 
       {/* Bottom User Section */}
       <div className="mt-4 border-t border-white/10 pt-4">
+        <a
+          href={EXTENSION_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 px-3 py-2 mb-3 rounded-lg text-xs text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition duration-200"
+        >
+          <Puzzle className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate">Chrome Extension</span>
+          <ArrowUpRight className="h-3 w-3 ml-auto shrink-0 opacity-50" />
+        </a>
         {profile && (
           <p className="mb-3 truncate text-xs text-zinc-500">
             {profile.email}
