@@ -149,9 +149,9 @@ Audit performed 2026-03-02 after shipping security headers + CSRF origin checkin
 
 ### L6. No explicit Supabase cookie security options
 - **Category**: Security patterns
-- **Status**: [ ] Open
+- **Status**: [x] Fixed (2026-03-02)
 - **File**: `src/lib/supabase/server.ts`
-- **Fix**: Explicitly set `httpOnly: true`, `secure: true`, `sameSite: 'lax'` in the cookie configuration rather than relying on `@supabase/ssr` defaults.
+- **Fix**: Explicitly set `httpOnly: true`, `secure: true` (production only), `sameSite: 'lax'` in `setAll` cookie config.
 
 ### L7. Blog page uses dangerouslySetInnerHTML
 - **Category**: XSS
