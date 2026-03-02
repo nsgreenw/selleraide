@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Plus, Cog, LogOut, X, Zap, Search, Megaphone, MessageSquare } from "lucide-react";
+import { Plus, Cog, LogOut, X, Zap, Search, Megaphone, MessageSquare, List } from "lucide-react";
 import { useState } from "react";
 import { Logo } from "@/components/ui/logo";
 import { FeedbackDialog } from "@/components/layout/feedback-dialog";
@@ -176,6 +176,23 @@ export function Sidebar() {
           </p>
         )}
       </div>
+
+      {/* All Listings link */}
+      {activeTool === "generator" && (
+        <div className="mt-2 mb-2">
+          <Link
+            href="/listings"
+            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition duration-200 ${
+              pathname === "/listings"
+                ? "bg-sa-200/10 text-sa-200 border border-sa-200/30"
+                : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
+            }`}
+          >
+            <List className="h-3.5 w-3.5" />
+            All Listings
+          </Link>
+        </div>
+      )}
 
       {/* Bottom User Section */}
       <div className="mt-4 border-t border-white/10 pt-4">
