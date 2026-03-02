@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Globe, Layers, ShoppingCart, Sparkles, Store, Tag } from "lucide-react";
 import TitleVariants from "@/components/listing/title-variants";
+import CopyFieldButton from "@/components/ui/copy-field-button";
 import type { APlusModule, Listing, ListingContent, Marketplace } from "@/types";
 
 function MarketplaceBadge({ marketplace }: { marketplace: Marketplace }) {
@@ -143,9 +144,12 @@ export default function ListingPreview({
               <div className="flex-1 card-subtle p-3">
                 <div className="flex items-center justify-between mb-1">
                   <span className="label-kicker text-zinc-500">TITLE</span>
-                  <span className="text-xs text-zinc-500">
-                    {content.title.length} chars
-                  </span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-zinc-500">
+                      {content.title.length} chars
+                    </span>
+                    <CopyFieldButton value={content.title} />
+                  </div>
                 </div>
                 <p className="text-sm text-zinc-100">{content.title}</p>
               </div>
@@ -180,9 +184,12 @@ export default function ListingPreview({
             <div className="card-subtle p-3">
               <div className="flex items-center justify-between mb-1">
                 <span className="label-kicker text-zinc-500">SUBTITLE</span>
-                <span className="text-xs text-zinc-500">
-                  {content.subtitle.length} chars
-                </span>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-zinc-500">
+                    {content.subtitle.length} chars
+                  </span>
+                  <CopyFieldButton value={content.subtitle} />
+                </div>
               </div>
               <p className="text-sm text-zinc-200">{content.subtitle}</p>
             </div>
@@ -193,9 +200,12 @@ export default function ListingPreview({
             <div key={i} className="card-subtle p-3">
               <div className="flex items-center justify-between mb-1">
                 <span className="label-kicker text-zinc-500">BULLET {i + 1}</span>
-                <span className="text-xs text-zinc-500">
-                  {bullet.length} chars
-                </span>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-zinc-500">
+                    {bullet.length} chars
+                  </span>
+                  <CopyFieldButton value={bullet} />
+                </div>
               </div>
               <p className="text-sm text-zinc-200">{bullet}</p>
             </div>
@@ -206,9 +216,12 @@ export default function ListingPreview({
             <div className="card-subtle p-3">
               <div className="flex items-center justify-between mb-1">
                 <span className="label-kicker text-zinc-500">DESCRIPTION</span>
-                <span className="text-xs text-zinc-500">
-                  {content.description.length} chars
-                </span>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-zinc-500">
+                    {content.description.length} chars
+                  </span>
+                  <CopyFieldButton value={content.description} />
+                </div>
               </div>
               <p className="text-sm text-zinc-200 whitespace-pre-wrap">
                 {content.description}
@@ -223,9 +236,12 @@ export default function ListingPreview({
                 <span className="label-kicker text-zinc-500">
                   BACKEND KEYWORDS
                 </span>
-                <span className="text-xs text-zinc-500">
-                  {new TextEncoder().encode(content.backend_keywords).length} bytes
-                </span>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-zinc-500">
+                    {new TextEncoder().encode(content.backend_keywords).length} bytes
+                  </span>
+                  <CopyFieldButton value={content.backend_keywords} />
+                </div>
               </div>
               <p className="text-sm text-zinc-200">{content.backend_keywords}</p>
             </div>
@@ -236,9 +252,12 @@ export default function ListingPreview({
             <div className="card-subtle p-3">
               <div className="flex items-center justify-between mb-1">
                 <span className="label-kicker text-zinc-500">SEO TITLE</span>
-                <span className="text-xs text-zinc-500">
-                  {content.seo_title.length} chars
-                </span>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-zinc-500">
+                    {content.seo_title.length} chars
+                  </span>
+                  <CopyFieldButton value={content.seo_title} />
+                </div>
               </div>
               <p className="text-sm text-zinc-200">{content.seo_title}</p>
             </div>
@@ -251,9 +270,12 @@ export default function ListingPreview({
                 <span className="label-kicker text-zinc-500">
                   META DESCRIPTION
                 </span>
-                <span className="text-xs text-zinc-500">
-                  {content.meta_description.length} chars
-                </span>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-zinc-500">
+                    {content.meta_description.length} chars
+                  </span>
+                  <CopyFieldButton value={content.meta_description} />
+                </div>
               </div>
               <p className="text-sm text-zinc-200">{content.meta_description}</p>
             </div>
@@ -262,7 +284,10 @@ export default function ListingPreview({
           {/* Tags */}
           {content.tags && content.tags.length > 0 && (
             <div className="card-subtle p-3">
-              <span className="label-kicker text-zinc-500 mb-2 block">TAGS</span>
+              <div className="flex items-center justify-between mb-2">
+                <span className="label-kicker text-zinc-500">TAGS</span>
+                <CopyFieldButton value={content.tags.join(", ")} />
+              </div>
               <div className="flex flex-wrap gap-1.5">
                 {content.tags.map((tag, i) => (
                   <span
@@ -280,9 +305,12 @@ export default function ListingPreview({
           {content.item_specifics &&
             Object.keys(content.item_specifics).length > 0 && (
               <div className="card-subtle p-3">
-                <span className="label-kicker text-zinc-500 mb-2 block">
-                  ITEM SPECIFICS
-                </span>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="label-kicker text-zinc-500">
+                    ITEM SPECIFICS
+                  </span>
+                  <CopyFieldButton value={Object.entries(content.item_specifics!).map(([k, v]) => `${k}: ${v}`).join("\n")} />
+                </div>
                 <div className="space-y-1">
                   {Object.entries(content.item_specifics).map(([key, val]) => (
                     <div key={key} className="flex gap-2 text-sm">
@@ -297,9 +325,12 @@ export default function ListingPreview({
           {/* Attributes (Walmart) */}
           {content.attributes && Object.keys(content.attributes).length > 0 && (
             <div className="card-subtle p-3">
-              <span className="label-kicker text-zinc-500 mb-2 block">
-                ATTRIBUTES
-              </span>
+              <div className="flex items-center justify-between mb-2">
+                <span className="label-kicker text-zinc-500">
+                  ATTRIBUTES
+                </span>
+                <CopyFieldButton value={Object.entries(content.attributes!).map(([k, v]) => `${k}: ${v}`).join("\n")} />
+              </div>
               <div className="space-y-1">
                 {Object.entries(content.attributes).map(([key, val]) => (
                   <div key={key} className="flex gap-2 text-sm">
@@ -318,9 +349,12 @@ export default function ListingPreview({
                 <span className="label-kicker text-zinc-500">
                   SHELF DESCRIPTION
                 </span>
-                <span className="text-xs text-zinc-500">
-                  {content.shelf_description.length} chars
-                </span>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-zinc-500">
+                    {content.shelf_description.length} chars
+                  </span>
+                  <CopyFieldButton value={content.shelf_description} />
+                </div>
               </div>
               <p className="text-sm text-zinc-200">{content.shelf_description}</p>
             </div>
@@ -329,9 +363,12 @@ export default function ListingPreview({
           {/* Collections (Shopify) */}
           {content.collections && content.collections.length > 0 && (
             <div className="card-subtle p-3">
-              <span className="label-kicker text-zinc-500 mb-2 block">
-                COLLECTIONS
-              </span>
+              <div className="flex items-center justify-between mb-2">
+                <span className="label-kicker text-zinc-500">
+                  COLLECTIONS
+                </span>
+                <CopyFieldButton value={content.collections!.join(", ")} />
+              </div>
               <div className="flex flex-wrap gap-1.5">
                 {content.collections.map((col, i) => (
                   <span

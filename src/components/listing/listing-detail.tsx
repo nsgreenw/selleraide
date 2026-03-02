@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import ScoreBadge from "./score-badge";
 import TitleVariants from "./title-variants";
+import CopyFieldButton from "@/components/ui/copy-field-button";
 import type { Listing, Marketplace, QAResult, APlusModule } from "@/types";
 
 interface ListingDetailProps {
@@ -45,9 +46,12 @@ function FieldSection({
     <div className="card-subtle p-4">
       <div className="flex items-center justify-between mb-2">
         <span className="label-kicker text-zinc-400">{label}</span>
-        <span className="text-xs text-zinc-500">
-          {charCount} chars{maxLength ? ` / ${maxLength}` : ""}
-        </span>
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-zinc-500">
+            {charCount} chars{maxLength ? ` / ${maxLength}` : ""}
+          </span>
+          <CopyFieldButton value={value} />
+        </div>
       </div>
       <p className="text-sm text-zinc-200 whitespace-pre-wrap">{value}</p>
     </div>
@@ -61,7 +65,10 @@ function BulletsSection({ bullets }: { bullets: string[] }) {
     <div className="card-subtle p-4">
       <div className="flex items-center justify-between mb-2">
         <span className="label-kicker text-zinc-400">Bullet Points</span>
-        <span className="text-xs text-zinc-500">{bullets.length} items</span>
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-zinc-500">{bullets.length} items</span>
+          <CopyFieldButton value={bullets.map((b, i) => `${i + 1}. ${b}`).join("\n")} />
+        </div>
       </div>
       <ul className="space-y-2">
         {bullets.map((bullet, i) => (
@@ -83,7 +90,10 @@ function TagsSection({ tags }: { tags: string[] }) {
 
   return (
     <div className="card-subtle p-4">
-      <span className="label-kicker text-zinc-400 block mb-2">Tags</span>
+      <div className="flex items-center justify-between mb-2">
+        <span className="label-kicker text-zinc-400">Tags</span>
+        <CopyFieldButton value={tags.join(", ")} />
+      </div>
       <div className="flex flex-wrap gap-2">
         {tags.map((tag, i) => (
           <span
@@ -110,7 +120,10 @@ function KeyValueSection({
 
   return (
     <div className="card-subtle p-4">
-      <span className="label-kicker text-zinc-400 block mb-2">{label}</span>
+      <div className="flex items-center justify-between mb-2">
+        <span className="label-kicker text-zinc-400">{label}</span>
+        <CopyFieldButton value={entries.map(([k, v]) => `${k}: ${v}`).join("\n")} />
+      </div>
       <div className="space-y-1.5">
         {entries.map(([key, value]) => (
           <div key={key} className="flex items-start gap-2 text-sm">
