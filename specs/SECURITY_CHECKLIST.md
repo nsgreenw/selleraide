@@ -46,10 +46,10 @@ Audit performed 2026-03-02 after shipping security headers + CSRF origin checkin
 
 ### H5. CSRF fails open when env var is unset
 - **Category**: Security patterns
-- **Status**: [ ] Open
+- **Status**: [x] Fixed (2026-03-02)
 - **File**: `src/lib/api/csrf.ts:19-24`
 - **Risk**: If `NEXT_PUBLIC_APP_URL` is accidentally removed during deployment, CSRF protection silently disables for every mutation route.
-- **Fix**: Add a build-time or startup check that `NEXT_PUBLIC_APP_URL` is set. Alternatively, fail closed in production (`NODE_ENV === "production"` rejects when env var is missing).
+- **Fix**: Fail closed in production (`NODE_ENV === "production"` rejects when env var is missing or invalid). Dev mode still fails open for DX.
 
 ---
 

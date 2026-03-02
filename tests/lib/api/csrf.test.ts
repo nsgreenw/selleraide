@@ -238,10 +238,10 @@ describe("checkCsrfOrigin", () => {
     });
   });
 
-  // ── Env var edge cases ──────────────────────────────────────────────
+  // ── Env var edge cases (dev — fail open) ────────────────────────────
 
-  describe("env var edge cases", () => {
-    it("allows when NEXT_PUBLIC_APP_URL is missing (fail open)", () => {
+  describe("env var edge cases (dev — fail open)", () => {
+    it("allows when NEXT_PUBLIC_APP_URL is missing", () => {
       delete process.env.NEXT_PUBLIC_APP_URL;
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
@@ -253,7 +253,7 @@ describe("checkCsrfOrigin", () => {
       );
     });
 
-    it("allows when NEXT_PUBLIC_APP_URL is empty string (fail open)", () => {
+    it("allows when NEXT_PUBLIC_APP_URL is empty string", () => {
       process.env.NEXT_PUBLIC_APP_URL = "";
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
@@ -265,7 +265,7 @@ describe("checkCsrfOrigin", () => {
       );
     });
 
-    it("allows when NEXT_PUBLIC_APP_URL is not a valid URL (fail open)", () => {
+    it("allows when NEXT_PUBLIC_APP_URL is not a valid URL", () => {
       process.env.NEXT_PUBLIC_APP_URL = "not-a-url";
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
@@ -289,6 +289,60 @@ describe("checkCsrfOrigin", () => {
       expect(
         checkCsrfOrigin(makeRequest("https://app.selleraide.com"))
       ).toBeNull();
+    });
+  });
+
+  // ── Env var edge cases (production — fail closed) ─────────────────
+
+  describe("env var edge cases (production — fail closed)", () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+
+    beforeEach(() => {
+      process.env.NODE_ENV = "production";
+    });
+
+    afterEach(() => {
+      process.env.NODE_ENV = originalNodeEnv;
+    });
+
+    it("blocks when NEXT_PUBLIC_APP_URL is missing in production", () => {
+      delete process.env.NEXT_PUBLIC_APP_URL;
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      expect(
+        checkCsrfOrigin(makeRequest("https://app.selleraide.com"))
+      ).toBe("Server configuration error");
+      expect(errorSpy).toHaveBeenCalledWith(
+        "[CSRF] NEXT_PUBLIC_APP_URL is not set in production — blocking request"
+      );
+    });
+
+    it("blocks when NEXT_PUBLIC_APP_URL is empty string in production", () => {
+      process.env.NEXT_PUBLIC_APP_URL = "";
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      expect(
+        checkCsrfOrigin(makeRequest("https://app.selleraide.com"))
+      ).toBe("Server configuration error");
+      expect(errorSpy).toHaveBeenCalled();
+    });
+
+    it("blocks when NEXT_PUBLIC_APP_URL is not a valid URL in production", () => {
+      process.env.NEXT_PUBLIC_APP_URL = "not-a-url";
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      expect(
+        checkCsrfOrigin(makeRequest("https://app.selleraide.com"))
+      ).toBe("Server configuration error");
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining("NEXT_PUBLIC_APP_URL is not a valid URL")
+      );
+    });
+
+    it("still allows requests with no Origin header in production (same-origin)", () => {
+      delete process.env.NEXT_PUBLIC_APP_URL;
+      // No Origin = same-origin navigation, should always be allowed
+      expect(checkCsrfOrigin(makeRequest())).toBeNull();
     });
   });
 
