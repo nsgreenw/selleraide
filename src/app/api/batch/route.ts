@@ -39,6 +39,9 @@ export async function POST(request: NextRequest) {
     if (!(file instanceof File)) {
       return jsonError("CSV file is required.", 400);
     }
+    if (!file.name.toLowerCase().endsWith(".csv") || (file.type && file.type !== "text/csv")) {
+      return jsonError("Only .csv files are accepted.", 400);
+    }
     if (file.size > 5 * 1024 * 1024) {
       return jsonError("File exceeds the 5 MB limit.", 400);
     }

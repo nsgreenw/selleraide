@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Validate file
-    if (!file.name.toLowerCase().endsWith(".csv")) {
+    if (!file.name.toLowerCase().endsWith(".csv") || (file.type && file.type !== "text/csv")) {
       return jsonError("Only .csv files are accepted.", 400);
     }
     const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB

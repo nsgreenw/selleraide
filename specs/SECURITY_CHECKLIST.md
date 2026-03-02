@@ -137,9 +137,9 @@ Audit performed 2026-03-02 after shipping security headers + CSRF origin checkin
 
 ### L4. CSV uploads only check extension, not MIME type
 - **Category**: File upload
-- **Status**: [ ] Open
+- **Status**: [x] Fixed (2026-03-02)
 - **Files**: `src/app/api/listings/import/route.ts`, `src/app/api/batch/route.ts`
-- **Fix**: Also validate `file.type === "text/csv"`. The `X-Content-Type-Options: nosniff` header provides defense-in-depth.
+- **Fix**: Added MIME type check (`file.type !== "text/csv"`) alongside extension check. Allows empty type (some clients don't set it) but rejects mismatched types.
 
 ### L5. Webhook secret captured at module scope
 - **Category**: Security patterns
