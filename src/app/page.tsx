@@ -424,6 +424,12 @@ export default function Home() {
                     Listing history
                   </span>
                 </li>
+                <li className="flex items-center gap-2">
+                  <Check className="size-4 text-sa-200 shrink-0" />
+                  <span className="text-sm font-medium text-zinc-300">
+                    Bulk CSV generation (up to 50)
+                  </span>
+                </li>
               </ul>
               <Link href="/signup" className="btn-primary w-full mt-6">
                 Start 7-Day Free Trial
@@ -481,6 +487,12 @@ export default function Home() {
                   <Check className="size-4 text-zinc-500 shrink-0" />
                   <span className="text-sm text-zinc-400">
                     Priority support
+                  </span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="size-4 text-zinc-500 shrink-0" />
+                  <span className="text-sm text-zinc-400">
+                    Bulk CSV generation (up to 200)
                   </span>
                 </li>
               </ul>

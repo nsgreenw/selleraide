@@ -16,6 +16,21 @@ export type ConversationStatus =
   | "refining"
   | "completed";
 
+export type BatchStatus = "pending" | "processing" | "completed" | "failed" | "cancelled";
+
+export interface Batch {
+  id: string;
+  user_id: string;
+  marketplace: Marketplace;
+  status: BatchStatus;
+  total_rows: number;
+  completed_rows: number;
+  failed_rows: number;
+  error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export type MessageRole = "user" | "assistant" | "system";
 
 export type QAGrade = "A" | "B" | "C" | "D" | "F";
@@ -88,6 +103,7 @@ export interface Listing {
   content: ListingContent;
   qa_results: QAResult[] | null;
   score: number | null;
+  batch_id: string | null;
   created_at: string;
   updated_at: string;
 }

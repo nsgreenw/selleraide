@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Plus, Cog, LogOut, X, Zap, Search, Megaphone, MessageSquare, List } from "lucide-react";
+import { Plus, Cog, LogOut, X, Zap, Search, Megaphone, Layers, MessageSquare, List } from "lucide-react";
 import { useState } from "react";
 import { Logo } from "@/components/ui/logo";
 import { FeedbackDialog } from "@/components/layout/feedback-dialog";
@@ -17,15 +17,17 @@ const MARKETPLACE_COLORS: Record<string, string> = {
   shopify: "#96bf48",
 };
 
-type Tool = "generator" | "audit" | "ads";
+type Tool = "generator" | "audit" | "batch" | "ads";
 
 const TOOLS: { id: Tool; label: string; icon: typeof Zap; path: string; newLabel: string; comingSoon?: boolean }[] = [
   { id: "generator", label: "Listing Generator", icon: Zap, path: "/chat", newLabel: "New Listing" },
+  { id: "batch", label: "Bulk Generate", icon: Layers, path: "/batch", newLabel: "New Batch" },
   { id: "audit", label: "Listing Audit", icon: Search, path: "/audit", newLabel: "New Audit" },
   { id: "ads", label: "Ads Coach", icon: Megaphone, path: "/ads", newLabel: "New Campaign", comingSoon: true },
 ];
 
 function getActiveTool(pathname: string): Tool {
+  if (pathname.startsWith("/batch")) return "batch";
   if (pathname.startsWith("/audit")) return "audit";
   if (pathname.startsWith("/ads")) return "ads";
   return "generator";
@@ -166,6 +168,10 @@ export function Sidebar() {
               );
             })
           )
+        ) : activeTool === "batch" ? (
+          <p className="px-3 py-6 text-center text-xs text-zinc-600">
+            Upload a CSV to generate listings in bulk
+          </p>
         ) : activeTool === "audit" ? (
           <p className="px-3 py-6 text-center text-xs text-zinc-600">
             Paste a listing above to audit it

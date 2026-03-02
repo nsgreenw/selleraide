@@ -5,6 +5,7 @@ export interface PlanConfig {
   priceMonthly: number;
   priceYearly: number;
   listingsPerMonth: number | null; // null = unlimited
+  batchRowLimit: number;           // max rows per CSV batch (0 = disabled)
   features: string[];
 }
 
@@ -16,6 +17,7 @@ export const PLANS: Record<SubscriptionTier, PlanConfig> = {
     priceMonthly: 0,
     priceYearly: 0,
     listingsPerMonth: 0,
+    batchRowLimit: 0,  // 0 = feature disabled for this tier
     features: [
       "No active subscription",
       "Choose a paid plan to start your 7-day free trial",
@@ -26,6 +28,7 @@ export const PLANS: Record<SubscriptionTier, PlanConfig> = {
     priceMonthly: 19,
     priceYearly: 190,
     listingsPerMonth: 50,
+    batchRowLimit: 0,  // 0 = feature disabled for this tier
     features: [
       "7-day free trial",
       "50 listings per month",
@@ -41,6 +44,7 @@ export const PLANS: Record<SubscriptionTier, PlanConfig> = {
     priceMonthly: 49,
     priceYearly: 490,
     listingsPerMonth: 200,
+    batchRowLimit: 50,
     features: [
       "7-day free trial",
       "200 listings per month",
@@ -50,6 +54,7 @@ export const PLANS: Record<SubscriptionTier, PlanConfig> = {
       "All export formats",
       "Priority AI generation",
       "Listing history",
+      "Bulk generation (up to 50)",
     ],
   },
   agency: {
@@ -57,6 +62,7 @@ export const PLANS: Record<SubscriptionTier, PlanConfig> = {
     priceMonthly: 0,
     priceYearly: 0,
     listingsPerMonth: null,
+    batchRowLimit: 200,
     features: [
       "Custom pricing",
       "Unlimited listings",
@@ -67,6 +73,7 @@ export const PLANS: Record<SubscriptionTier, PlanConfig> = {
       "Priority AI generation",
       "Listing history",
       "Priority support",
+      "Bulk generation (up to 200)",
     ],
   },
 };

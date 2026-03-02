@@ -121,6 +121,16 @@ export const patchListingSchema = z.object({
     ),
 });
 
+export const batchRowSchema = z.object({
+  product_description: z.string().min(10, "Product description must be at least 10 characters"),
+  condition: z.string().optional(),
+  condition_notes: z.string().max(2000).optional(),
+});
+
+export const createBatchSchema = z.object({
+  marketplace: marketplaceSchema,
+});
+
 export const rewriteFieldSchema = z.object({
   marketplace: marketplaceSchema,
   field: z.enum(["title", "bullet", "description", "backend_keywords"]),
