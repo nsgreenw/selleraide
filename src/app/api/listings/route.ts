@@ -1,9 +1,11 @@
 import { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/api/auth-guard";
 import { createClient } from "@/lib/supabase/server";
+import { saveListingSchema } from "@/lib/api/contracts";
 import { jsonError, jsonSuccess } from "@/lib/api/response";
 import { checkCsrfOrigin } from "@/lib/api/csrf";
 import { analyzeListing } from "@/lib/qa";
+import { sanitizeListingContent } from "@/lib/utils/sanitize";
 import type { ListingContent, Marketplace } from "@/types";
 
 export async function GET(_request: NextRequest) {
@@ -48,23 +50,13 @@ export async function POST(req: NextRequest) {
       return jsonError("Invalid JSON", 400);
     }
 
-    const { marketplace, content } = body as {
-      marketplace?: string;
-      content?: ListingContent;
-    };
-
-    if (!marketplace || !content) {
-      return jsonError("marketplace and content are required", 400);
+    const parsed = saveListingSchema.safeParse(body);
+    if (!parsed.success) {
+      return jsonError(parsed.error.issues[0]?.message ?? "Invalid input", 400);
     }
 
-    const validMarketplaces = ["amazon", "walmart", "ebay", "shopify"];
-    if (!validMarketplaces.includes(marketplace)) {
-      return jsonError("Invalid marketplace", 400);
-    }
-
-    if (!content.title?.trim() || !content.description?.trim()) {
-      return jsonError("content must include title and description", 400);
-    }
+    const { marketplace, content: rawContent } = parsed.data;
+    const content = sanitizeListingContent(rawContent as ListingContent);
 
     // Run QA so the saved listing has a score from day one
     const qaAnalysis = analyzeListing(content, marketplace as Marketplace);

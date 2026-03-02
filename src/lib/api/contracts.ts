@@ -105,6 +105,41 @@ export const auditSchema = z.object({
   a_plus_modules: z.array(auditAPlusModule).optional(),
 });
 
+const photoRecommendation = z.object({
+  slot: z.number().int().min(1),
+  description: z.string().max(500),
+  type: z.enum(["main", "lifestyle", "infographic", "detail", "scale", "packaging"]),
+  tips: z.array(z.string().max(300)).max(10),
+});
+
+const listingContentSchema = z.object({
+  title: z.string().min(1).max(500),
+  description: z.string().min(1).max(10000),
+  bullets: z.array(z.string().max(1000)).max(20).optional(),
+  backend_keywords: z.string().max(2000).optional(),
+  seo_title: z.string().max(500).optional(),
+  meta_description: z.string().max(1000).optional(),
+  tags: z.array(z.string().max(200)).max(50).optional(),
+  subtitle: z.string().max(500).optional(),
+  item_specifics: z.record(z.string().max(200), z.string().max(500)).optional(),
+  attributes: z.record(z.string().max(200), z.string().max(500)).optional(),
+  shelf_description: z.string().max(10000).optional(),
+  a_plus_modules: z.array(auditAPlusModule).max(7).optional(),
+  collections: z.array(z.string().max(200)).max(20).optional(),
+  photo_recommendations: z.array(photoRecommendation).max(10).optional(),
+  compliance_notes: z.array(z.string().max(500)).max(10).optional(),
+  assumptions: z.array(z.string().max(500)).max(10).optional(),
+  condition_notes: z.array(z.string().max(500)).max(10).optional(),
+  shipping_notes: z.string().max(2000).optional(),
+  returns_notes: z.string().max(2000).optional(),
+  category_hint: z.string().max(200).optional(),
+});
+
+export const saveListingSchema = z.object({
+  marketplace: z.enum(["amazon", "walmart", "ebay", "shopify"]),
+  content: listingContentSchema,
+});
+
 export const feedbackSchema = z.object({
   message: z.string().min(10, "Please provide at least 10 characters").max(2000),
   page_url: z.string().optional(),

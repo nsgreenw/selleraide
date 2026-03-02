@@ -28,7 +28,7 @@ Audit performed 2026-03-02 after shipping security headers + CSRF origin checkin
 
 ### H3. POST /api/listings has no Zod schema for content
 - **Category**: Input validation
-- **Status**: [ ] Open
+- **Status**: [x] Fixed (2026-03-02) — added saveListingSchema with full ListingContent validation + sanitization
 - **File**: `src/app/api/listings/route.ts:47-53`
 - **Risk**: `content` is cast with `as { marketplace?: string; content?: ListingContent }` and written to DB without structural validation. Accepts arbitrary nested JSON.
 - **Fix**: Add a Zod schema for the save-listing endpoint in `contracts.ts`. Validate `content` structure (title string, bullets array, etc.) before DB insert.
