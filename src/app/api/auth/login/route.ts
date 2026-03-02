@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
       return jsonError("Invalid email or password", 401);
     }
 
-    return jsonSuccess({ user: data.user });
+    return jsonSuccess({ user: { id: data.user.id, email: data.user.email } });
   } catch (err) {
     console.error("Login error:", err instanceof Error ? err.message : err);
     return jsonError("An unexpected error occurred. Please try again.", 500);

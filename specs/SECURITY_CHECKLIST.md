@@ -131,8 +131,8 @@ Audit performed 2026-03-02 after shipping security headers + CSRF origin checkin
 
 ### L3. Login returns full Supabase User object
 - **Category**: Data exposure
-- **Status**: [ ] Open
-- **File**: `src/app/api/auth/login/route.ts:31`
+- **Status**: [x] Fixed (2026-03-02)
+- **File**: `src/app/api/auth/login/route.ts:35`
 - **Fix**: Return only `{ id, email }` instead of the full `data.user` object.
 
 ### L4. CSV uploads only check extension, not MIME type
