@@ -1,5 +1,23 @@
 export type Marketplace = "amazon" | "walmart" | "ebay" | "shopify";
 
+export type EbayPublishStatus = 'none' | 'draft' | 'publishing' | 'live' | 'error';
+
+export interface EbayConnection {
+  id: string;
+  user_id: string;
+  ebay_user_id: string | null;
+  access_token: string;
+  refresh_token: string;
+  token_expires_at: string;
+  merchant_location_key: string | null;
+  fulfillment_policy_id: string | null;
+  return_policy_id: string | null;
+  payment_policy_id: string | null;
+  policies_verified: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export type SubscriptionTier = "free" | "starter" | "pro" | "agency";
 
 export type SubscriptionStatus =
@@ -106,6 +124,12 @@ export interface Listing {
   batch_id: string | null;
   created_at: string;
   updated_at: string;
+  ebay_status?: EbayPublishStatus;
+  ebay_offer_id?: string | null;
+  ebay_listing_id?: string | null;
+  ebay_sku?: string | null;
+  ebay_error?: string | null;
+  ebay_published_at?: string | null;
 }
 
 export interface ListingContent {

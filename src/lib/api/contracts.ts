@@ -174,6 +174,19 @@ export const createBatchSchema = z.object({
   marketplace: marketplaceSchema,
 });
 
+export const ebayPublishSchema = z.object({
+  listingId: z.string().uuid(),
+  price: z.string().regex(/^\d+(\.\d{1,2})?$/, "Price must be a valid dollar amount"),
+  quantity: z.number().int().min(1).max(99999).default(1),
+  categoryId: z.string().min(1),
+  condition: z.string().optional(),
+});
+
+export const ebaySetupLocationSchema = z.object({
+  stateOrProvince: z.string().min(1).max(100),
+  country: z.string().length(2).default("US"),
+});
+
 export const rewriteFieldSchema = z.object({
   marketplace: marketplaceSchema,
   field: z.enum(["title", "bullet", "description", "backend_keywords"]),

@@ -1,0 +1,39 @@
+import { NextRequest } from "next/server";
+import { requireAuth } from "@/lib/api/auth-guard";
+import { checkCsrfOrigin } from "@/lib/api/csrf";
+import { getStandardLimiter } from "@/lib/api/rate-limit";
+import { jsonError, jsonSuccess, jsonRateLimited } from "@/lib/api/response";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
+
+export async function POST(req: NextRequest) {
+  const csrfError = checkCsrfOrigin(req);
+  if (csrfError) return jsonError(csrfError, 403);
+
+  const auth = await requireAuth();
+  if (auth.error) return jsonError(auth.error, 401);
+  const user = auth.user!;
+
+  const { success, reset } = await getStandardLimiter().limit(user.id);
+  if (!success) return jsonRateLimited(Math.ceil((reset - Date.now()) / 1000));
+
+  const admin = getSupabaseAdmin();
+
+  // Delete the eBay connection
+  await admin.from("ebay_connections").delete().eq("user_id", user.id);
+
+  // Reset all user's listings eBay fields
+  await admin
+    .from("listings")
+    .update({
+      ebay_status: "none",
+      ebay_offer_id: null,
+      ebay_listing_id: null,
+      ebay_sku: null,
+      ebay_error: null,
+      ebay_published_at: null,
+    })
+    .eq("user_id", user.id)
+    .eq("marketplace", "ebay");
+
+  return jsonSuccess({ disconnected: true });
+}

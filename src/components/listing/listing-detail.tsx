@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import ScoreBadge from "./score-badge";
 import TitleVariants from "./title-variants";
+import EbayPublishPanel from "./ebay-publish-panel";
 import CopyFieldButton from "@/components/ui/copy-field-button";
 import type { Listing, Marketplace, QAResult, APlusModule } from "@/types";
 
@@ -546,6 +547,14 @@ export default function ListingDetail({ listing, onListingUpdated }: ListingDeta
       {/* Photo Recommendations — always visible below tabs */}
       {content.photo_recommendations && (
         <PhotoRecommendationsSection photos={content.photo_recommendations} />
+      )}
+
+      {/* eBay Publish Panel — for eBay listings only */}
+      {marketplace === "ebay" && (
+        <EbayPublishPanel
+          listing={listing}
+          onStatusChange={onListingUpdated}
+        />
       )}
 
       {/* QA Results — always visible below tabs */}
