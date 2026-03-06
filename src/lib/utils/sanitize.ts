@@ -1,19 +1,74 @@
-import DOMPurify from "isomorphic-dompurify";
 import type { ListingContent, APlusModule } from "@/types";
 
-export function sanitizeHtml(dirty: string): string {
-  return DOMPurify.sanitize(dirty, {
-    ALLOWED_TAGS: [
-      "b", "i", "em", "strong", "br", "p", "ul", "ol", "li",
-      "h1", "h2", "h3", "h4", "h5", "h6", "span", "div", "a",
-    ],
-    ALLOWED_ATTR: ["href", "target", "rel", "class"],
-  });
+/**
+ * Server-safe HTML sanitizer — no jsdom dependency.
+ *
+ * Previously used isomorphic-dompurify which pulls in jsdom on the server.
+ * jsdom@28 has an ESM-only transitive dependency (encoding-lite) that crashes
+ * in Vercel's CJS serverless runtime. This lightweight approach avoids that.
+ */
+
+const SAFE_TAGS = new Set([
+  "b", "i", "em", "strong", "br", "p", "ul", "ol", "li",
+  "h1", "h2", "h3", "h4", "h5", "h6", "span", "div", "a",
+]);
+
+const SAFE_ATTRS = new Set(["href", "target", "rel", "class"]);
+
+/**
+ * Strip all HTML tags — returns plain text only.
+ * Decodes common HTML entities.
+ */
+function sanitizePlain(dirty: string): string {
+  return dirty
+    .replace(/<[^>]*>/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, " ");
 }
 
-/** Strip all HTML tags — used for fields that should be plain text. */
-function sanitizePlain(dirty: string): string {
-  return DOMPurify.sanitize(dirty, { ALLOWED_TAGS: [] });
+/**
+ * Allow only safe HTML tags and attributes. Strips everything else.
+ * Not a full DOMPurify replacement, but sufficient for our use case:
+ * listing descriptions with basic formatting.
+ */
+export function sanitizeHtml(dirty: string): string {
+  // Remove script/style tags and their content entirely
+  let html = dirty.replace(/<(script|style|iframe|object|embed|form)\b[^>]*>[\s\S]*?<\/\1>/gi, "");
+  // Remove self-closing dangerous tags
+  html = html.replace(/<(script|style|iframe|object|embed|form)\b[^>]*\/?>/gi, "");
+  // Remove event handler attributes (onclick, onerror, etc.)
+  html = html.replace(/\s+on\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]*)/gi, "");
+  // Remove javascript: URLs
+  html = html.replace(/href\s*=\s*["']?\s*javascript:[^"'>]*/gi, 'href="#"');
+
+  // Strip disallowed tags but keep their content
+  html = html.replace(/<\/?([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>/g, (match, tagName) => {
+    const tag = tagName.toLowerCase();
+    if (!SAFE_TAGS.has(tag)) return "";
+
+    // For opening tags, filter attributes
+    if (!match.startsWith("</")) {
+      const attrPart = match.slice(match.indexOf(tagName) + tagName.length, -1);
+      const cleanAttrs: string[] = [];
+      const attrRegex = /\s+([a-zA-Z-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|(\S+))/g;
+      let attrMatch;
+      while ((attrMatch = attrRegex.exec(attrPart)) !== null) {
+        const attrName = attrMatch[1].toLowerCase();
+        const attrValue = attrMatch[2] ?? attrMatch[3] ?? attrMatch[4] ?? "";
+        if (SAFE_ATTRS.has(attrName)) {
+          cleanAttrs.push(`${attrName}="${attrValue}"`);
+        }
+      }
+      return cleanAttrs.length > 0 ? `<${tag} ${cleanAttrs.join(" ")}>` : `<${tag}>`;
+    }
+    return `</${tag}>`;
+  });
+
+  return html;
 }
 
 function sanitizeStrings(arr?: string[]): string[] | undefined {
