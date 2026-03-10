@@ -1,6 +1,6 @@
 # SellerAide Build Log
 
-**Last Updated:** 2026-02-21 (Legal Pages)
+**Last Updated:** 2026-03-10 (Auth/Profile Bootstrap Repair)
 
 ## Current State
 - **Deployed:** https://selleraide.vercel.app (Vercel production)
@@ -66,6 +66,13 @@
 - Updated landing page footer with real links to all legal pages + support email
 - All pages use dark glassmorphic design, gold accent links, Manrope font
 - Effective date: 2026-02-21
+
+### Commit: Auth/Profile Bootstrap Repair
+- Added `src/app/api/profile/bootstrap/route.ts` to repair or create a missing `profiles` row for an authenticated user using server-side admin access.
+- Added `src/lib/profile-bootstrap.ts` with `ensureProfileForUser()` to load, repair, or seed profile records from the auth user when the trigger-created row is missing.
+- Updated `src/components/providers.tsx` so profile bootstrap no longer silently leaves `profile` null; it now blocks the app with a retry/sign-out/support recovery screen if bootstrap fails.
+- Updated `src/proxy.ts` so a missing profile no longer gets treated like "no plan" and redirected into a dead end before bootstrap can repair it.
+- Updated Settings to fall back to the auth user email/created_at/full_name so valid auth never renders `--` for account basics.
 
 ## What's Left / Known Issues 🔲
 - Real-user testing (auth flow, end-to-end listing creation)

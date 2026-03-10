@@ -37,7 +37,7 @@ export default function SettingsPage() {
 }
 
 function SettingsContent() {
-  const { profile, loading, ebayConnection, refreshEbayConnection } = useApp();
+  const { profile, authUser, loading, ebayConnection, refreshEbayConnection } = useApp();
   const searchParams = useSearchParams();
 
   const [connectingEbay, setConnectingEbay] = useState(false);
@@ -55,6 +55,9 @@ function SettingsContent() {
     type: "success" | "error";
     message: string;
   } | null>(null);
+
+  const displayEmail = profile?.email ?? authUser?.email ?? "--";
+  const memberSince = profile?.created_at ?? authUser?.created_at ?? null;
 
   // Handle post-OAuth redirect params
   useEffect(() => {
@@ -214,13 +217,10 @@ function SettingsContent() {
             </div>
             <div>
               <p className="text-sm font-medium text-zinc-200">
-                {profile?.full_name || "No name set"}
+                {profile?.full_name || authUser?.user_metadata?.full_name || "No name set"}
               </p>
               <p className="text-xs text-zinc-500">
-                Member since{" "}
-                {profile
-                  ? new Date(profile.created_at).toLocaleDateString()
-                  : "--"}
+                Member since {memberSince ? new Date(memberSince).toLocaleDateString() : "--"}
               </p>
             </div>
           </div>
@@ -229,7 +229,7 @@ function SettingsContent() {
             <Mail className="h-4 w-4 text-zinc-500" />
             <div>
               <p className="text-xs text-zinc-500">Email</p>
-              <p className="text-sm text-zinc-300">{profile?.email ?? "--"}</p>
+              <p className="text-sm text-zinc-300">{displayEmail}</p>
             </div>
           </div>
         </div>

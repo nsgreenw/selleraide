@@ -53,21 +53,34 @@ export async function proxy(request: NextRequest) {
   }
 
   let hasPlanAccess = false;
+  let hasProfile = false;
 
   if (user) {
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("subscription_tier, subscription_status")
       .eq("id", user.id)
-      .single();
+      .maybeSingle();
+
+    hasProfile = !!profile;
+
+    if (profileError && profileError.code !== "PGRST116") {
+      console.error("Proxy profile lookup failed:", profileError.message);
+    }
 
     const tier = profile?.subscription_tier;
     const status = profile?.subscription_status;
     hasPlanAccess =
-      tier !== "free" && (status === "active" || status === "trialing" || status === "past_due");
+      tier !== "free" &&
+      (status === "active" || status === "trialing" || status === "past_due");
 
-    // Paid plan required routes — redirect to billing if user has no active/trialing plan
-    if (planRequiredPaths.some((p) => pathname.startsWith(p)) && !hasPlanAccess) {
+    // Paid plan required routes — redirect to billing only if the user has a profile but no valid plan.
+    // If the profile is missing, let the app bootstrap attempt to repair it instead of dead-ending.
+    if (
+      hasProfile &&
+      planRequiredPaths.some((p) => pathname.startsWith(p)) &&
+      !hasPlanAccess
+    ) {
       const url = request.nextUrl.clone();
       url.pathname = "/settings/billing";
       return NextResponse.redirect(url);
