@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { useApp } from "@/components/providers";
-import { createClient } from "@/lib/supabase/client";
+import { logoutAndRedirect } from "@/lib/auth/logout";
 
 export default function SettingsPage() {
   return (
@@ -83,9 +83,7 @@ function SettingsContent() {
   }, [toast]);
 
   async function handleSignOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    window.location.href = "/login";
+    await logoutAndRedirect();
   }
 
   async function handleConnectEbay() {

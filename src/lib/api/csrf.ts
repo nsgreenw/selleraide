@@ -1,5 +1,17 @@
 import { NextRequest } from "next/server";
 
+function isLocalOrigin(origin: string) {
+  try {
+    const { hostname, protocol } = new URL(origin);
+    return (
+      protocol === "http:" &&
+      (hostname === "localhost" || hostname === "127.0.0.1")
+    );
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Validates that the request's Origin header matches the app's configured URL.
  * Returns `null` if allowed, or an error string if rejected.
@@ -48,7 +60,27 @@ export function checkCsrfOrigin(request: NextRequest): string | null {
     return "Invalid request origin";
   }
 
+  const requestUrlOrigin = request.nextUrl.origin;
+
+  if (requestOrigin === requestUrlOrigin) {
+    return null;
+  }
+
+  if (
+    process.env.NODE_ENV !== "production" &&
+    isLocalOrigin(requestOrigin) &&
+    isLocalOrigin(requestUrlOrigin)
+  ) {
+    return null;
+  }
+
   if (requestOrigin !== appOrigin) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn(
+        `[CSRF] Allowing dev origin mismatch: request=${requestOrigin} requestUrl=${requestUrlOrigin} app=${appOrigin}`
+      );
+      return null;
+    }
     return "Cross-origin request blocked";
   }
 

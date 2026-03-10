@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
+import { logoutAndRedirect } from "@/lib/auth/logout";
 import type { Profile } from "@/types";
 
 interface EbayConnectionStatus {
@@ -39,9 +40,7 @@ export function useApp() {
 
 function BootstrapFailure({ message, onRetry }: { message: string; onRetry: () => Promise<void> }) {
   async function handleSignOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    window.location.href = "/login";
+    await logoutAndRedirect();
   }
 
   return (
@@ -117,6 +116,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         | null;
 
       if (!response.ok || !payload?.profile) {
+        if (response.status === 401) {
+          await logoutAndRedirect();
+          return;
+        }
         throw new Error(payload?.error ?? "Your account profile could not be loaded.");
       }
 

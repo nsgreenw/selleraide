@@ -87,8 +87,10 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // Auth routes — redirect authenticated users to app
-  if (authPaths.some((p) => pathname.startsWith(p)) && user) {
+  // Auth routes — only redirect when the session is backed by a profile.
+  // This avoids trapping users in a stale/corrupt auth state where the proxy
+  // sees a user cookie but the app cannot actually bootstrap the account.
+  if (authPaths.some((p) => pathname.startsWith(p)) && user && hasProfile) {
     const url = request.nextUrl.clone();
     url.pathname = hasPlanAccess ? "/chat" : "/settings/billing";
     return NextResponse.redirect(url);

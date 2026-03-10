@@ -10,7 +10,7 @@ import { Logo } from "@/components/ui/logo";
 import { FeedbackDialog } from "@/components/layout/feedback-dialog";
 import { useApp } from "@/components/providers";
 import { useConversations } from "@/hooks/use-conversations";
-import { createClient } from "@/lib/supabase/client";
+import { logoutAndRedirect } from "@/lib/auth/logout";
 
 const MARKETPLACE_COLORS: Record<string, string> = {
   amazon: "#ff9900",
@@ -64,9 +64,7 @@ export function Sidebar() {
   }
 
   async function handleLogout() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/login");
+    await logoutAndRedirect();
   }
 
   const currentTool = TOOLS.find((t) => t.id === activeTool) ?? TOOLS[0];

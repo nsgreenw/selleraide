@@ -7,7 +7,7 @@ import { useState } from "react";
 import { FeedbackDialog } from "@/components/layout/feedback-dialog";
 import { useApp } from "@/components/providers";
 import { useConversations } from "@/hooks/use-conversations";
-import { createClient } from "@/lib/supabase/client";
+import { logoutAndRedirect } from "@/lib/auth/logout";
 
 const MARKETPLACE_COLORS: Record<string, string> = {
   amazon: "#ff9900",
@@ -29,10 +29,7 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   async function handleLogout() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    onClose();
-    router.push("/login");
+    await logoutAndRedirect();
   }
 
   function handleNewChat() {
