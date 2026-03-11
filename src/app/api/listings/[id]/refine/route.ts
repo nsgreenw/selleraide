@@ -265,7 +265,7 @@ Modify the listing according to the seller's request. Keep all other fields unch
     }
 
     // 8. Sanitize refined content and run QA analysis
-    const sanitizedContent = sanitizeListingContent(refinedContent);
+    const sanitizedContent = sanitizeListingContent(refinedContent, marketplace);
     const qaAnalysis = analyzeListing(sanitizedContent, marketplace);
 
     // 9. Save as a new version (increment version number)

@@ -1,4 +1,4 @@
-import type { ListingContent, APlusModule } from "@/types";
+import type { ListingContent, APlusModule, Marketplace } from "@/types";
 
 /**
  * Server-safe HTML sanitizer — no jsdom dependency.
@@ -75,6 +75,78 @@ function sanitizeStrings(arr?: string[]): string[] | undefined {
   return arr?.map(sanitizePlain);
 }
 
+function trimToByteLimit(value: string, maxBytes: number): string {
+  const normalized = value.trim().replace(/\s+/g, " ");
+  if (!normalized) return "";
+
+  const encoder = new TextEncoder();
+  if (encoder.encode(normalized).length <= maxBytes) return normalized;
+
+  let low = 0;
+  let high = normalized.length;
+
+  while (low < high) {
+    const mid = Math.ceil((low + high) / 2);
+    const candidate = normalized.slice(0, mid);
+    if (encoder.encode(candidate).length <= maxBytes) {
+      low = mid;
+    } else {
+      high = mid - 1;
+    }
+  }
+
+  return normalized.slice(0, low).trim();
+}
+
+function trimCleanlyToByteLimit(value: string, maxBytes: number): string {
+  const trimmed = trimToByteLimit(value, maxBytes);
+  if (!trimmed) return "";
+
+  const normalizedOriginal = value.trim().replace(/\s+/g, " ");
+  if (trimmed === normalizedOriginal) return trimmed;
+
+  const lastSpace = trimmed.lastIndexOf(" ");
+  if (lastSpace > 0) {
+    const withoutTrailingWord = trimmed.slice(0, lastSpace).trim();
+    if (withoutTrailingWord) {
+      return withoutTrailingWord;
+    }
+  }
+
+  return trimmed;
+}
+
+export function enforceAmazonBackendKeywords(value: string): string {
+  const normalized = sanitizePlain(value).trim().replace(/\s+/g, " ");
+  if (!normalized) return "";
+
+  const encoder = new TextEncoder();
+  if (encoder.encode(normalized).length <= 250) return normalized;
+
+  const terms = normalized.split(" ").filter(Boolean);
+  const kept: string[] = [];
+
+  for (const term of terms) {
+    const candidate = kept.length > 0 ? `${kept.join(" ")} ${term}` : term;
+    if (encoder.encode(candidate).length <= 250) {
+      kept.push(term);
+      continue;
+    }
+
+    if (kept.length === 0) {
+      return trimCleanlyToByteLimit(term, 250);
+    }
+
+    break;
+  }
+
+  return kept.join(" ");
+}
+
+export function enforceAmazonAltText(value: string): string {
+  return trimCleanlyToByteLimit(sanitizePlain(value), 100);
+}
+
 function sanitizeRecord(
   rec?: Record<string, string>
 ): Record<string, string> | undefined {
@@ -86,7 +158,7 @@ function sanitizeRecord(
   return out;
 }
 
-function sanitizeAPlusModule(mod: APlusModule): APlusModule {
+function sanitizeAPlusModule(mod: APlusModule, marketplace?: Marketplace): APlusModule {
   const clean: APlusModule = {
     type: mod.type,
     position: mod.position,
@@ -96,13 +168,17 @@ function sanitizeAPlusModule(mod: APlusModule): APlusModule {
   if (mod.caption) clean.caption = sanitizePlain(mod.caption);
   if (mod.image) {
     clean.image = {
-      alt_text: sanitizePlain(mod.image.alt_text),
+      alt_text: marketplace === "amazon"
+        ? enforceAmazonAltText(mod.image.alt_text)
+        : sanitizePlain(mod.image.alt_text),
       image_guidance: sanitizePlain(mod.image.image_guidance),
     };
   }
   if (mod.images) {
     clean.images = mod.images.map((img) => ({
-      alt_text: sanitizePlain(img.alt_text),
+      alt_text: marketplace === "amazon"
+        ? enforceAmazonAltText(img.alt_text)
+        : sanitizePlain(img.alt_text),
       image_guidance: sanitizePlain(img.image_guidance),
     }));
   }
@@ -116,14 +192,18 @@ function sanitizeAPlusModule(mod: APlusModule): APlusModule {
  * - `description` and A+ `body` fields allow safe HTML (eBay uses HTML descriptions).
  * - All other fields are stripped to plain text.
  */
-export function sanitizeListingContent(content: ListingContent): ListingContent {
+export function sanitizeListingContent(content: ListingContent, marketplace?: Marketplace): ListingContent {
   const clean: ListingContent = {
     title: sanitizePlain(content.title),
     description: sanitizeHtml(content.description),
   };
 
   if (content.bullets) clean.bullets = sanitizeStrings(content.bullets);
-  if (content.backend_keywords) clean.backend_keywords = sanitizePlain(content.backend_keywords);
+  if (content.backend_keywords) {
+    clean.backend_keywords = marketplace === "amazon"
+      ? enforceAmazonBackendKeywords(content.backend_keywords)
+      : sanitizePlain(content.backend_keywords);
+  }
   if (content.seo_title) clean.seo_title = sanitizePlain(content.seo_title);
   if (content.meta_description) clean.meta_description = sanitizePlain(content.meta_description);
   if (content.tags) clean.tags = sanitizeStrings(content.tags);
@@ -140,7 +220,7 @@ export function sanitizeListingContent(content: ListingContent): ListingContent 
   if (content.category_hint) clean.category_hint = sanitizePlain(content.category_hint);
 
   if (content.a_plus_modules) {
-    clean.a_plus_modules = content.a_plus_modules.map(sanitizeAPlusModule);
+    clean.a_plus_modules = content.a_plus_modules.map((mod) => sanitizeAPlusModule(mod, marketplace));
   }
 
   // photo_recommendations are system-generated guidance, not user/AI text — pass through

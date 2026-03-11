@@ -76,7 +76,8 @@ export async function POST(request: NextRequest) {
 
     // Step 3: Generate the listing and sanitize before storage
     const listingContent = sanitizeListingContent(
-      await generateListing(productContext, marketplace)
+      await generateListing(productContext, marketplace),
+      marketplace
     );
 
     // Step 4: Create a conversation record to store this listing

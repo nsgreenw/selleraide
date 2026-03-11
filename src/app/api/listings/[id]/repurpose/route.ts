@@ -98,7 +98,8 @@ export async function POST(
 
     // Generate listing for the target marketplace and sanitize before storage
     const listingContent = sanitizeListingContent(
-      await generateListing(productContext, targetMarketplace)
+      await generateListing(productContext, targetMarketplace),
+      targetMarketplace
     );
 
     // Create conversation record

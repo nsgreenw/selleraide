@@ -1,6 +1,6 @@
 # SellerAide Build Log
 
-**Last Updated:** 2026-03-11 (A+ Module Count Consistency Fix)
+**Last Updated:** 2026-03-11 (Amazon Hard-Limit Enforcement Fix)
 
 ## Current State
 - **Deployed:** https://selleraide.vercel.app (Vercel production)
@@ -80,6 +80,14 @@
 - Updated audit optimize request contract + route so optimize always receives the correct Amazon A+ module count from authenticated profile context.
 - Reworked `src/lib/gemini/optimize.ts` prompt/output contract so Amazon optimization can generate either the 4-module Starter stack or full 7-module Pro/Agency stack.
 - Confirmed audit/listing preview UI paths render arbitrary `a_plus_modules.length` values instead of assuming four modules.
+
+### Commit: Amazon Hard-Limit Enforcement Fix
+- Added deterministic Amazon output enforcement in `src/lib/utils/sanitize.ts`:
+  - backend keywords now clamp to 250 bytes and prefer dropping whole overflow terms cleanly
+  - A+ image `alt_text` now clamps to 100 bytes on word boundaries where possible
+- Updated all save paths to pass marketplace into sanitization so enforcement applies consistently across generate, chat-generated listings, repurpose, refine, batch, and manual save.
+- Added `tests/lib/utils/sanitize.test.ts` to cover backend keyword trimming, single-term fallback truncation, alt text trimming, and end-to-end sanitization behavior.
+- Validation run: `npx vitest run tests/lib/utils/sanitize.test.ts tests/lib/qa/validator.test.ts`
 
 ## What's Left / Known Issues 🔲
 - Real-user testing (auth flow, end-to-end listing creation)

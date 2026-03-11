@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { marketplace, content: rawContent } = parsed.data;
-    const content = sanitizeListingContent(rawContent as ListingContent);
+    const content = sanitizeListingContent(rawContent as ListingContent, marketplace as Marketplace);
 
     // Run QA so the saved listing has a score from day one
     const qaAnalysis = analyzeListing(content, marketplace as Marketplace);

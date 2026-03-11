@@ -95,7 +95,8 @@ export async function processBatch(
 
       // Step 3: Generate listing and sanitize before storage
       const listingContent = sanitizeListingContent(
-        await generateListing(productContext, marketplace)
+        await generateListing(productContext, marketplace),
+        marketplace
       );
 
       // Step 4: Create conversation record

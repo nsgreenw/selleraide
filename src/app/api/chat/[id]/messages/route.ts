@@ -105,7 +105,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // If a listing was generated, sanitize and save it, then run QA
     if (chatResult.listing) {
-      const listingContent = sanitizeListingContent(chatResult.listing);
+      const listingContent = sanitizeListingContent(chatResult.listing, conv.marketplace as Marketplace);
 
       // Determine the next version number
       const { data: existingListings } = await supabase
