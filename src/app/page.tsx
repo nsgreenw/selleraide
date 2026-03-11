@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Logo } from "@/components/ui/logo";
 import {
   Sparkles,
@@ -16,54 +16,171 @@ import {
   Check,
   Puzzle,
   ArrowUpRight,
+  Menu,
+  X,
 } from "lucide-react";
 
 const EXTENSION_URL = "https://chromewebstore.google.com/detail/selleraide-listing-audit/gfcoilmeghppmemfankehajkdpghdeio";
 
+const LANDING_NAV_LINKS = [
+  { href: "/audit", label: "Audit a Listing" },
+  { href: "#features", label: "Features" },
+  { href: "#pricing", label: "Pricing" },
+] as const;
+
 export default function Home() {
   const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("monthly");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileMenuOpen]);
+
+  useEffect(() => {
+    function handleResize() {
+      if (window.innerWidth >= 768) {
+        setMobileMenuOpen(false);
+      }
+    }
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   return (
     <div className="min-h-screen">
       {/* ── Navigation Bar ── */}
-      <nav className="sticky top-0 z-50 backdrop-blur-lg border-b border-white/10 bg-black/40">
-        <div className="max-w-7xl mx-auto flex items-center justify-between py-4 px-6">
-          <Logo variant="full" size="sm" />
+      <nav className="sticky top-0 z-50 border-b border-white/10 bg-black/40 backdrop-blur-lg">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <div className="flex min-h-[76px] items-center justify-between gap-4">
+            <Link href="/" aria-label="SellerAide home" className="shrink-0">
+              <Logo variant="full" size="sm" />
+            </Link>
 
-          <div className="flex items-center gap-6">
-            <Link
-              href="/audit"
-              className="text-sm text-zinc-400 hover:text-zinc-200"
+            <div className="hidden items-center gap-6 md:flex">
+              {LANDING_NAV_LINKS.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="text-sm text-zinc-400 hover:text-zinc-200"
+                >
+                  {item.label}
+                </Link>
+              ))}
+              <a
+                href={EXTENSION_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-zinc-200"
+              >
+                <Puzzle className="size-3.5" />
+                Extension
+              </a>
+              <Link href="/login" className="btn-secondary text-sm">
+                Log In
+              </Link>
+              <Link href="/signup" className="btn-primary text-sm">
+                Get Started
+              </Link>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen((open) => !open)}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/12 bg-white/[0.04] text-zinc-100 shadow-[0_10px_30px_rgba(0,0,0,0.25)] transition hover:border-white/20 hover:bg-white/[0.08] md:hidden"
+              aria-expanded={mobileMenuOpen}
+              aria-controls="landing-mobile-menu"
+              aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
             >
-              Audit a Listing
-            </Link>
-            <Link
-              href="#features"
-              className="text-sm text-zinc-400 hover:text-zinc-200"
-            >
-              Features
-            </Link>
-            <Link
-              href="#pricing"
-              className="text-sm text-zinc-400 hover:text-zinc-200"
-            >
-              Pricing
-            </Link>
-            <a
-              href={EXTENSION_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-zinc-400 hover:text-zinc-200 flex items-center gap-1.5"
-            >
-              <Puzzle className="size-3.5" />
-              Extension
-            </a>
-            <Link href="/login" className="btn-secondary text-sm">
-              Log In
-            </Link>
-            <Link href="/signup" className="btn-primary text-sm">
-              Get Started
-            </Link>
+              {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+            </button>
+          </div>
+        </div>
+
+        <div
+          className={`md:hidden ${mobileMenuOpen ? "pointer-events-auto" : "pointer-events-none"}`}
+          aria-hidden={!mobileMenuOpen}
+        >
+          <div
+            className={`absolute inset-x-0 top-full h-[calc(100vh-76px)] bg-black/55 backdrop-blur-sm transition-opacity duration-300 ${
+              mobileMenuOpen ? "opacity-100" : "opacity-0"
+            }`}
+            onClick={() => setMobileMenuOpen(false)}
+          />
+
+          <div
+            id="landing-mobile-menu"
+            className={`absolute inset-x-4 top-[calc(100%-0.5rem)] origin-top rounded-[28px] border border-white/12 bg-[linear-gradient(180deg,rgba(18,18,20,0.98)_0%,rgba(10,11,13,0.98)_100%)] p-4 shadow-[0_28px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl transition-all duration-300 ease-out ${
+              mobileMenuOpen
+                ? "translate-y-0 scale-100 opacity-100"
+                : "-translate-y-3 scale-[0.98] opacity-0"
+            }`}
+          >
+            <div className="mb-3 flex items-center justify-between border-b border-white/8 pb-3">
+              <div>
+                <p className="label-kicker text-sa-200">Navigation</p>
+                <p className="mt-1 text-sm text-zinc-500">Everything important. None of the crowding.</p>
+              </div>
+              <Link
+                href="/signup"
+                className="btn-primary px-3 py-2 text-sm"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Get Started
+              </Link>
+            </div>
+
+            <div className="space-y-2">
+              {LANDING_NAV_LINKS.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-between rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm font-medium text-zinc-200 transition hover:border-white/15 hover:bg-white/[0.06]"
+                >
+                  <span>{item.label}</span>
+                  <ArrowUpRight className="size-4 text-zinc-500" />
+                </Link>
+              ))}
+
+              <a
+                href={EXTENSION_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm font-medium text-zinc-200 transition hover:border-white/15 hover:bg-white/[0.06]"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <span className="flex items-center gap-2">
+                  <Puzzle className="size-4 text-sa-200" />
+                  Chrome Extension
+                </span>
+                <ArrowUpRight className="size-4 text-zinc-500" />
+              </a>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <Link
+                href="/login"
+                className="btn-secondary text-sm"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Log In
+              </Link>
+              <Link
+                href="/signup"
+                className="btn-primary text-sm"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Start Trial
+              </Link>
+            </div>
           </div>
         </div>
       </nav>
