@@ -3,7 +3,6 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import type { Profile } from "@/types";
 
 const DEFAULT_PERIOD_DAYS = 30;
-const DEFAULT_TRIAL_DAYS = 7;
 
 function addDays(days: number) {
   const date = new Date();
@@ -26,11 +25,11 @@ function buildProfileSeed(user: User) {
     email: user.email ?? "",
     full_name: fullName,
     avatar_url: avatarUrl,
-    subscription_tier: "starter" as const,
-    subscription_status: "trialing" as const,
+    subscription_tier: "free" as const,
+    subscription_status: "canceled" as const,
     listings_used_this_period: 0,
     period_reset_at: addDays(DEFAULT_PERIOD_DAYS),
-    trial_expires_at: addDays(DEFAULT_TRIAL_DAYS),
+    trial_expires_at: null,
     trial_runs_used: 0,
   };
 }

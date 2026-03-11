@@ -19,8 +19,7 @@ const PROFILE_SELECT =
   "subscription_tier, subscription_status, listings_used_this_period, trial_expires_at, trial_runs_used";
 
 /**
- * Shared dual-path usage gate: checks trial OR subscription limits.
- * Returns the profile on success, or an error message on rejection.
+ * Shared usage gate for Stripe-backed subscriptions and trials.
  */
 export async function requireUsageGate(
   supabase: SupabaseClient,
@@ -36,6 +35,18 @@ export async function requireUsageGate(
     return { allowed: false, error: "Profile not found. Please log in again." };
   }
 
+  const hasAccess =
+    profile.subscription_tier !== "free" &&
+    ["active", "trialing", "past_due"].includes(profile.subscription_status);
+
+  if (!hasAccess) {
+    return {
+      allowed: false,
+      error:
+        "Choose a paid plan to start your 7-day free trial and keep generating listings.",
+    };
+  }
+
   if (profile.subscription_status === "trialing") {
     const trial = getTrialStatus(profile);
     if (!trial.canGenerate) {
@@ -48,27 +59,25 @@ export async function requireUsageGate(
         error: `${reason} Upgrade to keep generating listings.`,
       };
     }
-  } else {
-    const allowed = canGenerateListing(
-      profile.subscription_tier,
-      profile.listings_used_this_period
-    );
-    if (!allowed) {
-      return {
-        allowed: false,
-        error:
-          "You have reached your listing limit for this billing period. Please upgrade your plan.",
-      };
-    }
+  }
+
+  const allowed = canGenerateListing(
+    profile.subscription_tier,
+    profile.listings_used_this_period
+  );
+  if (!allowed) {
+    return {
+      allowed: false,
+      error:
+        "You have reached your listing limit for this billing period. Please upgrade your plan.",
+    };
   }
 
   return { allowed: true, profile };
 }
 
 /**
- * Track a usage "run" after successful AI generation.
- * Increments trial_runs_used or listings_used_this_period based on status.
- * Non-blocking — callers should catch errors.
+ * Track usage after successful generation.
  */
 export async function trackUsage(
   supabase: SupabaseClient,
@@ -77,7 +86,8 @@ export async function trackUsage(
 ): Promise<void> {
   if (subscriptionStatus === "trialing") {
     await incrementTrialRun(supabase, userId);
-  } else {
-    await incrementListingCount(supabase, userId);
+    return;
   }
+
+  await incrementListingCount(supabase, userId);
 }

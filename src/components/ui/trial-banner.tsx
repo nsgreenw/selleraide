@@ -39,7 +39,7 @@ export function TrialBanner() {
         <p className="text-sm text-zinc-300">
           Free Trial:{" "}
           <span className="font-semibold text-sa-200">
-            {trial.runsRemaining} of 3 generation{trial.runsRemaining !== 1 ? "s" : ""} left
+            {trial.runsRemaining} of {3} generation{trial.runsRemaining !== 1 ? "s" : ""} left
           </span>
           {" · "}
           <span className="text-zinc-400">{trial.daysRemaining} day{trial.daysRemaining !== 1 ? "s" : ""} remaining</span>
@@ -49,7 +49,7 @@ export function TrialBanner() {
         href="/settings/billing"
         className="shrink-0 rounded-lg border border-sa-200/30 bg-sa-200/10 px-3 py-1.5 text-xs font-semibold text-sa-200 transition hover:bg-sa-200/20"
       >
-        Upgrade →
+        Manage →
       </Link>
     </div>
   );

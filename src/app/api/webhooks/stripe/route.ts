@@ -22,6 +22,21 @@ function toSubscriptionTier(planId: string | undefined): SubscriptionTier {
   return "free";
 }
 
+function mapStripeStatus(status: string): string {
+  const statusMap: Record<string, string> = {
+    active: "active",
+    past_due: "past_due",
+    canceled: "canceled",
+    trialing: "trialing",
+    incomplete: "incomplete",
+    incomplete_expired: "canceled",
+    unpaid: "past_due",
+    paused: "past_due",
+  };
+
+  return statusMap[status] ?? "active";
+}
+
 export async function POST(request: NextRequest) {
   const webhookSecret = getWebhookSecret();
   if (!webhookSecret) {
@@ -68,13 +83,20 @@ export async function POST(request: NextRequest) {
         const updateData: Record<string, unknown> = {
           stripe_customer_id: session.customer as string,
           subscription_tier: toSubscriptionTier(planId),
-          subscription_status: "active",
           updated_at: new Date().toISOString(),
         };
 
-        // Store the subscription ID if available
         if (session.subscription) {
-          updateData.stripe_subscription_id = session.subscription as string;
+          const subscription = await getStripe().subscriptions.retrieve(
+            session.subscription as string
+          );
+          updateData.stripe_subscription_id = subscription.id;
+          updateData.subscription_status = mapStripeStatus(subscription.status);
+          updateData.trial_expires_at = subscription.trial_end
+            ? new Date(subscription.trial_end * 1000).toISOString()
+            : null;
+        } else {
+          updateData.subscription_status = "active";
         }
 
         await getSupabaseAdmin()
@@ -106,25 +128,15 @@ export async function POST(request: NextRequest) {
             break;
           }
 
-          // Map Stripe subscription status to our status
-          const statusMap: Record<string, string> = {
-            active: "active",
-            past_due: "past_due",
-            canceled: "canceled",
-            trialing: "trialing",
-            incomplete: "incomplete",
-            incomplete_expired: "canceled",
-            unpaid: "past_due",
-            paused: "past_due",
-          };
-
-          const mappedStatus =
-            statusMap[subscription.status] ?? "active";
-
           await getSupabaseAdmin()
             .from("profiles")
             .update({
-              subscription_status: mappedStatus,
+              subscription_status: mapStripeStatus(subscription.status),
+              subscription_tier: toSubscriptionTier(subscription.metadata?.plan_id),
+              stripe_subscription_id: subscription.id,
+              trial_expires_at: subscription.trial_end
+                ? new Date(subscription.trial_end * 1000).toISOString()
+                : null,
               updated_at: new Date().toISOString(),
             })
             .eq("id", profile.id);
@@ -133,24 +145,15 @@ export async function POST(request: NextRequest) {
         }
 
         // User ID found in metadata
-        const statusMap: Record<string, string> = {
-          active: "active",
-          past_due: "past_due",
-          canceled: "canceled",
-          trialing: "trialing",
-          incomplete: "incomplete",
-          incomplete_expired: "canceled",
-          unpaid: "past_due",
-          paused: "past_due",
-        };
-
-        const mappedStatus =
-          statusMap[subscription.status] ?? "active";
-
         await getSupabaseAdmin()
           .from("profiles")
           .update({
-            subscription_status: mappedStatus,
+            subscription_status: mapStripeStatus(subscription.status),
+            subscription_tier: toSubscriptionTier(subscription.metadata?.plan_id),
+            stripe_subscription_id: subscription.id,
+            trial_expires_at: subscription.trial_end
+              ? new Date(subscription.trial_end * 1000).toISOString()
+              : null,
             updated_at: new Date().toISOString(),
           })
           .eq("id", userId);

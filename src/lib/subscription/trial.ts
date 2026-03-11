@@ -27,7 +27,7 @@ export function getTrialStatus(profile: TrialProfile): TrialStatus {
       runsUsed: 0,
       runsRemaining: 0,
       daysRemaining: 0,
-      canGenerate: true, // defer to normal subscription gate
+      canGenerate: true,
     };
   }
 

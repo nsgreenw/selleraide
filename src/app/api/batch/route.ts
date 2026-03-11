@@ -59,16 +59,15 @@ export async function POST(request: NextRequest) {
       return jsonError("Profile not found.", 404);
     }
 
-    // Trial users cannot use bulk generation
+    const tier = profile.subscription_tier as SubscriptionTier;
+    const plan = PLANS[tier];
+
     if (profile.subscription_status === "trialing") {
       return jsonError(
         "Bulk generation is not available during your free trial. Upgrade to a paid plan to unlock batch processing.",
         403
       );
     }
-
-    const tier = profile.subscription_tier as SubscriptionTier;
-    const plan = PLANS[tier];
 
     if (plan.batchRowLimit === 0) {
       return jsonError(

@@ -69,11 +69,9 @@ export async function processBatch(
             console.warn(`[batch/${batchId}] Row ${i + 1}: trial limit reached, stopping`);
             break;
           }
-        } else {
-          if (!canGenerateListing(rowProfile.subscription_tier, rowProfile.listings_used_this_period)) {
-            console.warn(`[batch/${batchId}] Row ${i + 1}: subscription limit reached, stopping`);
-            break;
-          }
+        } else if (!canGenerateListing(rowProfile.subscription_tier, rowProfile.listings_used_this_period)) {
+          console.warn(`[batch/${batchId}] Row ${i + 1}: subscription limit reached, stopping`);
+          break;
         }
       }
 
@@ -153,7 +151,7 @@ export async function processBatch(
         })
         .eq("id", listing.id);
 
-      // Step 7: Track usage (non-critical, trial-aware)
+      // Step 7: Track usage (non-critical)
       try {
         if (rowProfile?.subscription_status === "trialing") {
           await incrementTrialRun(supabase, userId);

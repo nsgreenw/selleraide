@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     // Get or create Stripe customer
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("stripe_customer_id, stripe_subscription_id, email")
+      .select("stripe_customer_id, stripe_subscription_id, email, trial_expires_at")
       .eq("id", user.id)
       .single();
 
@@ -105,10 +105,13 @@ export async function POST(request: NextRequest) {
       return jsonError("Application URL not configured. Set NEXT_PUBLIC_APP_URL.", 500);
     }
 
+    const shouldStartStripeTrial = !profile.trial_expires_at;
+
     // Create Stripe checkout session
     const session = await getStripe().checkout.sessions.create({
       mode: "subscription",
       allow_promotion_codes: true,
+      payment_method_collection: "always",
       customer: customerId,
       line_items: [
         {
@@ -128,7 +131,7 @@ export async function POST(request: NextRequest) {
           user_id: user.id,
           plan_id,
         },
-        ...(profile.stripe_subscription_id
+        ...(profile.stripe_subscription_id || !shouldStartStripeTrial
           ? {}
           : { trial_period_days: 7 }),
       },

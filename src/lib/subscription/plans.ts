@@ -21,6 +21,7 @@ export const PLANS: Record<SubscriptionTier, PlanConfig> = {
     features: [
       "No active subscription",
       "Choose a paid plan to start your 7-day free trial",
+      "Card required at checkout",
     ],
   },
   starter: {
@@ -30,7 +31,7 @@ export const PLANS: Record<SubscriptionTier, PlanConfig> = {
     listingsPerMonth: 50,
     batchRowLimit: 0,  // 0 = feature disabled for this tier
     features: [
-      "7-day free trial",
+      "7-day free trial with card",
       "50 listings per month",
       "Amazon + eBay",
       "A+ Content (4-module stack)",
@@ -46,7 +47,7 @@ export const PLANS: Record<SubscriptionTier, PlanConfig> = {
     listingsPerMonth: 200,
     batchRowLimit: 50,
     features: [
-      "7-day free trial",
+      "7-day free trial with card",
       "200 listings per month",
       "Amazon + eBay",
       "A+ Content (7-module stack)",

@@ -32,25 +32,29 @@ export async function GET() {
 
   const tier = profile.subscription_tier as SubscriptionTier;
   const plan = PLANS[tier];
-
-  const isTrialing = profile.subscription_status === "trialing";
-  const trial = isTrialing ? getTrialStatus(profile) : null;
+  const trial = getTrialStatus(profile);
+  const hasAccess =
+    tier !== "free" &&
+    (profile.subscription_status === "active" ||
+      profile.subscription_status === "trialing" ||
+      profile.subscription_status === "past_due");
 
   return jsonSuccess({
     subscription: {
       tier,
       status: profile.subscription_status,
       has_subscription: !!profile.stripe_subscription_id,
+      trial_ends_at: profile.trial_expires_at,
+      has_access: hasAccess,
     },
     usage: {
-      listings_used: isTrialing
-        ? (trial?.runsUsed ?? 0)
-        : profile.listings_used_this_period,
-      listings_limit: isTrialing ? TRIAL_MAX_RUNS : plan.listingsPerMonth,
+      listings_used: trial.isTrialing ? trial.runsUsed : profile.listings_used_this_period,
+      listings_limit: !hasAccess ? 0 : trial.isTrialing ? TRIAL_MAX_RUNS : plan.listingsPerMonth,
       period_reset_at: profile.period_reset_at,
-      can_generate: isTrialing
-        ? (trial?.canGenerate ?? false)
-        : canGenerateListing(tier, profile.listings_used_this_period),
+      can_generate:
+        hasAccess &&
+        (!trial.isTrialing || trial.canGenerate) &&
+        canGenerateListing(tier, profile.listings_used_this_period),
     },
     plan: {
       name: plan.name,

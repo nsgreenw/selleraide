@@ -64,7 +64,7 @@ export async function POST(
       return jsonError("Target marketplace must be different from the source.", 400);
     }
 
-    // Check usage limits (trial-aware)
+    // Check Stripe-backed subscription and plan limits
     const gate = await requireUsageGate(supabase, user.id);
     if (!gate.allowed) return jsonError(gate.error, 403);
     const profile = gate.profile;

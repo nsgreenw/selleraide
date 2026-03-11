@@ -19,6 +19,8 @@ interface SubscriptionData {
     tier: SubscriptionTier;
     status: string;
     has_subscription: boolean;
+    trial_ends_at: string | null;
+    has_access: boolean;
   };
   usage: {
     listings_used: number;
@@ -37,7 +39,7 @@ interface SubscriptionData {
 const tierOrder: SubscriptionTier[] = ["starter", "pro", "agency"];
 
 export default function BillingPage() {
-  const { profile, refreshProfile } = useApp();
+  const { profile } = useApp();
   const [subData, setSubData] = useState<SubscriptionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
@@ -117,6 +119,8 @@ export default function BillingPage() {
   }
 
   const currentTier = subData?.subscription.tier ?? profile?.subscription_tier ?? "free";
+  const hasAccess = subData?.subscription.has_access ?? false;
+  const isStripeTrial = subData?.subscription.status === "trialing";
   const usageUsed = subData?.usage.listings_used ?? profile?.listings_used_this_period ?? 0;
   const usageLimit = subData?.usage.listings_limit ?? PLANS[currentTier].listingsPerMonth;
   const usagePercentage = usageLimit !== null ? Math.min((usageUsed / usageLimit) * 100, 100) : 0;
@@ -159,9 +163,17 @@ export default function BillingPage() {
           <h2 className="label-kicker text-zinc-400">Current Plan</h2>
           <span className="inline-flex items-center gap-1.5 rounded-full border border-sa-200/30 bg-sa-200/10 px-3 py-1 text-sm font-medium text-sa-100">
             <Crown className="h-3.5 w-3.5" />
-            {PLANS[currentTier].name}
+            {hasAccess ? PLANS[currentTier].name : "No Active Plan"}
           </span>
         </div>
+
+        <p className="mb-4 text-sm text-zinc-400">
+          {isStripeTrial && subData?.subscription.trial_ends_at
+            ? `Your trial is active and ends ${new Date(subData.subscription.trial_ends_at).toLocaleDateString()}.`
+            : hasAccess
+              ? "Your subscription is active."
+              : "Choose a plan to start your 7-day free trial. A card is required at checkout."}
+        </p>
 
         {/* Usage stats */}
         <div className="card-subtle p-4 mb-4">
@@ -224,12 +236,17 @@ export default function BillingPage() {
             </button>
           </div>
         </div>
+        <p className="mb-4 text-sm text-zinc-500">
+          Starter and Pro begin with a 7-day Stripe-managed trial. Your card is collected at checkout and billing starts only if you do not cancel before the trial ends.
+        </p>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {tierOrder.map((tierId) => {
             const plan = PLANS[tierId];
-            const isCurrent = tierId === currentTier;
+            const isCurrent = hasAccess && tierId === currentTier;
             const isUpgrade =
-              tierOrder.indexOf(tierId) > tierOrder.indexOf(currentTier);
+              hasAccess
+                ? tierOrder.indexOf(tierId) > tierOrder.indexOf(currentTier)
+                : true;
 
             return (
               <div
@@ -306,7 +323,7 @@ export default function BillingPage() {
                     <Zap className="h-4 w-4" />
                     {checkoutLoading === tierId
                       ? "Loading..."
-                      : currentTier === "free"
+                      : !hasAccess
                         ? "Start 7-Day Trial"
                         : "Upgrade"}
                   </button>

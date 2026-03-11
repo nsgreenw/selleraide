@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient();
 
-    // Check usage limits (trial-aware)
+    // Check Stripe-backed subscription and plan limits
     const gate = await requireUsageGate(supabase, user.id);
     if (!gate.allowed) return jsonError(gate.error, 403);
     const profile = gate.profile;

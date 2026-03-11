@@ -92,6 +92,9 @@ export default function Home() {
           SellerAide helps brand owners draft high-converting content, audit for Amazon policy violations,
           and optimize keyword strategy in minutes.
         </p>
+        <p className="text-sm text-zinc-500 max-w-2xl mx-auto mb-10 relative">
+          Card required to start trial. Cancel before day 7 to avoid billing.
+        </p>
 
         <div className="flex gap-4 justify-center relative">
           <Link
@@ -316,7 +319,7 @@ export default function Home() {
               Simple, transparent pricing
             </h2>
             <p className="text-zinc-400 mb-5">
-              Starter and Pro include a 7-day free trial. Monthly and yearly billing available.
+              Starter and Pro include a 7-day free trial with card on file. Monthly and yearly billing available.
             </p>
             <div className="inline-flex rounded-lg border border-white/10 bg-black/30 p-1 text-sm">
               <button
@@ -556,7 +559,7 @@ export default function Home() {
               Ready to create listings that convert?
             </h2>
             <p className="text-zinc-400 mb-8">
-              Join sellers who use SellerAide to optimize their Amazon and eBay listings with a 7-day free trial.
+              Join sellers who use SellerAide to optimize their Amazon and eBay listings with a 7-day free trial and card-required checkout.
             </p>
             <Link href="/signup" className="btn-primary px-8 py-3 text-base">
               Start 7-Day Free Trial
