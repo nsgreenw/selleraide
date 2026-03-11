@@ -9,7 +9,8 @@ import { requireUsageGate, trackUsage } from "@/lib/api/usage-gate";
 import { optimizeListing } from "@/lib/gemini/optimize";
 import { analyzeListing } from "@/lib/qa";
 import { recordUsage } from "@/lib/subscription/usage";
-import type { ListingContent } from "@/types";
+import { getAPlusModuleCountForTier } from "@/lib/subscription/aplus";
+import type { ListingContent, SubscriptionTier } from "@/types";
 
 export async function POST(req: NextRequest) {
   try {
@@ -39,8 +40,16 @@ export async function POST(req: NextRequest) {
     const gate = await requireUsageGate(supabase, user.id);
     if (!gate.allowed) return jsonError(gate.error, 403);
 
+    const optimizeInput = {
+      ...parsed.data,
+      aplus_module_count:
+        parsed.data.marketplace === "amazon"
+          ? getAPlusModuleCountForTier(gate.profile.subscription_tier as SubscriptionTier)
+          : parsed.data.aplus_module_count,
+    };
+
     // First optimization pass
-    const firstResult = await optimizeListing(parsed.data);
+    const firstResult = await optimizeListing(optimizeInput);
 
     // Re-score the first result to check if a second pass is needed
     const firstContent: ListingContent = {
@@ -58,7 +67,7 @@ export async function POST(req: NextRequest) {
     // Second pass if we didn't hit 90 — feed the first result's score/breakdown back in
     if (firstAnalysis.score < 90) {
       const secondPassInput = {
-        ...parsed.data,
+        ...optimizeInput,
         title: firstResult.title,
         bullets: firstResult.bullets,
         description: firstResult.description,

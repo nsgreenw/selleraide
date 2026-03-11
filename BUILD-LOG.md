@@ -1,6 +1,6 @@
 # SellerAide Build Log
 
-**Last Updated:** 2026-03-10 (Auth/Profile Bootstrap Repair)
+**Last Updated:** 2026-03-11 (A+ Module Count Consistency Fix)
 
 ## Current State
 - **Deployed:** https://selleraide.vercel.app (Vercel production)
@@ -73,6 +73,13 @@
 - Updated `src/components/providers.tsx` so profile bootstrap no longer silently leaves `profile` null; it now blocks the app with a retry/sign-out/support recovery screen if bootstrap fails.
 - Updated `src/proxy.ts` so a missing profile no longer gets treated like "no plan" and redirected into a dead end before bootstrap can repair it.
 - Updated Settings to fall back to the auth user email/created_at/full_name so valid auth never renders `--` for account basics.
+
+### Commit: A+ Module Count Consistency Fix
+- Added `src/lib/subscription/aplus.ts` to centralize tier → A+ module count mapping (Starter = 4, Pro/Agency = 7).
+- Updated chat generation route to use the shared helper instead of duplicating tier logic.
+- Updated audit optimize request contract + route so optimize always receives the correct Amazon A+ module count from authenticated profile context.
+- Reworked `src/lib/gemini/optimize.ts` prompt/output contract so Amazon optimization can generate either the 4-module Starter stack or full 7-module Pro/Agency stack.
+- Confirmed audit/listing preview UI paths render arbitrary `a_plus_modules.length` values instead of assuming four modules.
 
 ## What's Left / Known Issues 🔲
 - Real-user testing (auth flow, end-to-end listing creation)

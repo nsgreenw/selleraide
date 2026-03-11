@@ -18,6 +18,7 @@ export interface OptimizeInput {
   bullets: string[];
   description: string;
   backend_keywords?: string;
+  aplus_module_count?: number;
   score: number;
   validation: QAResult[];
   breakdown: BreakdownItem[];
@@ -64,11 +65,12 @@ const BENEFIT_WORDS_LIST =
   "delivers, ensures, provides, supports";
 
 export async function optimizeListing(input: OptimizeInput): Promise<OptimizeResult> {
-  const { marketplace, title, bullets, description, backend_keywords, score, validation, breakdown } = input;
+  const { marketplace, title, bullets, description, backend_keywords, aplus_module_count, score, validation, breakdown } = input;
   const profile = getMarketplaceProfile(marketplace);
   const mode = getMode(score);
 
   const titleMax = profile.fields.find(f => f.name === "title")?.maxLength ?? 200;
+  const aplusModuleCount = aplus_module_count === 7 ? 7 : 4;
   const descMax = profile.fields.find(f => f.name === "description")?.maxLength ?? 2000;
   const bulletMax = profile.fields.find(f =>
     f.name === "bullet_points" || f.name.startsWith("bullet_")
@@ -132,16 +134,26 @@ BACKEND KEYWORDS (fills A9 index — target 225+ bytes):
   const aplusInstructions = isAmazon ? `
 
 A+ CONTENT MODULES (10% of total score — required to reach 90+):
-Generate exactly 4 A+ Content modules in the "a_plus_modules" array. These appear on the Amazon
+Generate exactly ${aplusModuleCount} A+ Content modules in the "a_plus_modules" array. These appear on the Amazon
 product page below the fold and improve conversion. NOTE: A+ body text is NOT indexed by Amazon's
 search algorithm — write body text for conversion, not SEO. Image alt_text IS partially indexed —
 use relevant product keywords in every alt_text field (max 100 characters).
 
-Module stack (4-module Starter):
+Use this module count strictly:
+- Starter users: 4 modules
+- Pro/Agency users: 7 modules
+- This request requires ${aplusModuleCount} modules
+
+Default 7-module stack (use all 7 for Pro/Agency; use modules 1, 2, 3, 5 for 4-module Starter):
 1. STANDARD_HEADER_IMAGE_TEXT (position 1) — Hero banner with brand story headline and aspirational body
 2. STANDARD_SINGLE_SIDE_IMAGE (position 2) — Primary benefit or USP
 3. STANDARD_SINGLE_SIDE_IMAGE (position 3) — Secondary feature or differentiator
-4. STANDARD_SINGLE_IMAGE_HIGHLIGHTS (position 4) — "Why choose us": body text + 3-5 highlight bullets
+4. STANDARD_THREE_IMAGE_TEXT (position 4) — Three use cases or target customer segments
+5. STANDARD_SINGLE_IMAGE_HIGHLIGHTS (position 5) — "Why choose us": body text + 3-5 highlight bullets
+6. STANDARD_TECH_SPECS (position 6) — 4-8 key specifications as label/value pairs in "specs"
+7. STANDARD_PRODUCT_DESCRIPTION (position 7) — Brand storytelling body copy
+
+For 4-module stack: generate modules 1, 2, 3, 5 only.
 
 Each module object structure:
 {
@@ -155,13 +167,18 @@ Each module object structure:
   }
 }
 
-Module 4 (STANDARD_SINGLE_IMAGE_HIGHLIGHTS) should also include:
+Module 5 (STANDARD_SINGLE_IMAGE_HIGHLIGHTS) should also include:
   "highlights": ["Highlight 1 (under 100 chars)", "Highlight 2", "Highlight 3"]
+
+Module 6 (STANDARD_TECH_SPECS) should also include:
+  "specs": {
+    "Spec Label": "Spec Value"
+  }
 
 A+ scoring: modules present = 30pts base; all modules with body text = +20; all image alt_text populated and ≤100 chars = +20; alt_text average ≥20 chars = +15; 3+ distinct module types = +15.` : "";
 
   const outputKeys = isAmazon
-    ? `"title", "bullet_points" (array of exactly 5 strings), "description", "backend_keywords" (space-separated, targeting 225+ bytes), "a_plus_modules" (array of 4 module objects as specified)`
+    ? `"title", "bullet_points" (array of exactly 5 strings), "description", "backend_keywords" (space-separated, targeting 225+ bytes), "a_plus_modules" (array of exactly ${aplusModuleCount} module objects as specified)`
     : `"title", "bullet_points" (array of strings), "description"`;
 
   const prompt = `You are an expert ecommerce copywriter optimizing an existing ${profile.displayName} listing to maximize its quality score. Your goal is to produce a listing that scores 90 or above.

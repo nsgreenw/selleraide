@@ -23,10 +23,12 @@ import {
 } from "lucide-react";
 
 const EXTENSION_URL = process.env.NEXT_PUBLIC_EXTENSION_URL || null;
-import type { QAGrade, APlusModule } from "@/types";
+import type { QAGrade, APlusModule, SubscriptionTier } from "@/types";
 import type { ScoreBreakdown } from "@/lib/qa/scorer";
 import type { QAResult } from "@/types";
 import type { OptimizeMode, OptimizeResult } from "@/lib/gemini/optimize";
+import { useApp } from "@/components/providers";
+import { getAPlusModuleCountForTier } from "@/lib/subscription/aplus";
 
 const APLUS_MODULE_LABELS: Record<string, string> = {
   STANDARD_HEADER_IMAGE_TEXT: "Hero Banner",
@@ -105,6 +107,7 @@ const MODE_COLORS: Record<OptimizeMode, string> = {
 
 function AuditContent() {
   const searchParams = useSearchParams();
+  const { profile } = useApp();
   const [marketplace, setMarketplace] = useState<Marketplace>("amazon");
   const [brand, setBrand] = useState("");
   const [amazonCondition, setAmazonCondition] = useState("New");
@@ -290,6 +293,7 @@ function AuditContent() {
 
   const handleOptimize = async () => {
     if (!results) return;
+    const aplusModuleCount = getAPlusModuleCountForTier((profile?.subscription_tier ?? "starter") as SubscriptionTier);
     setOptimizeError("");
     setOptimized(null);
     setOptimizing(true);
@@ -307,6 +311,7 @@ function AuditContent() {
             ? { backend_keywords: backendKeywords.trim() }
             : {}),
           ...(buildAttributes() ? { attributes: buildAttributes() } : {}),
+          ...(marketplace === "amazon" ? { aplus_module_count: aplusModuleCount } : {}),
           ...(marketplace === "ebay" ? { condition } : {}),
           ...(marketplace === "ebay" && conditionNotes.trim()
             ? { condition_notes: conditionNotes.trim() }
@@ -546,7 +551,7 @@ function AuditContent() {
                 onClick={() => setExtPromptDismissed(true)}
                 className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
               >
-                I'll audit manually
+                I&apos;ll audit manually
               </button>
             </div>
           </div>

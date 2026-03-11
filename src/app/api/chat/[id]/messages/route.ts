@@ -10,7 +10,8 @@ import { handleChatMessage } from "@/lib/gemini/chat";
 import { analyzeListing } from "@/lib/qa";
 import { sanitizeListingContent } from "@/lib/utils/sanitize";
 import { recordUsage } from "@/lib/subscription/usage";
-import type { Conversation, ListingContent, Marketplace } from "@/types";
+import { getAPlusModuleCountForTier } from "@/lib/subscription/aplus";
+import type { Conversation, Marketplace, SubscriptionTier } from "@/types";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Derive A+ module count from subscription tier
     // Starter gets 4-module stack; Pro/Agency get full 7-module stack
-    const aplusModuleCount = profile.subscription_tier === "starter" ? 4 : 7;
+    const aplusModuleCount = getAPlusModuleCountForTier(profile.subscription_tier as SubscriptionTier);
 
     // Insert user message into DB
     const { data: userMsg, error: userMsgError } = await supabase

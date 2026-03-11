@@ -87,6 +87,7 @@ export const optimizeSchema = z.object({
   description: z.string().min(1).max(10000),
   backend_keywords: z.string().max(2000).optional(),
   attributes: z.record(z.string().max(200), z.string().max(500)).optional(),
+  aplus_module_count: z.number().int().min(4).max(7).optional(),
   condition: z.string().max(200).optional(),
   condition_notes: z.string().max(2000).optional(),
   score: z.number().min(0).max(100),
