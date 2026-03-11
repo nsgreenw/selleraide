@@ -52,6 +52,9 @@ export default function SignupPage() {
       <h1 className="text-2xl font-semibold tracking-tight text-zinc-100 text-center mb-6">
         Create your account
       </h1>
+      <p className="mb-6 text-center text-sm text-zinc-400">
+        Create your account first. You&apos;ll add a card when you start your 7-day free trial.
+      </p>
 
       {error && (
         <div className="rounded-xl border border-rose-300/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-200 mb-4">
@@ -61,7 +64,7 @@ export default function SignupPage() {
 
       {success && (
         <div className="rounded-xl border border-emerald-300/25 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200 mb-4">
-          {success}
+          {success} You can start your 7-day trial from Billing after you sign in.
         </div>
       )}
 

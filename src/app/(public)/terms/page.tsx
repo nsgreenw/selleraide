@@ -40,10 +40,12 @@ export default function TermsOfService() {
       <h2>3. Subscription Plans &amp; Billing</h2>
       <p>
         SellerAide offers paid subscription plans. Eligible self-serve plans include a 7-day free
-        trial for new subscriptions. Plans are billed monthly through Stripe after the trial ends unless canceled.
-        By subscribing, you authorize recurring charges until you cancel. Cancellation takes effect
-        at the end of the current billing period. We reserve the right to change pricing with 30
-        days&apos; notice.
+        trial for new subscriptions started through Stripe. Creating an account alone does not start
+        a trial or subscription. To begin a trial, you must select a paid plan and provide a valid
+        payment method through Stripe. Unless you cancel before the trial ends, your selected plan
+        will automatically begin billing through Stripe. By subscribing, you authorize recurring
+        charges until you cancel. Cancellation takes effect at the end of the current billing period.
+        We reserve the right to change pricing with 30 days&apos; notice.
       </p>
       <p>
         Refunds are handled on a case-by-case basis. Contact{" "}
