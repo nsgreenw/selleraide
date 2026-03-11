@@ -259,6 +259,9 @@ export default function ListingsPage() {
             const grade = listing.score !== null ? getGrade(listing.score) : null;
             const isConfirming = confirmDeleteId === listing.id;
             const isDeleting = deletingId === listing.id;
+            const primaryHref = listing.conversation_id
+              ? `/chat/${listing.conversation_id}`
+              : `/listings/${listing.id}`;
 
             return (
               <div
@@ -268,9 +271,7 @@ export default function ListingsPage() {
                 {/* Clickable overlay (navigates to chat) */}
                 <button
                   type="button"
-                  onClick={() =>
-                    router.push(`/chat/${listing.conversation_id}`)
-                  }
+                  onClick={() => router.push(primaryHref)}
                   className="absolute inset-0 z-0 cursor-pointer rounded-2xl"
                   aria-label={`Open ${title}`}
                 />

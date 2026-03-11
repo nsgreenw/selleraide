@@ -794,7 +794,11 @@ export default function BatchPage() {
                       </td>
                       <td className="px-4 py-2.5 text-right">
                         <Link
-                          href={`/chat/${listing.conversation_id}`}
+                          href={
+                            listing.conversation_id
+                              ? `/chat/${listing.conversation_id}`
+                              : `/listings/${listing.id}`
+                          }
                           className="text-xs text-sa-200 hover:text-sa-100 transition"
                         >
                           View
