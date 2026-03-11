@@ -12,8 +12,9 @@ import { generateListing } from "@/lib/gemini/generate";
 import { analyzeListing } from "@/lib/qa";
 import { sanitizeListingContent } from "@/lib/utils/sanitize";
 import { isMarketplaceEnabled } from "@/lib/marketplace/registry";
+import { getAPlusModuleCountForTier } from "@/lib/subscription/aplus";
 import { recordUsage } from "@/lib/subscription/usage";
-import type { Marketplace } from "@/types";
+import type { Marketplace, SubscriptionTier } from "@/types";
 
 export async function POST(request: NextRequest) {
   try {
@@ -53,6 +54,12 @@ export async function POST(request: NextRequest) {
       product_description,
       marketplace
     );
+
+    if (marketplace === "amazon") {
+      productContext.aplus_module_count = getAPlusModuleCountForTier(
+        profile.subscription_tier as SubscriptionTier
+      );
+    }
 
     // Overlay condition from user selection (eBay)
     if (condition) productContext.condition = condition;
