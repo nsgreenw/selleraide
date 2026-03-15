@@ -32,9 +32,12 @@ export default function TermsOfService() {
 
       <h2>2. Account Registration</h2>
       <p>
-        You must register an account to use the Service. You are responsible for maintaining the
-        confidentiality of your credentials and for all activities under your account. You agree to
-        provide accurate information and notify us immediately of any unauthorized access.
+        Some features of the Service, including saving listings, AI optimization, subscription
+        features, and marketplace integrations, require an account. Certain audit features may be
+        available without registration. If you create an account, you are responsible for
+        maintaining the confidentiality of your credentials and for all activities under your
+        account. You agree to provide accurate information and notify us immediately of any
+        unauthorized access.
       </p>
 
       <h2>3. Subscription Plans &amp; Billing</h2>
@@ -55,9 +58,11 @@ export default function TermsOfService() {
 
       <h2>4. AI-Generated Content Disclaimer</h2>
       <p>
-        SellerAide uses Anthropic Claude AI to generate product listings, keyword suggestions, and
-        related content. <strong>AI-generated content is provided &quot;as is&quot; without any
-        guarantee of accuracy, completeness, or fitness for a particular purpose.</strong>
+        SellerAide uses third-party AI providers to generate product listings, keyword suggestions,
+        rewrites, and related optimization content. Certain audit and scoring features may also use
+        deterministic checks that do not rely on AI. <strong>AI-generated content is provided
+        &quot;as is&quot; without any guarantee of accuracy, completeness, or fitness for a
+        particular purpose.</strong>
       </p>
       <p>
         You are solely responsible for reviewing, editing, and approving all generated content

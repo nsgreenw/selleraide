@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   ShoppingCart,
@@ -29,6 +30,7 @@ import type { QAResult } from "@/types";
 import type { OptimizeMode, OptimizeResult } from "@/lib/gemini/optimize";
 import { useApp } from "@/components/providers";
 import { getAPlusModuleCountForTier } from "@/lib/subscription/aplus";
+import { buildAuthHref } from "@/lib/utils/next-path";
 
 const APLUS_MODULE_LABELS: Record<string, string> = {
   STANDARD_HEADER_IMAGE_TEXT: "Hero Banner",
@@ -107,7 +109,7 @@ const MODE_COLORS: Record<OptimizeMode, string> = {
 
 function AuditContent() {
   const searchParams = useSearchParams();
-  const { profile } = useApp();
+  const { profile, authUser, loading: appLoading } = useApp();
   const [marketplace, setMarketplace] = useState<Marketplace>("amazon");
   const [brand, setBrand] = useState("");
   const [amazonCondition, setAmazonCondition] = useState("New");
@@ -142,6 +144,16 @@ function AuditContent() {
   // Extension detection: null = checking, true = installed, false = not found
   const [extensionInstalled, setExtensionInstalled] = useState<boolean | null>(null);
   const [extPromptDismissed, setExtPromptDismissed] = useState(false);
+  const dataParam = searchParams.get("data");
+  const auditReturnPath = dataParam ? `/audit?data=${encodeURIComponent(dataParam)}` : "/audit";
+  const loginHref = buildAuthHref("/login", auditReturnPath);
+  const signupHref = buildAuthHref("/signup", auditReturnPath);
+  const hasActiveSubscription =
+    !!profile &&
+    (profile.subscription_status === "active" ||
+      profile.subscription_status === "trialing" ||
+      profile.subscription_status === "past_due") &&
+    profile.subscription_tier !== "free";
 
   // Read ?data= param from extension and auto-run audit
   useEffect(() => {
@@ -935,38 +947,73 @@ function AuditContent() {
           {/* Optimize CTA — hide if we already have optimized content */}
           {!optimized && !optimizedContent && (
             <div className="card-glass p-6">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm font-medium text-zinc-200">Want a better listing?</p>
-                  <p className="text-xs text-zinc-500 mt-0.5">
-                    AI will{" "}
-                    {results.score >= 70
-                      ? "fix specific issues and tighten the copy"
-                      : results.score >= 40
-                      ? "restructure weak sections while keeping your product facts"
-                      : "rewrite the listing using your content as a product brief"}
-                    {marketplace === "amazon" ? ", generate A+ Content modules," : ""}
-                    {" "}and target 90+ · uses 1 listing credit
-                  </p>
-                </div>
-                <button
-                  onClick={handleOptimize}
-                  disabled={optimizing}
-                  className="btn-primary shrink-0 gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {optimizing ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" />
-                      Optimizing...
-                    </>
-                  ) : (
-                    <>
+              {!appLoading && !authUser ? (
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <div>
+                    <p className="text-sm font-medium text-zinc-200">Want the fix, not just the score?</p>
+                    <p className="text-xs text-zinc-500 mt-0.5 max-w-xl">
+                      Create an account to come back to this audit, then start your trial to rewrite the listing,
+                      fix weak sections, and generate stronger marketplace-ready copy.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0 flex-wrap">
+                    <Link href={signupHref} className="btn-primary gap-2">
                       <Wand2 className="size-4" />
-                      Optimize with AI
-                    </>
-                  )}
-                </button>
-              </div>
+                      Create account to fix
+                    </Link>
+                    <Link href={loginHref} className="btn-secondary">
+                      Sign in
+                    </Link>
+                  </div>
+                </div>
+              ) : !appLoading && authUser && !hasActiveSubscription ? (
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <div>
+                    <p className="text-sm font-medium text-zinc-200">Ready to generate a stronger version?</p>
+                    <p className="text-xs text-zinc-500 mt-0.5 max-w-xl">
+                      Your audit is loaded. Start your trial from billing to unlock AI optimization, rewrites,
+                      backend keyword generation, and {marketplace === "amazon" ? "A+ content." : "save/export tools."}
+                    </p>
+                  </div>
+                  <Link href="/settings/billing" className="btn-primary shrink-0 gap-2">
+                    <ArrowUpRight className="size-4" />
+                    Start trial to fix
+                  </Link>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-zinc-200">Want a better listing?</p>
+                    <p className="text-xs text-zinc-500 mt-0.5">
+                      AI will{" "}
+                      {results.score >= 70
+                        ? "fix specific issues and tighten the copy"
+                        : results.score >= 40
+                        ? "restructure weak sections while keeping your product facts"
+                        : "rewrite the listing using your content as a product brief"}
+                      {marketplace === "amazon" ? ", generate A+ Content modules," : ""}
+                      {" "}and target 90+ · uses 1 listing credit
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleOptimize}
+                    disabled={optimizing}
+                    className="btn-primary shrink-0 gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {optimizing ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" />
+                        Optimizing...
+                      </>
+                    ) : (
+                      <>
+                        <Wand2 className="size-4" />
+                        Optimize with AI
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
               {optimizeError && (
                 <div className="mt-4 flex items-center gap-2 text-red-400 text-sm">
                   <AlertCircle className="size-4 shrink-0" />
@@ -1343,7 +1390,7 @@ function AuditContent() {
   );
 }
 
-export default function AuditPage() {
+export function AuditPageView() {
   return (
     <div className="min-h-screen">
       <div className="max-w-4xl mx-auto px-6 py-8">

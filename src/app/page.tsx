@@ -194,7 +194,7 @@ export default function Home() {
         />
 
         <p className="label-kicker text-sa-200 mb-6 relative">
-          AMAZON-COMPLIANT LISTING OPTIMIZATION
+          FREE CHROME EXTENSION + AI LISTING OPTIMIZATION
         </p>
 
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight text-zinc-100 mb-6 relative">
@@ -207,23 +207,37 @@ export default function Home() {
           SellerAide helps brand owners draft high-converting content, audit for Amazon policy violations,
           and optimize keyword strategy in minutes.
         </p>
+        <div className="relative mx-auto mb-8 flex max-w-fit items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-4 py-2 text-xs font-medium text-emerald-300">
+          <Puzzle className="size-3.5" />
+          Free Chrome extension: audit any Amazon or eBay listing in one click
+        </div>
         <p className="text-sm text-zinc-500 max-w-2xl mx-auto mb-10 relative">
           Card required to start trial. Cancel before day 7 to avoid billing.
         </p>
 
-        <div className="flex gap-4 justify-center relative">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center relative">
+          <a
+            href={EXTENSION_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-primary px-8 py-3 text-base gap-2"
+          >
+            <Puzzle className="size-5" />
+            Add to Chrome for Free
+          </a>
           <Link
             href="/signup"
-            className="btn-primary px-8 py-3 text-base gap-2"
+            className="btn-secondary px-8 py-3 text-base gap-2"
           >
             <Sparkles className="size-5" />
             Start 7-Day Free Trial
           </Link>
           <Link
-            href="#features"
-            className="btn-secondary px-8 py-3 text-base"
+            href="/audit"
+            className="text-sm text-zinc-400 hover:text-zinc-200 inline-flex items-center justify-center gap-1.5 sm:self-center"
           >
-            See How It Works
+            Or audit manually
+            <ArrowUpRight className="size-4" />
           </Link>
         </div>
       </section>

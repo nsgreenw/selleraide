@@ -4,6 +4,7 @@ import { signupSchema } from "@/lib/api/contracts";
 import { jsonError, jsonSuccess, jsonRateLimited } from "@/lib/api/response";
 import { getStrictLimiter, getIP } from "@/lib/api/rate-limit";
 import { checkCsrfOrigin } from "@/lib/api/csrf";
+import { sanitizeNextPath } from "@/lib/utils/next-path";
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,10 +21,14 @@ export async function POST(request: NextRequest) {
       return jsonError("Invalid signup data", 400);
     }
 
-    const { email, password, full_name } = parsed.data;
+    const { email, password, full_name, next } = parsed.data;
     const supabase = await createClient();
 
     const siteUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    const safeNextPath = sanitizeNextPath(next);
+    const emailRedirectTo = safeNextPath
+      ? `${siteUrl}/login?next=${encodeURIComponent(safeNextPath)}`
+      : `${siteUrl}/login`;
 
     const { error } = await supabase.auth.signUp({
       email,
@@ -32,7 +37,7 @@ export async function POST(request: NextRequest) {
         data: {
           full_name: full_name ?? "",
         },
-        emailRedirectTo: `${siteUrl}/login`,
+        emailRedirectTo,
       },
     });
 

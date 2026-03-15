@@ -18,6 +18,7 @@ export const signupSchema = z.object({
   email: z.string().email(),
   password: strongPassword,
   full_name: z.string().optional(),
+  next: z.string().max(5000).optional(),
 });
 
 export const resetPasswordSchema = z.object({

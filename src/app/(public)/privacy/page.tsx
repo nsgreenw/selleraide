@@ -35,6 +35,9 @@ export default function PrivacyPolicy() {
       <p>
         When you use our AI listing generator, we store your conversation history, product
         descriptions, generated listings, and associated metadata (marketplace, keywords, scores).
+        If you run a public listing audit without signing in, we may process the listing content
+        you submit to generate audit results without associating that audit to an account unless
+        you later sign in and choose to save or continue from that audit.
       </p>
 
       <h3>Payment Information</h3>
@@ -48,13 +51,13 @@ export default function PrivacyPolicy() {
       <p>
         We automatically collect usage data including pages visited, features used, listing counts,
         browser type, device information, IP address, and referring URLs through Google Analytics
-        (GA4) and Meta Pixel.
+        (GA4) and Meta Pixel. This may include visits to public pages such as the free audit flow.
       </p>
 
       <h2>2. How We Use Your Information</h2>
       <ul>
         <li><strong>Service Delivery:</strong> To operate your account, audit listings, and manage subscriptions.</li>
-        <li><strong>AI Processing:</strong> Your product descriptions are sent to Google Gemini API to draft and optimize listings. We do not use your data to train AI models.</li>
+        <li><strong>AI Processing:</strong> Content you provide for AI-powered generation, rewriting, or optimization may be sent to our third-party AI providers to deliver those features. We do not use your data to train AI models.</li>
         <li><strong>Analytics:</strong> To understand usage patterns and improve the Service.</li>
         <li><strong>Marketing:</strong> To deliver relevant advertising via Meta Pixel and communicate product updates via email (with your consent).</li>
         <li><strong>Security:</strong> To detect and prevent fraud, abuse, and unauthorized access.</li>
@@ -65,7 +68,7 @@ export default function PrivacyPolicy() {
       <ul>
         <li><strong>Supabase</strong> — Authentication and database hosting (stores account data, conversations, and listings).</li>
         <li><strong>Stripe</strong> — Payment processing and subscription management.</li>
-        <li><strong>Google Gemini API</strong> — AI-powered listing generation and optimization. Product descriptions you provide are sent to Google&apos;s servers for processing.</li>
+        <li><strong>AI Providers (including Google Gemini API and other providers we may enable)</strong> — AI-powered listing generation, rewriting, and optimization. Content you submit for those features may be sent to those providers for processing.</li>
         <li><strong>eBay Developer API</strong> — When you connect your eBay seller account, we use the eBay API to create draft listings on your behalf. See Section 4 for full details.</li>
         <li><strong>Google Analytics (GA4)</strong> — Website analytics and usage tracking.</li>
         <li><strong>Meta Pixel (Facebook)</strong> — Advertising conversion tracking and audience building.</li>
@@ -95,7 +98,7 @@ export default function PrivacyPolicy() {
       <ul>
         <li><strong>What it reads:</strong> When you click the SellerAide icon on an Amazon or eBay product page, the Extension reads the visible listing content from that page — including the product title, bullet points, description, and item specifics. This content is referred to as &quot;Listing Data.&quot;</li>
         <li><strong>When it reads:</strong> Listing Data is only read in response to an explicit user action (clicking the Extension icon). The Extension does not monitor your browsing, read pages passively, or collect data in the background.</li>
-        <li><strong>What it does with the data:</strong> Listing Data is passed directly to selleraide.com/audit where it is analyzed for quality, compliance, and keyword optimization. If you are signed in, you may choose to save the results to your SellerAide account. Listing Data is not stored by the Extension itself.</li>
+        <li><strong>What it does with the data:</strong> Listing Data is passed directly to selleraide.com/audit where it is analyzed for quality, compliance, and keyword optimization. If you use the audit without signing in, Listing Data and audit results may be processed transiently to generate the response and are not associated with an account unless you later sign in and choose to save or continue from that audit. If you are signed in, you may choose to save the results to your SellerAide account. Listing Data is not stored by the Extension itself.</li>
         <li><strong>What it does not collect:</strong> The Extension does not collect your browsing history, search queries, personal information, purchase history, pricing data, or any information about pages you visit other than the current Amazon or eBay listing you explicitly choose to audit.</li>
         <li><strong>Presence detection:</strong> A content script also runs on selleraide.com solely to signal to the web app that the Extension is installed. No data is read or transmitted in this context.</li>
       </ul>
@@ -128,6 +131,11 @@ export default function PrivacyPolicy() {
         We retain your account data and generated listings for as long as your account is active.
         Conversation history is retained for up to 12 months after the last interaction. Payment
         records are retained as required by law (typically 7 years for tax purposes).
+      </p>
+      <p>
+        Anonymous audit requests may be retained only for short-term operational, security,
+        abuse-prevention, and rate-limiting purposes unless you sign in and choose to save or
+        continue from the related audit.
       </p>
       <p>
         You may delete your account at any time through your account settings. Upon deletion, we

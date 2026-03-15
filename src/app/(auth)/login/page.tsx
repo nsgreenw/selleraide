@@ -1,15 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { buildAuthHref, sanitizeNextPath } from "@/lib/utils/next-path";
 
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const nextPath = sanitizeNextPath(searchParams.get("next"));
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -30,7 +33,7 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/chat");
+      router.push(nextPath ?? "/chat");
       router.refresh();
     } catch {
       setError("Something went wrong. Please try again.");
@@ -94,11 +97,22 @@ export default function LoginPage() {
         </Link>
         <p className="text-sm text-zinc-400">
           Don&apos;t have an account?{" "}
-          <Link href="/signup" className="text-sm text-sa-200 hover:text-sa-100">
+          <Link
+            href={buildAuthHref("/signup", nextPath)}
+            className="text-sm text-sa-200 hover:text-sa-100"
+          >
             Sign up
           </Link>
         </p>
       </div>
     </>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageContent />
+    </Suspense>
   );
 }

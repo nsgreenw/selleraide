@@ -1,15 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { buildAuthHref, sanitizeNextPath } from "@/lib/utils/next-path";
 
-export default function SignupPage() {
+function SignupPageContent() {
+  const searchParams = useSearchParams();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const nextPath = sanitizeNextPath(searchParams.get("next"));
+  const loginHref = buildAuthHref("/login", nextPath);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -25,6 +30,7 @@ export default function SignupPage() {
           email,
           password,
           ...(fullName ? { full_name: fullName } : {}),
+          ...(nextPath ? { next: nextPath } : {}),
         }),
       });
 
@@ -64,7 +70,7 @@ export default function SignupPage() {
 
       {success && (
         <div className="rounded-xl border border-emerald-300/25 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200 mb-4">
-          {success} You can start your 7-day trial from Billing after you sign in.
+          {success} You can sign in and return to your audit after confirming your email.
         </div>
       )}
 
@@ -122,11 +128,19 @@ export default function SignupPage() {
       <div className="mt-6 text-center">
         <p className="text-sm text-zinc-400">
           Already have an account?{" "}
-          <Link href="/login" className="text-sm text-sa-200 hover:text-sa-100">
+          <Link href={loginHref} className="text-sm text-sa-200 hover:text-sa-100">
             Sign in
           </Link>
         </p>
       </div>
     </>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignupPageContent />
+    </Suspense>
   );
 }
