@@ -160,7 +160,10 @@ function AuditContent() {
     const raw = searchParams.get("data");
     if (!raw) return;
     try {
-      const decoded = JSON.parse(decodeURIComponent(escape(atob(raw))));
+      // Support both properly URL-encoded base64 and older payloads where "+" may
+      // have been coerced into spaces inside the query string.
+      const normalized = raw.replace(/ /g, "+");
+      const decoded = JSON.parse(decodeURIComponent(escape(atob(normalized))));
       const mp: Marketplace =
         decoded.marketplace === "amazon" || decoded.marketplace === "ebay"
           ? decoded.marketplace

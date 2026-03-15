@@ -74,7 +74,7 @@ btnAudit.addEventListener('click', () => {
 
   try {
     const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
-    chrome.tabs.create({ url: `${SITE_URL}/audit?data=${encoded}` });
+    chrome.tabs.create({ url: `${SITE_URL}/audit?data=${encodeURIComponent(encoded)}` });
   } catch (err) {
     statusEl.textContent = `Error: ${err.message}`;
     statusEl.classList.add('error');
