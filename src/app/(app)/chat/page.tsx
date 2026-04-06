@@ -96,7 +96,7 @@ export default function NewListingPage() {
             Create a new listing
           </h1>
           <p className="text-sm text-zinc-400 mb-6">
-            Describe your product and we'll generate an optimized,
+            Describe your product and we&apos;ll generate an optimized,
             marketplace-compliant listing.
           </p>
 
