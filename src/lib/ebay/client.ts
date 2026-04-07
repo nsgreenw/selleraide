@@ -76,7 +76,7 @@ export function getOAuthConsentUrl(state: string): string {
 
 export interface TokenResponse {
   access_token: string;
-  refresh_token: string;
+  refresh_token?: string;
   expires_in: number; // seconds
   token_type: string;
 }

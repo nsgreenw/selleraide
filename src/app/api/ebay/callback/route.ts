@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api/auth-guard";
 import { exchangeCodeForTokens } from "@/lib/ebay/client";
+import { encryptValue } from "@/lib/security/encryption";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export async function GET(req: NextRequest) {
@@ -23,6 +24,9 @@ export async function GET(req: NextRequest) {
 
   try {
     const tokens = await exchangeCodeForTokens(code);
+    if (!tokens.refresh_token) {
+      throw new Error("eBay did not return a refresh token.");
+    }
 
     const expiresAt = new Date(
       Date.now() + tokens.expires_in * 1000
@@ -31,15 +35,18 @@ export async function GET(req: NextRequest) {
     const admin = getSupabaseAdmin();
 
     // Upsert: update existing connection or create new one
-    await admin.from("ebay_connections").upsert(
+    const { error: upsertError } = await admin.from("ebay_connections").upsert(
       {
         user_id: user.id,
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
+        access_token: encryptValue(tokens.access_token),
+        refresh_token: encryptValue(tokens.refresh_token),
         token_expires_at: expiresAt,
       },
       { onConflict: "user_id" }
     );
+    if (upsertError) {
+      throw upsertError;
+    }
 
     const res = NextResponse.redirect(
       new URL("/settings?ebay=connected", req.url)

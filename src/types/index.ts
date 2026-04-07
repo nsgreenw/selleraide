@@ -18,6 +18,11 @@ export interface EbayConnection {
   updated_at: string;
 }
 
+export type EbayConnectionContext = Omit<
+  EbayConnection,
+  "access_token" | "refresh_token"
+>;
+
 export type SubscriptionTier = "free" | "starter" | "pro" | "agency";
 
 export type SubscriptionStatus =

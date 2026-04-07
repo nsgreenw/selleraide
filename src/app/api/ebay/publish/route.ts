@@ -8,7 +8,7 @@ import { getValidAccessToken } from "@/lib/ebay/tokens";
 import { ebayApiFetch } from "@/lib/ebay/client";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { buildInventoryItem, buildOffer, generateSku } from "@/lib/ebay/mapping";
-import type { Listing, EbayConnection } from "@/types";
+import type { Listing } from "@/types";
 
 /**
  * Helper: make an eBay API call with a single 401 retry (token refresh).
@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
   const offer = buildOffer(
     sku,
     categoryId,
-    connection as EbayConnection,
+    connection,
     price,
     quantity,
     typedListing.content

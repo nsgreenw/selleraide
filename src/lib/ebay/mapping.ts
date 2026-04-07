@@ -2,7 +2,7 @@
  * Maps SellerAide ListingContent → eBay Inventory API payloads.
  */
 
-import type { ListingContent, EbayConnection } from "@/types";
+import type { ListingContent, EbayConnectionContext } from "@/types";
 import { toEbayCondition } from "./conditions";
 
 // ---------------------------------------------------------------------------
@@ -79,7 +79,7 @@ export function buildInventoryItem(
 export function buildOffer(
   sku: string,
   categoryId: string,
-  connection: EbayConnection,
+  connection: EbayConnectionContext,
   price: string,
   quantity: number,
   content: ListingContent
