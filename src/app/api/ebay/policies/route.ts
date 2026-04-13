@@ -1,4 +1,6 @@
+import { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/api/auth-guard";
+import { checkCsrfOrigin } from "@/lib/api/csrf";
 import { jsonError, jsonSuccess } from "@/lib/api/response";
 import { getValidAccessToken } from "@/lib/ebay/tokens";
 import { ebayApiFetch } from "@/lib/ebay/client";
@@ -49,28 +51,93 @@ export async function GET() {
       policiesReady: false,
       missing,
       setupUrl: EBAY_POLICIES_URL,
+      policies: { fulfillment: [], return: [], payment: [] },
     });
   }
 
-  // Auto-store first policy of each type
-  const admin = getSupabaseAdmin();
-  await admin
-    .from("ebay_connections")
-    .update({
-      fulfillment_policy_id: fulfillmentPolicies[0].fulfillmentPolicyId,
-      return_policy_id: returnPolicies[0].returnPolicyId,
-      payment_policy_id: paymentPolicies[0].paymentPolicyId,
-      policies_verified: true,
+  // Map to simplified shapes for the UI
+  const mapFulfillment = fulfillmentPolicies.map(
+    (p: { fulfillmentPolicyId: string; name: string }) => ({
+      id: p.fulfillmentPolicyId,
+      name: p.name,
     })
-    .eq("user_id", user.id);
+  );
+  const mapReturn = returnPolicies.map(
+    (p: { returnPolicyId: string; name: string }) => ({
+      id: p.returnPolicyId,
+      name: p.name,
+    })
+  );
+  const mapPayment = paymentPolicies.map(
+    (p: { paymentPolicyId: string; name: string }) => ({
+      id: p.paymentPolicyId,
+      name: p.name,
+    })
+  );
+
+  // Auto-store first policy of each type if none set yet
+  const admin = getSupabaseAdmin();
+  const { data: conn } = await admin
+    .from("ebay_connections")
+    .select("fulfillment_policy_id, return_policy_id, payment_policy_id")
+    .eq("user_id", user.id)
+    .single();
+
+  const updates: Record<string, unknown> = { policies_verified: true };
+  if (!conn?.fulfillment_policy_id) {
+    updates.fulfillment_policy_id = mapFulfillment[0].id;
+  }
+  if (!conn?.return_policy_id) {
+    updates.return_policy_id = mapReturn[0].id;
+  }
+  if (!conn?.payment_policy_id) {
+    updates.payment_policy_id = mapPayment[0].id;
+  }
+  await admin.from("ebay_connections").update(updates).eq("user_id", user.id);
 
   return jsonSuccess({
     policiesReady: true,
     missing: [],
     policies: {
-      fulfillment: fulfillmentPolicies.length,
-      return: returnPolicies.length,
-      payment: paymentPolicies.length,
+      fulfillment: mapFulfillment,
+      return: mapReturn,
+      payment: mapPayment,
+    },
+    selected: {
+      fulfillmentPolicyId: conn?.fulfillment_policy_id ?? mapFulfillment[0].id,
+      returnPolicyId: conn?.return_policy_id ?? mapReturn[0].id,
+      paymentPolicyId: conn?.payment_policy_id ?? mapPayment[0].id,
     },
   });
+}
+
+/** Save user's policy selections. */
+export async function POST(req: NextRequest) {
+  const csrfError = checkCsrfOrigin(req);
+  if (csrfError) return jsonError(csrfError, 403);
+
+  const auth = await requireAuth();
+  if (auth.error) return jsonError(auth.error, 401);
+  const user = auth.user!;
+
+  const body = await req.json();
+  const { fulfillmentPolicyId, returnPolicyId, paymentPolicyId } = body;
+
+  if (!fulfillmentPolicyId || !returnPolicyId || !paymentPolicyId) {
+    return jsonError("All three policy IDs are required");
+  }
+
+  const admin = getSupabaseAdmin();
+  const { error } = await admin
+    .from("ebay_connections")
+    .update({
+      fulfillment_policy_id: fulfillmentPolicyId,
+      return_policy_id: returnPolicyId,
+      payment_policy_id: paymentPolicyId,
+    })
+    .eq("user_id", user.id);
+
+  if (error) return jsonError("Failed to save policy selections");
+
+  return jsonSuccess({ saved: true });
 }

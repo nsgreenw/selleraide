@@ -195,6 +195,9 @@ export const ebayPublishSchema = z.object({
   quantity: z.number().int().min(1).max(99999).default(1),
   categoryId: z.string().min(1),
   condition: z.string().optional(),
+  fulfillmentPolicyId: z.string().optional(),
+  returnPolicyId: z.string().optional(),
+  paymentPolicyId: z.string().optional(),
 });
 
 export const ebaySetupLocationSchema = z.object({

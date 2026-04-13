@@ -11,6 +11,28 @@ import { buildInventoryItem, buildOffer, generateSku } from "@/lib/ebay/mapping"
 import type { Listing } from "@/types";
 
 /**
+ * Parse eBay's structured error response into a readable message.
+ * eBay returns { errors: [{ errorId, message, ... }] } on failure.
+ */
+function parseEbayErrors(raw: string): string {
+  try {
+    const data = JSON.parse(raw);
+    const errors = data.errors ?? data.error ?? [];
+    if (Array.isArray(errors) && errors.length > 0) {
+      return errors
+        .map((e: { message?: string; longMessage?: string; errorId?: number }) =>
+          e.longMessage || e.message || `Error ${e.errorId}`
+        )
+        .join("; ");
+    }
+    if (typeof data.message === "string") return data.message;
+  } catch {
+    // Not JSON — return raw text trimmed
+  }
+  return raw.length > 300 ? raw.slice(0, 300) + "…" : raw;
+}
+
+/**
  * Helper: make an eBay API call with a single 401 retry (token refresh).
  */
 async function ebayFetchWithRetry(
@@ -49,7 +71,16 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return jsonError(parsed.error.issues[0].message);
   }
-  const { listingId, price, quantity, categoryId, condition } = parsed.data;
+  const {
+    listingId,
+    price,
+    quantity,
+    categoryId,
+    condition,
+    fulfillmentPolicyId: reqFulfillment,
+    returnPolicyId: reqReturn,
+    paymentPolicyId: reqPayment,
+  } = parsed.data;
 
   const admin = getSupabaseAdmin();
 
@@ -133,9 +164,9 @@ export async function POST(req: NextRequest) {
     token = step1.token;
 
     if (!step1.res.ok && step1.res.status !== 204) {
-      const errorText = await step1.res.text();
-      await setListingError(admin, listingId, `Inventory item creation failed: ${errorText}`);
-      return jsonError(`Failed to create inventory item: ${errorText}`);
+      const parsed = parseEbayErrors(await step1.res.text());
+      await setListingError(admin, listingId, `Inventory item creation failed: ${parsed}`);
+      return jsonError(`Failed to create inventory item: ${parsed}`);
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
@@ -146,10 +177,18 @@ export async function POST(req: NextRequest) {
   // -----------------------------------------------------------------------
   // Step 2: Create Offer
   // -----------------------------------------------------------------------
+  // Apply per-request policy overrides if provided
+  const effectiveConnection = {
+    ...connection,
+    ...(reqFulfillment && { fulfillment_policy_id: reqFulfillment }),
+    ...(reqReturn && { return_policy_id: reqReturn }),
+    ...(reqPayment && { payment_policy_id: reqPayment }),
+  };
+
   const offer = buildOffer(
     sku,
     categoryId,
-    connection,
+    effectiveConnection,
     price,
     quantity,
     typedListing.content
@@ -165,14 +204,14 @@ export async function POST(req: NextRequest) {
     token = step2.token;
 
     if (!step2.res.ok) {
-      const errorText = await step2.res.text();
+      const parsed = parseEbayErrors(await step2.res.text());
       // Attempt cleanup of inventory item
       await ebayApiFetch(
         `/sell/inventory/v1/inventory_item/${encodeURIComponent(sku)}`,
         { method: "DELETE", accessToken: token }
-      );
-      await setListingError(admin, listingId, `Offer creation failed: ${errorText}`);
-      return jsonError(`Failed to create offer: ${errorText}`);
+      ).catch(() => {});
+      await setListingError(admin, listingId, `Offer creation failed: ${parsed}`);
+      return jsonError(`Failed to create offer: ${parsed}`);
     }
 
     const offerData = await step2.res.json();
@@ -200,12 +239,20 @@ export async function POST(req: NextRequest) {
 
     if (!step3.res.ok) {
       const errorText = await step3.res.text();
-      await setListingError(
-        admin,
-        listingId,
-        `Publish failed: ${errorText}. Offer created but not published — you can retry.`
-      );
-      return jsonError(`Failed to publish offer: ${errorText}`);
+
+      // Rollback: delete the orphaned offer, then the inventory item
+      await ebayApiFetch(`/sell/inventory/v1/offer/${offerId}`, {
+        method: "DELETE",
+        accessToken: step3.token,
+      }).catch(() => {});
+      await ebayApiFetch(
+        `/sell/inventory/v1/inventory_item/${encodeURIComponent(sku)}`,
+        { method: "DELETE", accessToken: step3.token }
+      ).catch(() => {});
+
+      const parsed = parseEbayErrors(errorText);
+      await setListingError(admin, listingId, `Publish failed: ${parsed}`);
+      return jsonError(`Failed to publish offer: ${parsed}`);
     }
 
     const publishData = await step3.res.json();
@@ -232,6 +279,178 @@ export async function POST(req: NextRequest) {
     await setListingError(admin, listingId, msg);
     return jsonError(msg, 500);
   }
+}
+
+/**
+ * PUT — Update a published listing (revise the offer on eBay).
+ * Accepts the same payload as POST. Updates inventory item + offer in place.
+ */
+export async function PUT(req: NextRequest) {
+  const csrfError = checkCsrfOrigin(req);
+  if (csrfError) return jsonError(csrfError, 403);
+
+  const auth = await requireAuth();
+  if (auth.error) return jsonError(auth.error, 401);
+  const user = auth.user!;
+
+  const { success, reset } = await getStandardLimiter().limit(user.id);
+  if (!success) return jsonRateLimited(Math.ceil((reset - Date.now()) / 1000));
+
+  const body = await req.json();
+  const parsed = ebayPublishSchema.safeParse(body);
+  if (!parsed.success) return jsonError(parsed.error.issues[0].message);
+
+  const {
+    listingId,
+    price,
+    quantity,
+    categoryId,
+    condition,
+    fulfillmentPolicyId: reqFulfillment,
+    returnPolicyId: reqReturn,
+    paymentPolicyId: reqPayment,
+  } = parsed.data;
+
+  const admin = getSupabaseAdmin();
+
+  const { data: listing } = await admin
+    .from("listings")
+    .select("*")
+    .eq("id", listingId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!listing) return jsonError("Listing not found", 404);
+  if (!listing.ebay_offer_id || !listing.ebay_sku) {
+    return jsonError("Listing has not been published to eBay yet", 400);
+  }
+
+  const tokenResult = await getValidAccessToken(user.id);
+  if (!tokenResult) return jsonError("eBay account not connected", 400);
+  let { token } = tokenResult;
+  const { connection } = tokenResult;
+
+  const typedListing = listing as Listing;
+  const sku = listing.ebay_sku;
+  const offerId = listing.ebay_offer_id;
+
+  // Update inventory item
+  const inventoryItem = buildInventoryItem(typedListing.content, condition, quantity);
+  try {
+    const step1 = await ebayFetchWithRetry(
+      `/sell/inventory/v1/inventory_item/${encodeURIComponent(sku)}`,
+      { method: "PUT", body: inventoryItem, accessToken: token },
+      user.id
+    );
+    token = step1.token;
+    if (!step1.res.ok && step1.res.status !== 204) {
+      const parsed = parseEbayErrors(await step1.res.text());
+      return jsonError(`Failed to update inventory item: ${parsed}`);
+    }
+  } catch (err) {
+    return jsonError(err instanceof Error ? err.message : "Unknown error", 500);
+  }
+
+  // Update offer
+  const effectiveConnection = {
+    ...connection,
+    ...(reqFulfillment && { fulfillment_policy_id: reqFulfillment }),
+    ...(reqReturn && { return_policy_id: reqReturn }),
+    ...(reqPayment && { payment_policy_id: reqPayment }),
+  };
+  const offer = buildOffer(sku, categoryId, effectiveConnection, price, quantity, typedListing.content);
+  try {
+    const step2 = await ebayFetchWithRetry(
+      `/sell/inventory/v1/offer/${offerId}`,
+      { method: "PUT", body: offer, accessToken: token },
+      user.id
+    );
+    if (!step2.res.ok && step2.res.status !== 204) {
+      const parsed = parseEbayErrors(await step2.res.text());
+      return jsonError(`Failed to update offer: ${parsed}`);
+    }
+  } catch (err) {
+    return jsonError(err instanceof Error ? err.message : "Unknown error", 500);
+  }
+
+  await admin
+    .from("listings")
+    .update({ ebay_error: null })
+    .eq("id", listingId);
+
+  return jsonSuccess({ status: "updated", offerId, sku });
+}
+
+/**
+ * DELETE — End (withdraw) a listing from eBay.
+ * Withdraws the offer so the item is no longer live, then cleans up.
+ */
+export async function DELETE(req: NextRequest) {
+  const csrfError = checkCsrfOrigin(req);
+  if (csrfError) return jsonError(csrfError, 403);
+
+  const auth = await requireAuth();
+  if (auth.error) return jsonError(auth.error, 401);
+  const user = auth.user!;
+
+  const { success, reset } = await getStandardLimiter().limit(user.id);
+  if (!success) return jsonRateLimited(Math.ceil((reset - Date.now()) / 1000));
+
+  const { searchParams } = new URL(req.url);
+  const listingId = searchParams.get("listingId");
+  if (!listingId) return jsonError("listingId query param required");
+
+  const admin = getSupabaseAdmin();
+
+  const { data: listing } = await admin
+    .from("listings")
+    .select("ebay_offer_id, ebay_sku, ebay_status, user_id")
+    .eq("id", listingId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!listing) return jsonError("Listing not found", 404);
+  if (!listing.ebay_offer_id) {
+    return jsonError("Listing has no eBay offer to end", 400);
+  }
+
+  const tokenResult = await getValidAccessToken(user.id);
+  if (!tokenResult) return jsonError("eBay account not connected", 400);
+  const { token } = tokenResult;
+
+  // Withdraw the offer (takes listing off eBay but keeps offer data)
+  const withdrawRes = await ebayApiFetch(
+    `/sell/inventory/v1/offer/${listing.ebay_offer_id}/withdraw`,
+    { method: "POST", accessToken: token }
+  );
+
+  if (!withdrawRes.ok && withdrawRes.status !== 404) {
+    const parsed = parseEbayErrors(await withdrawRes.text());
+    return jsonError(`Failed to end listing: ${parsed}`);
+  }
+
+  // Clean up: delete offer and inventory item
+  await ebayApiFetch(`/sell/inventory/v1/offer/${listing.ebay_offer_id}`, {
+    method: "DELETE",
+    accessToken: token,
+  }).catch(() => {});
+
+  if (listing.ebay_sku) {
+    await ebayApiFetch(
+      `/sell/inventory/v1/inventory_item/${encodeURIComponent(listing.ebay_sku)}`,
+      { method: "DELETE", accessToken: token }
+    ).catch(() => {});
+  }
+
+  await admin
+    .from("listings")
+    .update({
+      ebay_status: "ended",
+      ebay_error: null,
+    })
+    .eq("id", listingId);
+
+  return jsonSuccess({ status: "ended" });
 }
 
 async function setListingError(

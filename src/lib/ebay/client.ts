@@ -138,6 +138,29 @@ export async function refreshAccessToken(
   return res.json();
 }
 
+/** Revoke an eBay token (refresh or access). Best-effort — failures are logged. */
+export async function revokeEbayToken(token: string): Promise<void> {
+  const cfg = getEbayConfig();
+  const res = await fetch(`${cfg.apiBaseUrl}/identity/v1/oauth2/token`, {
+    method: "POST",
+    headers: {
+      Authorization: basicAuthHeader(),
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:token-revocation",
+      token,
+    }),
+  });
+
+  if (!res.ok) {
+    console.error(
+      `[eBay] Token revocation failed (${res.status}):`,
+      await res.text().catch(() => "")
+    );
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Authenticated API fetch wrapper
 // ---------------------------------------------------------------------------
