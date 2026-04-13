@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ShoppingCart, Store, Tag, Globe } from "lucide-react";
+import { FileText, Globe, ShoppingCart, Store, Tag } from "lucide-react";
 import ScoreBadge from "./score-badge";
 import type { Listing, Marketplace, EbayPublishStatus } from "@/types";
 
@@ -13,6 +13,7 @@ const marketplaceIcons: Record<Marketplace, React.ReactNode> = {
   amazon: <ShoppingCart className="h-3.5 w-3.5" />,
   walmart: <Store className="h-3.5 w-3.5" />,
   ebay: <Tag className="h-3.5 w-3.5" />,
+  etsy: <FileText className="h-3.5 w-3.5" />,
   shopify: <Globe className="h-3.5 w-3.5" />,
 };
 

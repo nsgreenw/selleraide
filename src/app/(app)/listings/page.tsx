@@ -27,6 +27,7 @@ const MARKETPLACE_COLORS: Record<Marketplace, string> = {
   amazon: "#ff9900",
   walmart: "#0071ce",
   ebay: "#e53238",
+  etsy: "#f1641e",
   shopify: "#96bf48",
 };
 
@@ -34,10 +35,17 @@ const MARKETPLACE_ICONS: Record<Marketplace, React.ReactNode> = {
   amazon: <ShoppingCart className="h-3.5 w-3.5" />,
   walmart: <Store className="h-3.5 w-3.5" />,
   ebay: <Tag className="h-3.5 w-3.5" />,
+  etsy: <FileText className="h-3.5 w-3.5" />,
   shopify: <Globe className="h-3.5 w-3.5" />,
 };
 
-const ALL_MARKETPLACES: Marketplace[] = ["amazon", "walmart", "ebay", "shopify"];
+const ALL_MARKETPLACES: Marketplace[] = [
+  "amazon",
+  "walmart",
+  "ebay",
+  "etsy",
+  "shopify",
+];
 
 const GRADE_CLASSES: Record<QAGrade, string> = {
   A: "text-emerald-300 bg-emerald-400/10 border-emerald-300/25",

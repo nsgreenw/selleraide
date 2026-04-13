@@ -13,6 +13,7 @@ const MARKETPLACE_COLORS: Record<string, string> = {
   amazon: "#ff9900",
   walmart: "#0071ce",
   ebay: "#e53238",
+  etsy: "#f1641e",
   shopify: "#96bf48",
 };
 
