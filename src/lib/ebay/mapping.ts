@@ -14,6 +14,7 @@ export interface EbayInventoryItem {
     shipToLocationAvailability: { quantity: number };
   };
   condition: string;
+  conditionDescription?: string;
   product: {
     title: string;
     description: string;
@@ -51,16 +52,26 @@ export function buildInventoryItem(
   condition?: string,
   quantity: number = 1
 ): EbayInventoryItem {
+  const ebayCondition = toEbayCondition(condition);
   const item: EbayInventoryItem = {
     availability: {
       shipToLocationAvailability: { quantity },
     },
-    condition: toEbayCondition(condition),
+    condition: ebayCondition,
     product: {
       title: content.title.slice(0, 80),
       description: content.description,
     },
   };
+
+  // Add condition description for non-new items
+  if (
+    ebayCondition !== "NEW" &&
+    content.condition_notes &&
+    content.condition_notes.length > 0
+  ) {
+    item.conditionDescription = content.condition_notes.join(". ");
+  }
 
   // Convert item_specifics { key: value } → eBay aspects { key: [value] }
   if (content.item_specifics && Object.keys(content.item_specifics).length > 0) {

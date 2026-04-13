@@ -1,7 +1,7 @@
 export type Marketplace = "amazon" | "walmart" | "ebay" | "etsy" | "shopify";
 export type EtsyListingType = "handmade" | "vintage" | "craft_supply";
 
-export type EbayPublishStatus = 'none' | 'draft' | 'publishing' | 'live' | 'error';
+export type EbayPublishStatus = 'none' | 'draft' | 'publishing' | 'live' | 'ended' | 'error';
 
 export interface EbayConnection {
   id: string;

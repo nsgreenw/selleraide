@@ -24,6 +24,23 @@ interface CategorySuggestion {
   categoryName: string;
 }
 
+interface PolicyOption {
+  id: string;
+  name: string;
+}
+
+interface PolicyData {
+  fulfillment: PolicyOption[];
+  return: PolicyOption[];
+  payment: PolicyOption[];
+}
+
+interface PolicySelection {
+  fulfillmentPolicyId: string;
+  returnPolicyId: string;
+  paymentPolicyId: string;
+}
+
 export default function EbayPublishPanel({
   listing,
   onStatusChange,
@@ -46,7 +63,34 @@ export default function EbayPublishPanel({
     listing.ebay_error ?? null
   );
 
+  // Policy selection state
+  const [policies, setPolicies] = useState<PolicyData | null>(null);
+  const [selectedPolicies, setSelectedPolicies] = useState<PolicySelection>({
+    fulfillmentPolicyId: "",
+    returnPolicyId: "",
+    paymentPolicyId: "",
+  });
+  const [loadingPolicies, setLoadingPolicies] = useState(false);
+
   const status = listing.ebay_status ?? "none";
+
+  // Fetch policies when the panel is ready
+  useEffect(() => {
+    if (!ebayConnection?.ready) return;
+    setLoadingPolicies(true);
+    fetch("/api/ebay/policies")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.policies) {
+          setPolicies(data.policies);
+          if (data.selected) {
+            setSelectedPolicies(data.selected);
+          }
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadingPolicies(false));
+  }, [ebayConnection?.ready]);
 
   // Debounced category search
   useEffect(() => {
@@ -92,6 +136,15 @@ export default function EbayPublishPanel({
           quantity,
           categoryId: selectedCategory.categoryId,
           condition,
+          ...(selectedPolicies.fulfillmentPolicyId && {
+            fulfillmentPolicyId: selectedPolicies.fulfillmentPolicyId,
+          }),
+          ...(selectedPolicies.returnPolicyId && {
+            returnPolicyId: selectedPolicies.returnPolicyId,
+          }),
+          ...(selectedPolicies.paymentPolicyId && {
+            paymentPolicyId: selectedPolicies.paymentPolicyId,
+          }),
         }),
       });
 
@@ -244,6 +297,57 @@ export default function EbayPublishPanel({
             {new Date(listing.ebay_published_at).toLocaleDateString()}
           </p>
         )}
+        <div className="flex gap-2 mt-3">
+          <button
+            onClick={async () => {
+              if (!confirm("End this eBay listing? It will be taken down from eBay.")) return;
+              setError(null);
+              try {
+                const res = await fetch(
+                  `/api/ebay/publish?listingId=${listing.id}`,
+                  { method: "DELETE" }
+                );
+                const data = await res.json();
+                if (!res.ok) {
+                  setError(data.error ?? "Failed to end listing");
+                  return;
+                }
+                if (onStatusChange) {
+                  onStatusChange({
+                    ...listing,
+                    ebay_status: "ended",
+                    ebay_error: null,
+                  });
+                }
+              } catch {
+                setError("Network error — please try again");
+              }
+            }}
+            className="btn-secondary px-3 py-1.5 text-xs text-rose-300 border-rose-400/20 hover:bg-rose-400/10"
+          >
+            End Listing
+          </button>
+        </div>
+        {error && (
+          <div className="rounded-lg border border-rose-400/20 bg-rose-400/5 p-2 mt-2">
+            <p className="text-xs text-rose-300">{error}</p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Ended state — can re-publish
+  if (status === "ended") {
+    return (
+      <div className="card-glass p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <Tag className="h-4 w-4 text-zinc-500" />
+          <span className="label-kicker text-zinc-500">Ended on eBay</span>
+        </div>
+        <p className="text-sm text-zinc-400 mb-3">
+          This listing has been taken down from eBay. You can publish it again.
+        </p>
       </div>
     );
   }
@@ -336,6 +440,96 @@ export default function EbayPublishPanel({
             <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
           </div>
         </div>
+
+        {/* Business Policies */}
+        {loadingPolicies && (
+          <div className="flex items-center gap-2 text-xs text-zinc-500">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            Loading policies...
+          </div>
+        )}
+        {policies && (
+          <>
+            {policies.fulfillment.length > 1 && (
+              <div>
+                <label className="label-kicker text-zinc-500 block mb-1">
+                  Shipping Policy
+                </label>
+                <div className="relative">
+                  <select
+                    value={selectedPolicies.fulfillmentPolicyId}
+                    onChange={(e) =>
+                      setSelectedPolicies((p) => ({
+                        ...p,
+                        fulfillmentPolicyId: e.target.value,
+                      }))
+                    }
+                    className="w-full appearance-none rounded-lg border border-white/10 bg-black/30 px-3 py-2 pr-8 text-sm text-zinc-200 focus:border-sa-200/50 focus:outline-none"
+                  >
+                    {policies.fulfillment.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
+                </div>
+              </div>
+            )}
+            {policies.return.length > 1 && (
+              <div>
+                <label className="label-kicker text-zinc-500 block mb-1">
+                  Return Policy
+                </label>
+                <div className="relative">
+                  <select
+                    value={selectedPolicies.returnPolicyId}
+                    onChange={(e) =>
+                      setSelectedPolicies((p) => ({
+                        ...p,
+                        returnPolicyId: e.target.value,
+                      }))
+                    }
+                    className="w-full appearance-none rounded-lg border border-white/10 bg-black/30 px-3 py-2 pr-8 text-sm text-zinc-200 focus:border-sa-200/50 focus:outline-none"
+                  >
+                    {policies.return.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
+                </div>
+              </div>
+            )}
+            {policies.payment.length > 1 && (
+              <div>
+                <label className="label-kicker text-zinc-500 block mb-1">
+                  Payment Policy
+                </label>
+                <div className="relative">
+                  <select
+                    value={selectedPolicies.paymentPolicyId}
+                    onChange={(e) =>
+                      setSelectedPolicies((p) => ({
+                        ...p,
+                        paymentPolicyId: e.target.value,
+                      }))
+                    }
+                    className="w-full appearance-none rounded-lg border border-white/10 bg-black/30 px-3 py-2 pr-8 text-sm text-zinc-200 focus:border-sa-200/50 focus:outline-none"
+                  >
+                    {policies.payment.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
+                </div>
+              </div>
+            )}
+          </>
+        )}
 
         {/* Category search */}
         <div className="relative">
