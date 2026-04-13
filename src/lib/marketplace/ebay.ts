@@ -298,9 +298,10 @@ ITEM SPECIFICS RULES:
 - Use standardized values from eBay's dropdown menus where possible.
 
 CONDITION NOTES (condition_notes):
-- Provide an array of strings describing the item's condition, any flaws, wear, or imperfections.
+- CRITICAL: Base condition notes strictly on the "Item Condition" and "Seller's Condition Notes" fields from the product information. Do NOT fabricate, assume, or contradict the seller's stated condition.
+- If the seller says "Open Box", do not describe the item as "sealed" or "in original sealed packaging".
 - Be transparent and specific: e.g. ["Minor scratch on bottom", "All original accessories included"].
-- For new items, confirm "New, unused, in original packaging".
+- For new items only, confirm "New, unused, in original packaging".
 
 SHIPPING NOTES (shipping_notes):
 - Provide a brief placeholder describing shipping intent, e.g. "Ships within 1 business day via USPS First Class".

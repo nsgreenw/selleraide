@@ -88,6 +88,8 @@ PRODUCT INFORMATION:
 - Differentiators: ${productContext.differentiators?.join(", ") ?? "Not specified"}
 - Price Point: ${productContext.price_point ?? "Not specified"}
 - Compliance Info: ${productContext.compliance_info ?? "None"}
+- Item Condition: ${productContext.condition ?? "Not specified"}
+- Seller's Condition Notes: ${productContext.condition_notes ?? "Not specified"}
 - Etsy Listing Type: ${productContext.etsy_listing_type ?? "Not specified"}
 - Etsy When Made: ${productContext.etsy_when_made ?? "Not specified"}
 - Etsy Materials: ${productContext.etsy_materials?.join(", ") ?? "Not specified"}
