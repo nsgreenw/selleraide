@@ -6,7 +6,11 @@ import type {
 } from "@/types";
 import { getMarketplaceProfile } from "@/lib/marketplace/registry";
 import { getGeminiGenerateModel } from "./client";
-import { normalizeStringArray, normalizeStringRecord, normalizeAPlusModules } from "./normalization";
+import {
+  normalizeAPlusModules,
+  normalizeStringArray,
+  normalizeStringRecord,
+} from "./normalization";
 
 /**
  * Generates a complete listing using Gemini, based on the product context,
@@ -47,6 +51,26 @@ RESEARCH DATA:
     .map((tip) => `  - ${tip}`)
     .join("\n");
 
+  const structuredFieldNotes = [
+    profile.listingShape.includes("bullet_points")
+      ? `- "bullet_points" must be a JSON array of 5 strings.`
+      : null,
+    profile.listingShape.includes("backend_search_terms")
+      ? `- "backend_search_terms" must be a JSON array of strings.`
+      : null,
+    profile.listingShape.includes("tags")
+      ? `- "tags" must be a JSON array of strings.`
+      : null,
+    profile.listingShape.includes("materials")
+      ? `- "materials" must be a JSON array of strings.`
+      : null,
+    profile.listingShape.includes("variations")
+      ? `- "variations" must be a JSON object where each key is a variation name and each value is a short comma-separated option summary.`
+      : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
   // Inject module count into promptModifier (replace placeholder)
   const resolvedPromptModifier = profile.promptModifier.replace(
     "{APLUS_MODULE_COUNT}",
@@ -64,6 +88,26 @@ PRODUCT INFORMATION:
 - Differentiators: ${productContext.differentiators?.join(", ") ?? "Not specified"}
 - Price Point: ${productContext.price_point ?? "Not specified"}
 - Compliance Info: ${productContext.compliance_info ?? "None"}
+- Etsy Listing Type: ${productContext.etsy_listing_type ?? "Not specified"}
+- Etsy When Made: ${productContext.etsy_when_made ?? "Not specified"}
+- Etsy Materials: ${productContext.etsy_materials?.join(", ") ?? "Not specified"}
+- Etsy Dimensions: ${productContext.etsy_dimensions ?? "Not specified"}
+- Etsy Personalization Enabled: ${
+  productContext.etsy_personalization_enabled ? "Yes" : "No / Not specified"
+}
+- Etsy Personalization Instructions: ${
+  productContext.etsy_personalization_instructions ?? "Not specified"
+}
+- Etsy Variations: ${
+  productContext.etsy_variations
+    ? Object.entries(productContext.etsy_variations)
+        .map(([key, values]) => `${key}: ${values.join(", ")}`)
+        .join("; ")
+    : "Not specified"
+}
+- Etsy Occasion: ${productContext.etsy_occasion ?? "Not specified"}
+- Etsy Recipient: ${productContext.etsy_recipient ?? "Not specified"}
+- Etsy Is Digital: ${productContext.etsy_is_digital ? "Yes" : "No / Not specified"}
 ${researchSection}
 
 MARKETPLACE RULES:
@@ -74,7 +118,7 @@ ${fieldInstructions}
 
 The JSON response MUST contain exactly these keys: ${JSON.stringify(profile.listingShape)}
 
-bullet_points must be a JSON array of 5 strings; backend_search_terms must be a JSON array of strings.
+${structuredFieldNotes}
 
 KEYWORD STRATEGY:
 - Place primary keywords in: ${profile.keywordStrategy.primaryPlacement}
@@ -152,6 +196,18 @@ Generate the listing now. Respond with ONLY a valid JSON object.`;
   }
   if (listingData.tags && Array.isArray(listingData.tags)) {
     content.tags = normalizeStringArray(listingData.tags);
+  }
+  if (listingData.materials && Array.isArray(listingData.materials)) {
+    content.materials = normalizeStringArray(listingData.materials);
+  }
+  const normalizedVariations = normalizeStringRecord(listingData.variations);
+  if (Object.keys(normalizedVariations).length > 0) {
+    content.variations = normalizedVariations;
+  }
+  if (listingData.personalization_instructions) {
+    content.personalization_instructions = String(
+      listingData.personalization_instructions
+    );
   }
   if (listingData.subtitle) {
     content.subtitle = String(listingData.subtitle);

@@ -30,7 +30,7 @@ export const updatePasswordSchema = z.object({
 });
 
 const marketplaceSchema = z
-  .enum(["amazon", "walmart", "ebay", "shopify"])
+  .enum(["amazon", "walmart", "ebay", "etsy", "shopify"])
   .refine((marketplace) => getEnabledMarketplaceIds().includes(marketplace), {
     message: "Marketplace is currently disabled",
   });
@@ -49,6 +49,20 @@ export const generateListingSchema = z.object({
   product_description: z.string().min(10).max(15000),
   condition: z.string().max(200).optional(),
   condition_notes: z.string().max(2000).optional(),
+  etsy_listing_type: z
+    .enum(["handmade", "vintage", "craft_supply"])
+    .optional(),
+  etsy_when_made: z.string().max(100).optional(),
+  etsy_materials: z.array(z.string().max(45)).max(13).optional(),
+  etsy_dimensions: z.string().max(500).optional(),
+  etsy_variations: z
+    .record(z.string().max(100), z.array(z.string().max(100)).max(20))
+    .optional(),
+  etsy_personalization_enabled: z.boolean().optional(),
+  etsy_personalization_instructions: z.string().max(2000).optional(),
+  etsy_occasion: z.string().max(200).optional(),
+  etsy_recipient: z.string().max(200).optional(),
+  etsy_is_digital: z.boolean().optional(),
 });
 
 export const repurposeSchema = z.object({
@@ -133,6 +147,9 @@ const listingContentSchema = z.object({
   subtitle: z.string().max(500).optional(),
   item_specifics: z.record(z.string().max(200), z.string().max(500)).optional(),
   attributes: z.record(z.string().max(200), z.string().max(500)).optional(),
+  materials: z.array(z.string().max(200)).max(20).optional(),
+  variations: z.record(z.string().max(200), z.string().max(500)).optional(),
+  personalization_instructions: z.string().max(2000).optional(),
   shelf_description: z.string().max(10000).optional(),
   a_plus_modules: z.array(auditAPlusModule).max(7).optional(),
   collections: z.array(z.string().max(200)).max(20).optional(),
@@ -146,7 +163,7 @@ const listingContentSchema = z.object({
 });
 
 export const saveListingSchema = z.object({
-  marketplace: z.enum(["amazon", "walmart", "ebay", "shopify"]),
+  marketplace: z.enum(["amazon", "walmart", "ebay", "etsy", "shopify"]),
   content: listingContentSchema,
 });
 
@@ -156,14 +173,10 @@ export const feedbackSchema = z.object({
 });
 
 export const patchListingSchema = z.object({
-  content: z
-    .object({
-      title: z.string().min(1).max(500).optional(),
-    })
-    .refine(
-      (obj) => Object.values(obj).some((v) => v !== undefined),
-      "At least one field required"
-    ),
+  content: listingContentSchema.partial().refine(
+    (obj) => Object.values(obj).some((v) => v !== undefined),
+    "At least one field required"
+  ),
 });
 
 export const batchRowSchema = z.object({

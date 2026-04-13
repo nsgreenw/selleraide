@@ -25,6 +25,26 @@ PRODUCT INFORMATION:
 - Differentiators: ${productContext.differentiators?.join(", ") ?? "Not specified"}
 - Price Point: ${productContext.price_point ?? "Not specified"}
 - Compliance Info: ${productContext.compliance_info ?? "None"}
+- Etsy Listing Type: ${productContext.etsy_listing_type ?? "Not specified"}
+- Etsy When Made: ${productContext.etsy_when_made ?? "Not specified"}
+- Etsy Materials: ${productContext.etsy_materials?.join(", ") ?? "Not specified"}
+- Etsy Dimensions: ${productContext.etsy_dimensions ?? "Not specified"}
+- Etsy Personalization: ${
+  productContext.etsy_personalization_enabled ? "Yes" : "No / Not specified"
+}
+- Etsy Personalization Instructions: ${
+  productContext.etsy_personalization_instructions ?? "Not specified"
+}
+- Etsy Variations: ${
+  productContext.etsy_variations
+    ? Object.entries(productContext.etsy_variations)
+        .map(([key, values]) => `${key}: ${values.join(", ")}`)
+        .join("; ")
+    : "Not specified"
+}
+- Etsy Occasion: ${productContext.etsy_occasion ?? "Not specified"}
+- Etsy Recipient: ${productContext.etsy_recipient ?? "Not specified"}
+- Etsy Is Digital: ${productContext.etsy_is_digital ? "Yes" : "No / Not specified"}
 
 RESEARCH TASKS:
 1. Identify the top 15-20 relevant search keywords for this product on ${profile.displayName}. Include high-volume primary keywords and long-tail secondary keywords. Order by estimated search volume (highest first).

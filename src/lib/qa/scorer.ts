@@ -730,10 +730,40 @@ const scoreTitleQualityReadability: CriterionFn = (ctx) => {
 // ── attribute_completeness ────────────────────────────────────────────
 // Checks content.attributes for Amazon required + optional keys.
 
-const scoreAttributeCompleteness: CriterionFn = ({ content }) => {
+const scoreAttributeCompleteness: CriterionFn = ({ content, marketplace }) => {
+  const attrs = content.attributes ?? {};
+
+  // Etsy: filter-driving attributes matter more than brand/condition
+  if (marketplace === "etsy") {
+    const etsyRelevant = ["recipient", "occasion", "color", "style", "category", "holiday", "room"];
+    const filledCount = Object.entries(attrs).filter(([, v]) => {
+      if (typeof v !== "string") return false;
+      const trimmed = v.trim();
+      return trimmed.length > 0 && trimmed.toLowerCase() !== "null";
+    }).length;
+
+    if (filledCount === 0) {
+      return { score: 0, notes: "No Etsy attributes provided" };
+    }
+
+    let score = 40; // base for having any attributes
+    const relevantFilled = etsyRelevant.filter((k) => {
+      const value = attrs[k];
+      if (typeof value !== "string") return false;
+      const trimmed = value.trim();
+      return trimmed.length > 0 && trimmed.toLowerCase() !== "null";
+    }).length;
+    score += Math.min(60, relevantFilled * 10); // up to 6 keys = full 60pts
+
+    return {
+      score: Math.min(100, score),
+      notes: `${filledCount} attribute(s) filled, ${relevantFilled} of ${etsyRelevant.length} Etsy filter attributes`,
+    };
+  }
+
+  // Non-Etsy: original Amazon/eBay logic
   const required = ["brand", "condition"];
   const optional = ["material", "color", "size", "model"];
-  const attrs = content.attributes ?? {};
   const filled = Object.entries(attrs).filter(([, v]) => {
     if (typeof v !== "string") return false;
     const trimmed = v.trim();
@@ -835,7 +865,23 @@ const scoreAPlusContent: CriterionFn = ({ content, marketplace }) => {
 // ── listing_completeness ──────────────────────────────────────────────
 // Checks eBay shipping/returns/category presence.
 
-const scoreListingCompleteness: CriterionFn = ({ content }) => {
+const scoreListingCompleteness: CriterionFn = ({ content, marketplace }) => {
+  // Etsy: broader completeness check including materials and personalization
+  if (marketplace === "etsy") {
+    let score = 0;
+    const parts: string[] = [];
+    if (content.shipping_notes?.trim()) { score += 20; parts.push("shipping notes"); }
+    if (content.returns_notes?.trim()) { score += 20; parts.push("returns notes"); }
+    if (content.category_hint?.trim()) { score += 15; parts.push("category hint"); }
+    if (content.materials && content.materials.length > 0) { score += 25; parts.push("materials"); }
+    if (content.personalization_instructions?.trim()) { score += 20; parts.push("personalization"); }
+    return {
+      score,
+      notes: parts.length > 0 ? parts.join(", ") + " present" : "Missing materials/shipping/returns/category",
+    };
+  }
+
+  // Non-Etsy: original 35/35/30 split
   let score = 0;
   const parts: string[] = [];
   if (content.shipping_notes?.trim()) { score += 35; parts.push("shipping notes"); }

@@ -1,4 +1,5 @@
-export type Marketplace = "amazon" | "walmart" | "ebay" | "shopify";
+export type Marketplace = "amazon" | "walmart" | "ebay" | "etsy" | "shopify";
+export type EtsyListingType = "handmade" | "vintage" | "craft_supply";
 
 export type EbayPublishStatus = 'none' | 'draft' | 'publishing' | 'live' | 'error';
 
@@ -99,6 +100,16 @@ export interface ProductContext {
   aplus_module_count?: number; // set by API route based on subscription tier
   condition?: string;          // eBay item condition, e.g. "Good", "Like New"
   condition_notes?: string;    // user-provided flaw/wear description (single string)
+  etsy_listing_type?: EtsyListingType;
+  etsy_when_made?: string;
+  etsy_materials?: string[];
+  etsy_dimensions?: string;
+  etsy_variations?: Record<string, string[]>;
+  etsy_personalization_enabled?: boolean;
+  etsy_personalization_instructions?: string;
+  etsy_occasion?: string;
+  etsy_recipient?: string;
+  etsy_is_digital?: boolean;
 }
 
 export interface ResearchData {
@@ -148,6 +159,9 @@ export interface ListingContent {
   subtitle?: string;
   item_specifics?: Record<string, string>;
   attributes?: Record<string, string>;
+  materials?: string[];
+  variations?: Record<string, string>;
+  personalization_instructions?: string;
   shelf_description?: string;
   a_plus_modules?: APlusModule[];
   collections?: string[];

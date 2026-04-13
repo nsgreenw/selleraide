@@ -40,6 +40,15 @@ function getFieldValue(
       if (!attrs || Object.keys(attrs).length === 0) return undefined;
       return JSON.stringify(attrs);
     }
+    case "materials":
+      return content.materials;
+    case "variations": {
+      const variations = content.variations;
+      if (!variations || Object.keys(variations).length === 0) return undefined;
+      return JSON.stringify(variations);
+    }
+    case "personalization_instructions":
+      return content.personalization_instructions;
     case "condition_notes":
       return content.condition_notes;
     case "compliance_notes":
@@ -178,8 +187,13 @@ const TEXT_FIELDS_TO_SCAN = [
   "backend_keywords",
   "seo_title",
   "meta_description",
+  "tags",
   "subtitle",
   "shelf_description",
+  "shipping_notes",
+  "returns_notes",
+  "personalization_instructions",
+  "category_hint",
 ] as const;
 
 function checkBannedTerms(
@@ -252,6 +266,54 @@ function checkStructuralRules(
           message: `Amazon bullet ${i + 1} is ${bullet.length} chars; max is 500`,
         });
       }
+    }
+  }
+
+  if (marketplace === "etsy") {
+    const tags = Array.isArray(content.tags) ? content.tags : [];
+
+    if (tags.length !== 13) {
+      results.push({
+        field: "tags",
+        rule: "etsy_tag_count",
+        severity: "error",
+        message: `Etsy works best with exactly 13 tags; found ${tags.length}`,
+      });
+    }
+
+    for (let i = 0; i < tags.length; i++) {
+      const tag = tags[i]?.trim() ?? "";
+      if (!tag) {
+        results.push({
+          field: "tags",
+          rule: "etsy_tag_empty",
+          severity: "error",
+          message: `Etsy tag ${i + 1} must be non-empty`,
+        });
+      } else if (tag.length > 20) {
+        results.push({
+          field: "tags",
+          rule: "etsy_tag_length",
+          severity: "error",
+          message: `Etsy tag ${i + 1} is ${tag.length} chars; max is 20`,
+        });
+      }
+    }
+
+    // Check for duplicate tags (case-insensitive)
+    const seen = new Set<string>();
+    for (let i = 0; i < tags.length; i++) {
+      const normalized = tags[i]?.trim().toLowerCase() ?? "";
+      if (!normalized) continue;
+      if (seen.has(normalized)) {
+        results.push({
+          field: "tags",
+          rule: "etsy_tag_duplicate",
+          severity: "warning",
+          message: `Etsy tag ${i + 1} "${tags[i]}" is a duplicate — each tag should be unique`,
+        });
+      }
+      seen.add(normalized);
     }
   }
 

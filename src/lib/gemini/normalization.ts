@@ -131,3 +131,29 @@ export function normalizeStringRecord(value: unknown): Record<string, string> {
 
   return normalized;
 }
+
+export function normalizeStringArrayRecord(
+  value: unknown
+): Record<string, string[]> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  const normalized: Record<string, string[]> = {};
+  for (const [rawKey, rawValue] of Object.entries(value)) {
+    const key = rawKey.trim();
+    if (!key) continue;
+
+    const values = Array.isArray(rawValue)
+      ? normalizeStringArray(rawValue)
+      : normalizeStringArray(
+          typeof rawValue === "string" ? rawValue.split(",") : []
+        );
+
+    if (values.length > 0) {
+      normalized[key] = values;
+    }
+  }
+
+  return normalized;
+}

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   ShoppingCart,
   Store,
   Tag,
+  FileText,
   Globe,
   Camera,
   AlertTriangle,
@@ -16,7 +17,11 @@ import {
 import ScoreBadge from "./score-badge";
 import TitleVariants from "./title-variants";
 import EbayPublishPanel from "./ebay-publish-panel";
-import CopyFieldButton from "@/components/ui/copy-field-button";
+import {
+  EditableText,
+  EditableList,
+  EditableKeyValue,
+} from "./editable-field";
 import type { Listing, Marketplace, QAResult, APlusModule } from "@/types";
 
 interface ListingDetailProps {
@@ -28,114 +33,10 @@ const marketplaceIcons: Record<Marketplace, React.ReactNode> = {
   amazon: <ShoppingCart className="h-4 w-4" />,
   walmart: <Store className="h-4 w-4" />,
   ebay: <Tag className="h-4 w-4" />,
+  etsy: <FileText className="h-4 w-4" />,
   shopify: <Globe className="h-4 w-4" />,
 };
 
-function FieldSection({
-  label,
-  value,
-  maxLength,
-}: {
-  label: string;
-  value: string;
-  maxLength?: number;
-}) {
-  if (!value) return null;
-  const charCount = value.length;
-
-  return (
-    <div className="card-subtle p-4">
-      <div className="flex items-center justify-between mb-2">
-        <span className="label-kicker text-zinc-400">{label}</span>
-        <div className="flex items-center gap-1">
-          <span className="text-xs text-zinc-500">
-            {charCount} chars{maxLength ? ` / ${maxLength}` : ""}
-          </span>
-          <CopyFieldButton value={value} />
-        </div>
-      </div>
-      <p className="text-sm text-zinc-200 whitespace-pre-wrap">{value}</p>
-    </div>
-  );
-}
-
-function BulletsSection({ bullets }: { bullets: string[] }) {
-  if (!bullets || bullets.length === 0) return null;
-
-  return (
-    <div className="card-subtle p-4">
-      <div className="flex items-center justify-between mb-2">
-        <span className="label-kicker text-zinc-400">Bullet Points</span>
-        <div className="flex items-center gap-1">
-          <span className="text-xs text-zinc-500">{bullets.length} items</span>
-          <CopyFieldButton value={bullets.map((b, i) => `${i + 1}. ${b}`).join("\n")} />
-        </div>
-      </div>
-      <ul className="space-y-2">
-        {bullets.map((bullet, i) => (
-          <li key={i} className="flex gap-2 text-sm text-zinc-200">
-            <span className="text-zinc-500 font-mono text-xs mt-0.5">{i + 1}.</span>
-            <span className="flex-1">
-              {bullet}
-              <span className="ml-2 text-xs text-zinc-600">{bullet.length} chars</span>
-            </span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function TagsSection({ tags }: { tags: string[] }) {
-  if (!tags || tags.length === 0) return null;
-
-  return (
-    <div className="card-subtle p-4">
-      <div className="flex items-center justify-between mb-2">
-        <span className="label-kicker text-zinc-400">Tags</span>
-        <CopyFieldButton value={tags.join(", ")} />
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {tags.map((tag, i) => (
-          <span
-            key={i}
-            className="rounded-full border border-white/10 bg-black/25 px-2.5 py-1 text-xs text-zinc-300"
-          >
-            {tag}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function KeyValueSection({
-  label,
-  data,
-}: {
-  label: string;
-  data: Record<string, string>;
-}) {
-  const entries = Object.entries(data);
-  if (entries.length === 0) return null;
-
-  return (
-    <div className="card-subtle p-4">
-      <div className="flex items-center justify-between mb-2">
-        <span className="label-kicker text-zinc-400">{label}</span>
-        <CopyFieldButton value={entries.map(([k, v]) => `${k}: ${v}`).join("\n")} />
-      </div>
-      <div className="space-y-1.5">
-        {entries.map(([key, value]) => (
-          <div key={key} className="flex items-start gap-2 text-sm">
-            <span className="text-zinc-500 min-w-[120px] shrink-0">{key}</span>
-            <span className="text-zinc-200">{value}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 function PhotoRecommendationsSection({
   photos,
@@ -398,6 +299,25 @@ export default function ListingDetail({ listing, onListingUpdated }: ListingDeta
   const [activeTab, setActiveTab] = useState<"listing" | "aplus">("listing");
   const [showVariants, setShowVariants] = useState(false);
 
+  const saveField = useCallback(
+    async (fieldKey: string, value: unknown) => {
+      const res = await fetch(`/api/listings/${listing.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: { [fieldKey]: value } }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to save");
+      }
+      const { data } = await res.json();
+      onListingUpdated?.(data);
+    },
+    [listing.id, onListingUpdated],
+  );
+
+  const onSave = onListingUpdated ? saveField : undefined;
+
   return (
     <div className="space-y-4">
       {/* Header with marketplace and score */}
@@ -454,7 +374,12 @@ export default function ListingDetail({ listing, onListingUpdated }: ListingDeta
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <div className="flex-1">
-                <FieldSection label="Title" value={content.title} />
+                <EditableText
+                  label="Title"
+                  value={content.title}
+                  fieldKey="title"
+                  onSave={onSave}
+                />
               </div>
               {onListingUpdated && (
                 <button
@@ -484,57 +409,168 @@ export default function ListingDetail({ listing, onListingUpdated }: ListingDeta
 
           {/* Subtitle (eBay) */}
           {content.subtitle && (
-            <FieldSection label="Subtitle" value={content.subtitle} />
+            <EditableText
+              label="Subtitle"
+              value={content.subtitle}
+              fieldKey="subtitle"
+              onSave={onSave}
+            />
           )}
 
           {/* Bullets */}
-          {content.bullets && <BulletsSection bullets={content.bullets} />}
+          {content.bullets && (
+            <EditableList
+              label="Bullet Points"
+              items={content.bullets}
+              fieldKey="bullets"
+              onSave={onSave}
+            />
+          )}
 
           {/* Shelf Description (Walmart) */}
           {content.shelf_description && (
-            <FieldSection label="Shelf Description" value={content.shelf_description} />
+            <EditableText
+              label="Shelf Description"
+              value={content.shelf_description}
+              fieldKey="shelf_description"
+              onSave={onSave}
+            />
           )}
 
           {/* Description */}
-          <FieldSection label="Description" value={content.description} />
+          <EditableText
+            label="Description"
+            value={content.description}
+            fieldKey="description"
+            onSave={onSave}
+          />
 
           {/* Backend Keywords (Amazon) */}
           {content.backend_keywords && (
-            <FieldSection label="Backend Search Terms" value={content.backend_keywords} />
+            <EditableText
+              label="Backend Search Terms"
+              value={content.backend_keywords}
+              fieldKey="backend_keywords"
+              onSave={onSave}
+            />
           )}
 
           {/* SEO Title (Shopify) */}
           {content.seo_title && (
-            <FieldSection label="SEO Title" value={content.seo_title} maxLength={70} />
+            <EditableText
+              label="SEO Title"
+              value={content.seo_title}
+              fieldKey="seo_title"
+              onSave={onSave}
+              maxLength={70}
+            />
           )}
 
           {/* Meta Description (Shopify) */}
           {content.meta_description && (
-            <FieldSection
+            <EditableText
               label="Meta Description"
               value={content.meta_description}
+              fieldKey="meta_description"
+              onSave={onSave}
               maxLength={160}
             />
           )}
 
           {/* Tags */}
-          {content.tags && <TagsSection tags={content.tags} />}
+          {content.tags && (
+            <EditableList
+              label="Tags"
+              items={content.tags}
+              fieldKey="tags"
+              onSave={onSave}
+              renderAsTags
+            />
+          )}
 
           {/* Collections (Shopify) */}
           {content.collections && content.collections.length > 0 && (
-            <TagsSection tags={content.collections} />
+            <EditableList
+              label="Collections"
+              items={content.collections}
+              fieldKey="collections"
+              onSave={onSave}
+              renderAsTags
+            />
+          )}
+
+          {/* Materials (Etsy) */}
+          {content.materials && content.materials.length > 0 && (
+            <EditableList
+              label="Materials"
+              items={content.materials}
+              fieldKey="materials"
+              onSave={onSave}
+              renderAsTags
+            />
+          )}
+
+          {/* Variations (Etsy) */}
+          {content.variations &&
+            Object.keys(content.variations).length > 0 && (
+              <EditableKeyValue
+                label="Variations"
+                data={content.variations}
+                fieldKey="variations"
+                onSave={onSave}
+              />
+            )}
+
+          {/* Personalization Instructions (Etsy) */}
+          {content.personalization_instructions && (
+            <EditableText
+              label="Personalization"
+              value={content.personalization_instructions}
+              fieldKey="personalization_instructions"
+              onSave={onSave}
+            />
+          )}
+
+          {/* Shipping Notes (Etsy) */}
+          {content.shipping_notes && (
+            <EditableText
+              label="Shipping & Processing"
+              value={content.shipping_notes}
+              fieldKey="shipping_notes"
+              onSave={onSave}
+            />
+          )}
+
+          {/* Suggested Category (Etsy) */}
+          {content.category_hint && (
+            <EditableText
+              label="Suggested Category"
+              value={content.category_hint}
+              fieldKey="category_hint"
+              onSave={onSave}
+            />
           )}
 
           {/* Item Specifics (eBay) */}
           {content.item_specifics &&
             Object.keys(content.item_specifics).length > 0 && (
-              <KeyValueSection label="Item Specifics" data={content.item_specifics} />
+              <EditableKeyValue
+                label="Item Specifics"
+                data={content.item_specifics}
+                fieldKey="item_specifics"
+                onSave={onSave}
+              />
             )}
 
-          {/* Attributes (Walmart) */}
+          {/* Attributes (Walmart / Etsy) */}
           {content.attributes &&
             Object.keys(content.attributes).length > 0 && (
-              <KeyValueSection label="Attributes" data={content.attributes} />
+              <EditableKeyValue
+                label="Attributes"
+                data={content.attributes}
+                fieldKey="attributes"
+                onSave={onSave}
+              />
             )}
         </>
       )}

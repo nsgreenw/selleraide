@@ -3,11 +3,55 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles } from "lucide-react";
-import MarketplacePicker from "@/components/chat/marketplace-picker";
+import MarketplacePicker, {
+  type EtsyDetailsDraft,
+} from "@/components/chat/marketplace-picker";
 import GenerationProgress from "@/components/chat/generation-progress";
 import { Header } from "@/components/layout/header";
 import { createClient } from "@/lib/supabase/client";
 import type { Marketplace } from "@/types";
+
+const DEFAULT_ETSY_DETAILS: EtsyDetailsDraft = {
+  listingType: "handmade",
+  whenMade: "made_to_order",
+  materials: "",
+  dimensions: "",
+  personalizationEnabled: false,
+  personalizationInstructions: "",
+  variations: "",
+  occasion: "",
+  recipient: "",
+  isDigital: false,
+};
+
+function parseCommaSeparatedList(value: string): string[] {
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function parseVariationLines(value: string): Record<string, string[]> {
+  const variations: Record<string, string[]> = {};
+
+  for (const line of value.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    const separatorIndex = trimmed.indexOf(":");
+    if (separatorIndex <= 0) continue;
+
+    const key = trimmed.slice(0, separatorIndex).trim();
+    const rawValues = trimmed.slice(separatorIndex + 1).trim();
+    const values = parseCommaSeparatedList(rawValues);
+
+    if (key && values.length > 0) {
+      variations[key] = values;
+    }
+  }
+
+  return variations;
+}
 
 export default function NewListingPage() {
   const router = useRouter();
@@ -18,6 +62,8 @@ export default function NewListingPage() {
   const [isFirstTime, setIsFirstTime] = useState(false);
   const [condition, setCondition] = useState("New");
   const [conditionNotes, setConditionNotes] = useState("");
+  const [etsyDetails, setEtsyDetails] =
+    useState<EtsyDetailsDraft>(DEFAULT_ETSY_DETAILS);
 
   useEffect(() => {
     async function checkFirstTime() {
@@ -46,6 +92,32 @@ export default function NewListingPage() {
           ...(marketplace === "ebay" && {
             condition,
             ...(condition !== "New" && conditionNotes && { condition_notes: conditionNotes }),
+          }),
+          ...(marketplace === "etsy" && {
+            etsy_listing_type: etsyDetails.listingType,
+            etsy_when_made: etsyDetails.whenMade,
+            ...(parseCommaSeparatedList(etsyDetails.materials).length > 0 && {
+              etsy_materials: parseCommaSeparatedList(etsyDetails.materials),
+            }),
+            ...(etsyDetails.dimensions.trim() && {
+              etsy_dimensions: etsyDetails.dimensions.trim(),
+            }),
+            ...(Object.keys(parseVariationLines(etsyDetails.variations)).length > 0 && {
+              etsy_variations: parseVariationLines(etsyDetails.variations),
+            }),
+            etsy_personalization_enabled: etsyDetails.personalizationEnabled,
+            ...(etsyDetails.personalizationEnabled &&
+              etsyDetails.personalizationInstructions.trim() && {
+                etsy_personalization_instructions:
+                  etsyDetails.personalizationInstructions.trim(),
+              }),
+            ...(etsyDetails.occasion.trim() && {
+              etsy_occasion: etsyDetails.occasion.trim(),
+            }),
+            ...(etsyDetails.recipient.trim() && {
+              etsy_recipient: etsyDetails.recipient.trim(),
+            }),
+            etsy_is_digital: etsyDetails.isDigital,
           }),
         }),
       });
@@ -113,6 +185,8 @@ export default function NewListingPage() {
               onConditionChange={setCondition}
               conditionNotes={conditionNotes}
               onConditionNotesChange={setConditionNotes}
+              etsyDetails={etsyDetails}
+              onEtsyDetailsChange={setEtsyDetails}
             />
           </div>
 

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { Globe, Layers, ShoppingCart, Sparkles, Store, Tag } from "lucide-react";
+import { useCallback, useState } from "react";
+import { FileText, Globe, Layers, ShoppingCart, Sparkles, Store, Tag } from "lucide-react";
 import TitleVariants from "@/components/listing/title-variants";
-import CopyFieldButton from "@/components/ui/copy-field-button";
+import { EditableText, EditableList, EditableKeyValue } from "@/components/listing/editable-field";
 import type { APlusModule, Listing, ListingContent, Marketplace } from "@/types";
 
 function MarketplaceBadge({ marketplace }: { marketplace: Marketplace }) {
@@ -14,6 +14,7 @@ function MarketplaceBadge({ marketplace }: { marketplace: Marketplace }) {
     amazon: { label: "Amazon", icon: <ShoppingCart className="h-3 w-3" /> },
     walmart: { label: "Walmart", icon: <Store className="h-3 w-3" /> },
     ebay: { label: "eBay", icon: <Tag className="h-3 w-3" /> },
+    etsy: { label: "Etsy", icon: <FileText className="h-3 w-3" /> },
     shopify: { label: "Shopify", icon: <Globe className="h-3 w-3" /> },
   };
 
@@ -96,6 +97,26 @@ export default function ListingPreview({
   const [activeTab, setActiveTab] = useState<"listing" | "aplus">("listing");
   const [showVariants, setShowVariants] = useState(false);
 
+  const saveField = useCallback(
+    async (fieldKey: string, value: unknown) => {
+      if (!listingId) throw new Error("No listing ID");
+      const res = await fetch(`/api/listings/${listingId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: { [fieldKey]: value } }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to save");
+      }
+      const { data } = await res.json();
+      onListingUpdated?.(data);
+    },
+    [listingId, onListingUpdated]
+  );
+
+  const onSave = listingId && onListingUpdated ? saveField : undefined;
+
   return (
     <div className="card-glass p-5 space-y-4">
       <div className="flex items-center justify-between">
@@ -141,17 +162,13 @@ export default function ListingPreview({
           {/* Title */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <div className="flex-1 card-subtle p-3">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="label-kicker text-zinc-500">TITLE</span>
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs text-zinc-500">
-                      {content.title.length} chars
-                    </span>
-                    <CopyFieldButton value={content.title} />
-                  </div>
-                </div>
-                <p className="text-sm text-zinc-100">{content.title}</p>
+              <div className="flex-1">
+                <EditableText
+                  label="Title"
+                  value={content.title}
+                  fieldKey="title"
+                  onSave={onSave}
+                />
               </div>
               {listingId && onListingUpdated && (
                 <button
@@ -181,205 +198,178 @@ export default function ListingPreview({
 
           {/* Subtitle */}
           {content.subtitle && (
-            <div className="card-subtle p-3">
-              <div className="flex items-center justify-between mb-1">
-                <span className="label-kicker text-zinc-500">SUBTITLE</span>
-                <div className="flex items-center gap-1">
-                  <span className="text-xs text-zinc-500">
-                    {content.subtitle.length} chars
-                  </span>
-                  <CopyFieldButton value={content.subtitle} />
-                </div>
-              </div>
-              <p className="text-sm text-zinc-200">{content.subtitle}</p>
-            </div>
+            <EditableText
+              label="Subtitle"
+              value={content.subtitle}
+              fieldKey="subtitle"
+              onSave={onSave}
+            />
           )}
 
           {/* Bullets */}
-          {content.bullets?.map((bullet, i) => (
-            <div key={i} className="card-subtle p-3">
-              <div className="flex items-center justify-between mb-1">
-                <span className="label-kicker text-zinc-500">BULLET {i + 1}</span>
-                <div className="flex items-center gap-1">
-                  <span className="text-xs text-zinc-500">
-                    {bullet.length} chars
-                  </span>
-                  <CopyFieldButton value={bullet} />
-                </div>
-              </div>
-              <p className="text-sm text-zinc-200">{bullet}</p>
-            </div>
-          ))}
+          {content.bullets && content.bullets.length > 0 && (
+            <EditableList
+              label="Bullet Points"
+              items={content.bullets}
+              fieldKey="bullets"
+              onSave={onSave}
+            />
+          )}
 
           {/* Description */}
           {content.description && (
-            <div className="card-subtle p-3">
-              <div className="flex items-center justify-between mb-1">
-                <span className="label-kicker text-zinc-500">DESCRIPTION</span>
-                <div className="flex items-center gap-1">
-                  <span className="text-xs text-zinc-500">
-                    {content.description.length} chars
-                  </span>
-                  <CopyFieldButton value={content.description} />
-                </div>
-              </div>
-              <p className="text-sm text-zinc-200 whitespace-pre-wrap">
-                {content.description}
-              </p>
-            </div>
+            <EditableText
+              label="Description"
+              value={content.description}
+              fieldKey="description"
+              onSave={onSave}
+            />
           )}
 
           {/* Backend Keywords */}
           {content.backend_keywords && (
-            <div className="card-subtle p-3">
-              <div className="flex items-center justify-between mb-1">
-                <span className="label-kicker text-zinc-500">
-                  BACKEND KEYWORDS
-                </span>
-                <div className="flex items-center gap-1">
-                  <span className="text-xs text-zinc-500">
-                    {new TextEncoder().encode(content.backend_keywords).length} bytes
-                  </span>
-                  <CopyFieldButton value={content.backend_keywords} />
-                </div>
-              </div>
-              <p className="text-sm text-zinc-200">{content.backend_keywords}</p>
-            </div>
+            <EditableText
+              label="Backend Keywords"
+              value={content.backend_keywords}
+              fieldKey="backend_keywords"
+              onSave={onSave}
+            />
           )}
 
           {/* SEO Title (Shopify) */}
           {content.seo_title && (
-            <div className="card-subtle p-3">
-              <div className="flex items-center justify-between mb-1">
-                <span className="label-kicker text-zinc-500">SEO TITLE</span>
-                <div className="flex items-center gap-1">
-                  <span className="text-xs text-zinc-500">
-                    {content.seo_title.length} chars
-                  </span>
-                  <CopyFieldButton value={content.seo_title} />
-                </div>
-              </div>
-              <p className="text-sm text-zinc-200">{content.seo_title}</p>
-            </div>
+            <EditableText
+              label="SEO Title"
+              value={content.seo_title}
+              fieldKey="seo_title"
+              onSave={onSave}
+              maxLength={70}
+            />
           )}
 
           {/* Meta Description (Shopify) */}
           {content.meta_description && (
-            <div className="card-subtle p-3">
-              <div className="flex items-center justify-between mb-1">
-                <span className="label-kicker text-zinc-500">
-                  META DESCRIPTION
-                </span>
-                <div className="flex items-center gap-1">
-                  <span className="text-xs text-zinc-500">
-                    {content.meta_description.length} chars
-                  </span>
-                  <CopyFieldButton value={content.meta_description} />
-                </div>
-              </div>
-              <p className="text-sm text-zinc-200">{content.meta_description}</p>
-            </div>
+            <EditableText
+              label="Meta Description"
+              value={content.meta_description}
+              fieldKey="meta_description"
+              onSave={onSave}
+              maxLength={160}
+            />
           )}
 
           {/* Tags */}
           {content.tags && content.tags.length > 0 && (
-            <div className="card-subtle p-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="label-kicker text-zinc-500">TAGS</span>
-                <CopyFieldButton value={content.tags.join(", ")} />
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {content.tags.map((tag, i) => (
-                  <span
-                    key={i}
-                    className="rounded-full border border-white/10 bg-black/25 px-2 py-0.5 text-xs text-zinc-300"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
+            <EditableList
+              label="Tags"
+              items={content.tags}
+              fieldKey="tags"
+              onSave={onSave}
+              renderAsTags
+            />
+          )}
+
+          {/* Materials (Etsy) */}
+          {content.materials && content.materials.length > 0 && (
+            <EditableList
+              label="Materials"
+              items={content.materials}
+              fieldKey="materials"
+              onSave={onSave}
+              renderAsTags
+            />
+          )}
+
+          {/* Variations (Etsy) */}
+          {content.variations && Object.keys(content.variations).length > 0 && (
+            <EditableKeyValue
+              label="Variations"
+              data={content.variations}
+              fieldKey="variations"
+              onSave={onSave}
+            />
+          )}
+
+          {/* Personalization (Etsy) */}
+          {content.personalization_instructions && (
+            <EditableText
+              label="Personalization"
+              value={content.personalization_instructions}
+              fieldKey="personalization_instructions"
+              onSave={onSave}
+            />
+          )}
+
+          {/* Shipping Notes (Etsy) */}
+          {content.shipping_notes && (
+            <EditableText
+              label="Shipping & Processing"
+              value={content.shipping_notes}
+              fieldKey="shipping_notes"
+              onSave={onSave}
+            />
+          )}
+
+          {/* Category Hint (Etsy) */}
+          {content.category_hint && (
+            <EditableText
+              label="Suggested Category"
+              value={content.category_hint}
+              fieldKey="category_hint"
+              onSave={onSave}
+            />
+          )}
+
+          {/* Returns Notes */}
+          {content.returns_notes && (
+            <EditableText
+              label="Returns & Exchanges"
+              value={content.returns_notes}
+              fieldKey="returns_notes"
+              onSave={onSave}
+            />
           )}
 
           {/* Item Specifics (eBay) */}
           {content.item_specifics &&
             Object.keys(content.item_specifics).length > 0 && (
-              <div className="card-subtle p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="label-kicker text-zinc-500">
-                    ITEM SPECIFICS
-                  </span>
-                  <CopyFieldButton value={Object.entries(content.item_specifics!).map(([k, v]) => `${k}: ${v}`).join("\n")} />
-                </div>
-                <div className="space-y-1">
-                  {Object.entries(content.item_specifics).map(([key, val]) => (
-                    <div key={key} className="flex gap-2 text-sm">
-                      <span className="text-zinc-500">{key}:</span>
-                      <span className="text-zinc-200">{val}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <EditableKeyValue
+                label="Item Specifics"
+                data={content.item_specifics}
+                fieldKey="item_specifics"
+                onSave={onSave}
+              />
             )}
 
           {/* Attributes (Walmart) */}
           {content.attributes && Object.keys(content.attributes).length > 0 && (
-            <div className="card-subtle p-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="label-kicker text-zinc-500">
-                  ATTRIBUTES
-                </span>
-                <CopyFieldButton value={Object.entries(content.attributes!).map(([k, v]) => `${k}: ${v}`).join("\n")} />
-              </div>
-              <div className="space-y-1">
-                {Object.entries(content.attributes).map(([key, val]) => (
-                  <div key={key} className="flex gap-2 text-sm">
-                    <span className="text-zinc-500">{key}:</span>
-                    <span className="text-zinc-200">{val}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <EditableKeyValue
+              label="Attributes"
+              data={content.attributes}
+              fieldKey="attributes"
+              onSave={onSave}
+            />
           )}
 
           {/* Shelf Description (Walmart) */}
           {content.shelf_description && (
-            <div className="card-subtle p-3">
-              <div className="flex items-center justify-between mb-1">
-                <span className="label-kicker text-zinc-500">
-                  SHELF DESCRIPTION
-                </span>
-                <div className="flex items-center gap-1">
-                  <span className="text-xs text-zinc-500">
-                    {content.shelf_description.length} chars
-                  </span>
-                  <CopyFieldButton value={content.shelf_description} />
-                </div>
-              </div>
-              <p className="text-sm text-zinc-200">{content.shelf_description}</p>
-            </div>
+            <EditableText
+              label="Shelf Description"
+              value={content.shelf_description}
+              fieldKey="shelf_description"
+              onSave={onSave}
+            />
           )}
 
           {/* Collections (Shopify) */}
           {content.collections && content.collections.length > 0 && (
-            <div className="card-subtle p-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="label-kicker text-zinc-500">
-                  COLLECTIONS
-                </span>
-                <CopyFieldButton value={content.collections!.join(", ")} />
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {content.collections.map((col, i) => (
-                  <span
-                    key={i}
-                    className="rounded-full border border-white/10 bg-black/25 px-2 py-0.5 text-xs text-zinc-300"
-                  >
-                    {col}
-                  </span>
-                ))}
-              </div>
-            </div>
+            <EditableList
+              label="Collections"
+              items={content.collections}
+              fieldKey="collections"
+              onSave={onSave}
+              renderAsTags
+            />
           )}
 
           {/* Photo Recommendations */}

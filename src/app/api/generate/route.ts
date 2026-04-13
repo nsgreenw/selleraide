@@ -37,7 +37,22 @@ export async function POST(request: NextRequest) {
       return jsonError("Please provide a product description (at least 10 characters) and marketplace.", 400);
     }
 
-    const { marketplace, product_description, condition, condition_notes } = parsed.data;
+    const {
+      marketplace,
+      product_description,
+      condition,
+      condition_notes,
+      etsy_listing_type,
+      etsy_when_made,
+      etsy_materials,
+      etsy_dimensions,
+      etsy_variations,
+      etsy_personalization_enabled,
+      etsy_personalization_instructions,
+      etsy_occasion,
+      etsy_recipient,
+      etsy_is_digital,
+    } = parsed.data;
     if (!isMarketplaceEnabled(marketplace)) {
       return jsonError("Marketplace is currently disabled.", 403);
     }
@@ -64,6 +79,30 @@ export async function POST(request: NextRequest) {
     // Overlay condition from user selection (eBay)
     if (condition) productContext.condition = condition;
     if (condition_notes) productContext.condition_notes = condition_notes;
+
+    if (marketplace === "etsy") {
+      if (etsy_listing_type) productContext.etsy_listing_type = etsy_listing_type;
+      if (etsy_when_made) productContext.etsy_when_made = etsy_when_made;
+      if (etsy_materials && etsy_materials.length > 0) {
+        productContext.etsy_materials = etsy_materials;
+      }
+      if (etsy_dimensions) productContext.etsy_dimensions = etsy_dimensions;
+      if (etsy_variations && Object.keys(etsy_variations).length > 0) {
+        productContext.etsy_variations = etsy_variations;
+      }
+      if (typeof etsy_personalization_enabled === "boolean") {
+        productContext.etsy_personalization_enabled = etsy_personalization_enabled;
+      }
+      if (etsy_personalization_instructions) {
+        productContext.etsy_personalization_instructions =
+          etsy_personalization_instructions;
+      }
+      if (etsy_occasion) productContext.etsy_occasion = etsy_occasion;
+      if (etsy_recipient) productContext.etsy_recipient = etsy_recipient;
+      if (typeof etsy_is_digital === "boolean") {
+        productContext.etsy_is_digital = etsy_is_digital;
+      }
+    }
 
     // Step 2: Research product category, keywords, competitors
     let researchData;

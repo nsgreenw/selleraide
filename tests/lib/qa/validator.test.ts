@@ -41,6 +41,43 @@ function makeEbayListing(overrides: Partial<ListingContent> = {}): ListingConten
   };
 }
 
+function makeEtsyListing(overrides: Partial<ListingContent> = {}): ListingContent {
+  return {
+    title: "Personalized Ceramic Mug for Mom, Hand Painted Floral Coffee Cup",
+    description:
+      "Hand-painted ceramic mug personalized with a name. Includes floral artwork, durable glaze, and a comfortable handle for daily coffee or tea.",
+    tags: [
+      "personalized mug",
+      "floral coffee cup",
+      "gift for mom",
+      "hand painted mug",
+      "ceramic mug",
+      "custom name mug",
+      "tea lover gift",
+      "birthday gift",
+      "kitchen decor",
+      "cute mug",
+      "spring floral",
+      "coffee lover",
+      "mothers day gift",
+    ],
+    attributes: {
+      category: "Mugs",
+      recipient: "Mom",
+      occasion: "Birthday",
+    },
+    materials: ["ceramic", "glaze"],
+    variations: {
+      Color: "Blue, Sage",
+      Finish: "Glossy",
+    },
+    personalization_instructions: "Provide the name to print on the front of the mug.",
+    shipping_notes: "Made to order in 3-5 business days.",
+    category_hint: "Home & Living > Kitchen & Dining > Drink & Barware > Mugs",
+    ...overrides,
+  };
+}
+
 describe("validateListing — Amazon", () => {
   it("passes a valid Amazon listing with no errors", () => {
     const results = validateListing(makeAmazonListing(), "amazon");
@@ -136,5 +173,79 @@ describe("validateListing — eBay", () => {
     });
 
     expect(() => validateListing(listing, "ebay")).not.toThrow();
+  });
+});
+
+describe("validateListing — Etsy", () => {
+  it("passes a valid Etsy listing with no errors", () => {
+    const results = validateListing(makeEtsyListing(), "etsy");
+    const errors = results.filter((r) => r.severity === "error");
+    expect(errors).toHaveLength(0);
+  });
+
+  it("flags Etsy listings with fewer than 13 tags", () => {
+    const results = validateListing(
+      makeEtsyListing({
+        tags: ["personalized mug", "gift for mom"],
+      }),
+      "etsy"
+    );
+
+    expect(results.some((r) => r.rule === "etsy_tag_count" && r.severity === "error")).toBe(
+      true
+    );
+  });
+
+  it("flags Etsy tags longer than 20 characters", () => {
+    const results = validateListing(
+      makeEtsyListing({
+        tags: [
+          "personalized ceramic mug",
+          "floral coffee cup",
+          "gift for mom",
+          "hand painted mug",
+          "ceramic mug",
+          "custom name mug",
+          "tea lover gift",
+          "birthday gift",
+          "kitchen decor",
+          "cute mug",
+          "spring floral",
+          "coffee lover",
+          "mothers day gift",
+        ],
+      }),
+      "etsy"
+    );
+
+    expect(
+      results.some((r) => r.rule === "etsy_tag_length" && r.message.includes("max is 20"))
+    ).toBe(true);
+  });
+
+  it("flags duplicate Etsy tags", () => {
+    const results = validateListing(
+      makeEtsyListing({
+        tags: [
+          "gift for mom",
+          "floral coffee cup",
+          "gift for mom",
+          "hand painted mug",
+          "ceramic mug",
+          "custom name mug",
+          "tea lover gift",
+          "birthday gift",
+          "kitchen decor",
+          "cute mug",
+          "spring floral",
+          "coffee lover",
+          "mothers day gift",
+        ],
+      }),
+      "etsy"
+    );
+    expect(
+      results.some((r) => r.rule === "etsy_tag_duplicate")
+    ).toBe(true);
   });
 });

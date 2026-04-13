@@ -210,6 +210,13 @@ export function sanitizeListingContent(content: ListingContent, marketplace?: Ma
   if (content.subtitle) clean.subtitle = sanitizePlain(content.subtitle);
   if (content.item_specifics) clean.item_specifics = sanitizeRecord(content.item_specifics);
   if (content.attributes) clean.attributes = sanitizeRecord(content.attributes);
+  if (content.materials) clean.materials = sanitizeStrings(content.materials);
+  if (content.variations) clean.variations = sanitizeRecord(content.variations);
+  if (content.personalization_instructions) {
+    clean.personalization_instructions = sanitizePlain(
+      content.personalization_instructions
+    );
+  }
   if (content.shelf_description) clean.shelf_description = sanitizeHtml(content.shelf_description);
   if (content.collections) clean.collections = sanitizeStrings(content.collections);
   if (content.compliance_notes) clean.compliance_notes = sanitizeStrings(content.compliance_notes);
