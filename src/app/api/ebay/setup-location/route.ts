@@ -51,11 +51,28 @@ export async function POST(req: NextRequest) {
     { method: "POST", body: locationPayload, accessToken: token }
   );
 
-  // 204 = created, 409 = already exists (both are fine)
+  // 204 = created, 409 = already exists, 400 errorId 25803 = key already
+  // exists (happens after disconnect/reconnect since eBay retains the
+  // location even after we delete our DB row).
+  let alreadyExists = res.status === 409;
   if (!res.ok && res.status !== 204 && res.status !== 409) {
     const text = await res.text();
-    console.error("[eBay Location] Create failed:", res.status, text);
-    return jsonError(`Failed to create inventory location: ${res.status} ${text.slice(0, 200)}`);
+    try {
+      const parsed = JSON.parse(text) as {
+        errors?: Array<{ errorId?: number }>;
+      };
+      if (parsed.errors?.some((e) => e.errorId === 25803)) {
+        alreadyExists = true;
+      }
+    } catch {
+      // not JSON, fall through to error handling
+    }
+    if (!alreadyExists) {
+      console.error("[eBay Location] Create failed:", res.status, text);
+      return jsonError(
+        `Failed to create inventory location: ${res.status} ${text.slice(0, 200)}`
+      );
+    }
   }
 
   // Store location key in connection
