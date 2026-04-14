@@ -41,18 +41,20 @@ export async function POST(req: NextRequest) {
     },
     merchantLocationStatus: "ENABLED",
     locationTypes: ["WAREHOUSE"],
+    name: "SellerAide Default Warehouse",
   };
 
+  // eBay requires PUT for createInventoryLocation
   const res = await ebayApiFetch(
     `/sell/inventory/v1/inventory_location/${locationKey}`,
-    { method: "POST", body: locationPayload, accessToken: token }
+    { method: "PUT", body: locationPayload, accessToken: token }
   );
 
   // 204 = created, 409 = already exists (both are fine)
-  if (!res.ok && res.status !== 409) {
+  if (!res.ok && res.status !== 204 && res.status !== 409) {
     const text = await res.text();
     console.error("[eBay Location] Create failed:", res.status, text);
-    return jsonError(`Failed to create inventory location: ${res.status}`);
+    return jsonError(`Failed to create inventory location: ${res.status} ${text.slice(0, 200)}`);
   }
 
   // Store location key in connection
