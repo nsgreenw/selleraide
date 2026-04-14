@@ -202,6 +202,8 @@ export const ebayPublishSchema = z.object({
 
 export const ebaySetupLocationSchema = z.object({
   stateOrProvince: z.string().min(1).max(100),
+  postalCode: z.string().min(1).max(20),
+  city: z.string().min(1).max(100),
   country: z.string().length(2).default("US"),
 });
 

@@ -29,13 +29,15 @@ export async function POST(req: NextRequest) {
     return jsonError(parsed.error.issues[0].message);
   }
 
-  const { stateOrProvince, country } = parsed.data;
+  const { stateOrProvince, postalCode, city, country } = parsed.data;
   const locationKey = `selleraide-default-${user.id.slice(0, 8)}`;
 
   const locationPayload = {
     location: {
       address: {
+        city,
         stateOrProvince,
+        postalCode,
         country,
       },
     },

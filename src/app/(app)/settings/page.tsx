@@ -49,6 +49,8 @@ function SettingsContent() {
     setupUrl?: string;
   } | null>(null);
   const [locationState, setLocationState] = useState("MI");
+  const [locationCity, setLocationCity] = useState("");
+  const [locationPostalCode, setLocationPostalCode] = useState("");
   const [locationCountry, setLocationCountry] = useState("US");
   const [savingLocation, setSavingLocation] = useState(false);
   const [toast, setToast] = useState<{
@@ -149,6 +151,8 @@ function SettingsContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           stateOrProvince: locationState,
+          city: locationCity,
+          postalCode: locationPostalCode,
           country: locationCountry,
         }),
       });
@@ -361,6 +365,13 @@ function SettingsContent() {
               {ebayConnection.connected &&
                 !ebayConnection.locationConfigured && (
                   <div className="ml-6 space-y-2">
+                    <input
+                      type="text"
+                      value={locationCity}
+                      onChange={(e) => setLocationCity(e.target.value)}
+                      placeholder="City"
+                      className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-1.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-sa-200/50 focus:outline-none"
+                    />
                     <div className="flex gap-2">
                       <input
                         type="text"
@@ -368,6 +379,14 @@ function SettingsContent() {
                         onChange={(e) => setLocationState(e.target.value)}
                         placeholder="State (e.g. MI)"
                         className="flex-1 rounded-lg border border-white/10 bg-black/30 px-3 py-1.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-sa-200/50 focus:outline-none"
+                      />
+                      <input
+                        type="text"
+                        value={locationPostalCode}
+                        onChange={(e) => setLocationPostalCode(e.target.value)}
+                        placeholder="ZIP"
+                        maxLength={20}
+                        className="w-24 rounded-lg border border-white/10 bg-black/30 px-3 py-1.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-sa-200/50 focus:outline-none"
                       />
                       <input
                         type="text"
@@ -380,7 +399,12 @@ function SettingsContent() {
                     </div>
                     <button
                       onClick={handleSetupLocation}
-                      disabled={savingLocation || !locationState}
+                      disabled={
+                        savingLocation ||
+                        !locationState ||
+                        !locationCity ||
+                        !locationPostalCode
+                      }
                       className="btn-secondary flex items-center gap-2 px-3 py-1.5 text-xs disabled:opacity-50"
                     >
                       {savingLocation ? (
