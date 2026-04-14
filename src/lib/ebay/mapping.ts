@@ -73,15 +73,32 @@ export function buildInventoryItem(
     item.conditionDescription = content.condition_notes.join(". ");
   }
 
-  // Convert item_specifics { key: value } → eBay aspects { key: [value] }
+  // Convert item_specifics { key: "val1, val2" } → eBay aspects { key: ["val1", "val2"] }.
+  // eBay rejects any single aspect value over 65 characters, so we split
+  // delimited strings into discrete values and trim/cap each entry.
   if (content.item_specifics && Object.keys(content.item_specifics).length > 0) {
     item.product.aspects = {};
     for (const [key, value] of Object.entries(content.item_specifics)) {
-      item.product.aspects[key] = [value];
+      const values = splitAspectValue(value);
+      if (values.length > 0) {
+        item.product.aspects[key] = values;
+      }
     }
   }
 
   return item;
+}
+
+const MAX_ASPECT_VALUE_LEN = 65;
+
+function splitAspectValue(raw: string): string[] {
+  return raw
+    .split(/[,;|]/)
+    .map((v) => v.trim())
+    .filter((v) => v.length > 0)
+    .map((v) =>
+      v.length > MAX_ASPECT_VALUE_LEN ? v.slice(0, MAX_ASPECT_VALUE_LEN).trim() : v
+    );
 }
 
 /**
