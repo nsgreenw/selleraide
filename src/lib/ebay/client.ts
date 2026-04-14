@@ -244,6 +244,7 @@ export async function ebayApiFetch(
   const headers: Record<string, string> = {
     Authorization: `Bearer ${accessToken}`,
     "Content-Language": "en-US",
+    "Accept-Language": "en-US",
   };
 
   if (body !== undefined) {
