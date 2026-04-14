@@ -44,10 +44,9 @@ export async function POST(req: NextRequest) {
     name: "SellerAide Default Warehouse",
   };
 
-  // eBay requires PUT for createInventoryLocation
   const res = await ebayApiFetch(
-    `/sell/inventory/v1/inventory_location/${locationKey}`,
-    { method: "PUT", body: locationPayload, accessToken: token }
+    `/sell/inventory/v1/location/${locationKey}`,
+    { method: "POST", body: locationPayload, accessToken: token }
   );
 
   // 204 = created, 409 = already exists (both are fine)
