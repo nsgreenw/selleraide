@@ -34,9 +34,7 @@ export async function GET(req: NextRequest) {
 
     const admin = getSupabaseAdmin();
 
-    console.log("[eBay OAuth] Upserting for user:", user.id);
-
-    const { data: upsertData, error: upsertError } = await admin
+    const upsertResult = await admin
       .from("ebay_connections")
       .upsert(
         {
@@ -47,39 +45,43 @@ export async function GET(req: NextRequest) {
         },
         { onConflict: "user_id" }
       )
-      .select();
+      .select("id, user_id");
+
+    const upsertError = upsertResult.error;
+    const upsertData = upsertResult.data ?? [];
 
     if (upsertError) {
-      console.error("[eBay OAuth] Upsert error:", upsertError);
-      throw upsertError;
+      const debugMsg = `upsert_error:${upsertError.code}:${encodeURIComponent((upsertError.message || "").slice(0, 80))}`;
+      return NextResponse.redirect(
+        new URL(`/settings?ebay=error&reason=${debugMsg}`, req.url)
+      );
     }
 
-    console.log(
-      "[eBay OAuth] Upsert returned rows:",
-      upsertData?.length ?? 0,
-      "user_id on row:",
-      upsertData?.[0]?.user_id
-    );
-
-    // Verify the row actually exists
-    const { data: verify } = await admin
+    // Verify the row exists
+    const verifyResult = await admin
       .from("ebay_connections")
       .select("id, user_id")
-      .eq("user_id", user.id)
-      .single();
-    console.log("[eBay OAuth] Verify fetch:", verify);
+      .eq("user_id", user.id);
+
+    const verifyCount = verifyResult.data?.length ?? 0;
+    const verifyError = verifyResult.error?.message ?? "";
+
+    // Encode diagnostic info into the redirect URL
+    const debug = `inserted:${upsertData.length}_verified:${verifyCount}_uid:${user.id.slice(0, 8)}_verr:${encodeURIComponent(verifyError.slice(0, 40))}`;
 
     const res = NextResponse.redirect(
-      new URL("/settings?ebay=connected", req.url)
+      new URL(`/settings?ebay=connected&debug=${debug}`, req.url)
     );
 
-    // Clear the OAuth state cookie
     res.cookies.delete("ebay_oauth_state");
     return res;
   } catch (err) {
-    console.error("[eBay OAuth] Token exchange failed:", err);
+    const msg = err instanceof Error ? err.message : String(err);
     return NextResponse.redirect(
-      new URL("/settings?ebay=error&reason=token_exchange", req.url)
+      new URL(
+        `/settings?ebay=error&reason=exception:${encodeURIComponent(msg.slice(0, 100))}`,
+        req.url
+      )
     );
   }
 }
