@@ -73,24 +73,32 @@ function detectConditionConflict(
   description: string
 ): string | null {
   const haystack = `${title}\n${description}`.toLowerCase();
-  const used = /\b(used|pre[- ]?owned|second[- ]?hand|refurbished|restored|gently used|previously owned)\b/;
-  const newish = /\b(brand new|factory sealed|never used|unused|new in box|new in package|nib|nwt)\b/;
+  const usedRegex = /\b(used|pre[- ]?owned|second[- ]?hand|refurbished|restored|gently used|previously owned)\b/i;
+  const newishRegex = /\b(brand new|factory sealed|never used|unused|new in box|new in package|nib|nwt)\b/i;
 
-  if (conditionEnum.startsWith("NEW") || conditionEnum === "LIKE_NEW") {
-    if (used.test(haystack)) {
-      return 'The title or description contains words like "used", "pre-owned", or "refurbished" but the condition is set to new. Either edit the listing text or pick a used condition.';
-    }
-  }
-  if (
+  const isNewish = conditionEnum.startsWith("NEW") || conditionEnum === "LIKE_NEW";
+  const isUsed =
     conditionEnum.startsWith("USED_") ||
     conditionEnum === "FOR_PARTS_OR_NOT_WORKING" ||
-    conditionEnum.includes("REFURBISHED")
-  ) {
-    if (newish.test(haystack)) {
-      return 'The title or description contains words like "brand new", "sealed", or "unused" but the condition is not new. Either edit the listing text or pick "New".';
+    conditionEnum.includes("REFURBISHED");
+
+  if (isNewish) {
+    const m = haystack.match(usedRegex);
+    if (m) {
+      return `The listing text contains "${m[0]}" which implies a used item, but the condition is ${prettyCondition(conditionEnum)}. Remove that word from the title/description, or change the condition to Used.`;
+    }
+  }
+  if (isUsed) {
+    const m = haystack.match(newishRegex);
+    if (m) {
+      return `The listing text contains "${m[0]}" which implies a new item, but the condition is ${prettyCondition(conditionEnum)}. Remove that phrase from the title/description, or change the condition to New.`;
     }
   }
   return null;
+}
+
+function prettyCondition(e: string): string {
+  return e.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 /**
