@@ -97,6 +97,7 @@ export default function EbayPublishPanel({
   // aren't already present in the listing's item_specifics.
   const [requiredAspects, setRequiredAspects] = useState<AspectOption[]>([]);
   const [aspectValues, setAspectValues] = useState<Record<string, string>>({});
+  const [inferringAspects, setInferringAspects] = useState(false);
 
   const status = listing.ebay_status ?? "none";
 
@@ -165,6 +166,8 @@ export default function EbayPublishPanel({
 
   // Fetch category-required item specifics so the user can fill in any the
   // AI didn't generate (e.g. "Compatible Operating System" for smartwatches).
+  // After the required list comes back, fire a second AI call to infer
+  // plausible values from the listing content and pre-populate the inputs.
   useEffect(() => {
     if (!selectedCategory) {
       setRequiredAspects([]);
@@ -176,15 +179,60 @@ export default function EbayPublishPanel({
       `/api/ebay/required-aspects?categoryId=${encodeURIComponent(selectedCategory.categoryId)}`
     )
       .then((r) => (r.ok ? r.json() : null))
-      .then((data: AspectOption[] | null) => {
+      .then(async (data: AspectOption[] | null) => {
         if (cancelled || !data) return;
-        setRequiredAspects(data.filter((a) => a.required));
+        const required = data.filter((a) => a.required);
+        setRequiredAspects(required);
+
+        const existing = listing.content.item_specifics ?? {};
+        const existingKeysLower = new Set(
+          Object.keys(existing).map((k) => k.toLowerCase())
+        );
+        const missing = required.filter(
+          (a) => !existingKeysLower.has(a.name.toLowerCase())
+        );
+        if (missing.length === 0) return;
+
+        setInferringAspects(true);
+        try {
+          const res = await fetch("/api/ebay/infer-aspects", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: listing.content.title,
+              description: listing.content.description,
+              bullets: listing.content.bullets ?? [],
+              existingSpecifics: existing,
+              aspects: missing.map((a) => ({
+                name: a.name,
+                allowedValues:
+                  a.mode === "SELECTION_ONLY" ? a.values : undefined,
+                cardinality: a.cardinality,
+              })),
+            }),
+          });
+          if (!res.ok) return;
+          const json = (await res.json()) as { values?: Record<string, string> };
+          if (cancelled || !json.values) return;
+          // Only fill fields the user hasn't already touched
+          setAspectValues((current) => {
+            const next = { ...current };
+            for (const [k, v] of Object.entries(json.values!)) {
+              if (!next[k] || next[k].trim().length === 0) next[k] = v;
+            }
+            return next;
+          });
+        } catch {
+          // Silent — user can fill manually
+        } finally {
+          if (!cancelled) setInferringAspects(false);
+        }
       })
       .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [selectedCategory]);
+  }, [selectedCategory, listing.content]);
 
   // Debounced category search
   useEffect(() => {
@@ -705,9 +753,17 @@ export default function EbayPublishPanel({
         {/* Required item specifics for the picked category */}
         {missingAspects.length > 0 && (
           <div className="rounded-lg border border-amber-400/20 bg-amber-400/5 p-3 space-y-2">
-            <p className="text-xs text-amber-300">
-              This eBay category requires the following details:
-            </p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs text-amber-300">
+                This eBay category requires the following details:
+              </p>
+              {inferringAspects && (
+                <span className="flex items-center gap-1 text-[10px] text-amber-300/80">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Auto-filling...
+                </span>
+              )}
+            </div>
             {missingAspects.map((a) => {
               const val = aspectValues[a.name] ?? "";
               const listId = `aspect-${a.name.replace(/\W+/g, "-")}`;
