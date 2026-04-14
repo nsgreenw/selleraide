@@ -9,6 +9,10 @@ import { ebayApiFetch } from "@/lib/ebay/client";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { buildInventoryItem, buildOffer, generateSku } from "@/lib/ebay/mapping";
 import { toEbayCondition } from "@/lib/ebay/conditions";
+import {
+  fetchCategoryAspects,
+  enforceAspectCardinality,
+} from "@/lib/ebay/aspects";
 import type { Listing } from "@/types";
 
 /**
@@ -227,13 +231,17 @@ export async function POST(req: NextRequest) {
     .update({ ebay_status: "publishing", ebay_sku: sku, ebay_error: null })
     .eq("id", listingId);
 
-  // Merge user-provided required aspects into the listing's item_specifics
+  // Merge user-provided required aspects into the listing's item_specifics,
+  // then enforce eBay's cardinality rules on the result (SINGLE aspects
+  // collapse a comma-separated value to just the first entry).
+  const aspectOptions = await fetchCategoryAspects(categoryId);
+  const mergedSpecifics = {
+    ...(typedListing.content.item_specifics ?? {}),
+    ...(additionalItemSpecifics ?? {}),
+  };
   const mergedContent = {
     ...typedListing.content,
-    item_specifics: {
-      ...(typedListing.content.item_specifics ?? {}),
-      ...(additionalItemSpecifics ?? {}),
-    },
+    item_specifics: enforceAspectCardinality(mergedSpecifics, aspectOptions),
   };
 
   // -----------------------------------------------------------------------

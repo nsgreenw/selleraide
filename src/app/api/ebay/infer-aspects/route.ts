@@ -47,7 +47,9 @@ export async function POST(req: NextRequest) {
           ? ` — MUST be one of: ${a.allowedValues.slice(0, 40).join(" | ")}`
           : "";
       const cardPart =
-        a.cardinality === "MULTI" ? " (multiple values, comma-separated)" : "";
+        a.cardinality === "MULTI"
+          ? " [MULTI — multiple values allowed, comma-separated]"
+          : " [SINGLE — exactly one value, no commas, no lists]";
       return `- "${a.name}"${cardPart}${enumPart}`;
     })
     .join("\n");
@@ -63,6 +65,10 @@ export async function POST(req: NextRequest) {
   const prompt = `You are populating eBay item specifics for an existing product listing.
 
 Infer the most likely value for each required aspect using the listing title, description, bullets, and existing specifics. If a value is genuinely unknown and a reasonable default exists (e.g. "Unbranded" for Brand), use that. If an allowed-values list is given, the value MUST be exactly one of those values (character-for-character, including case).
+
+CARDINALITY RULES — these are strict, eBay rejects violations:
+- For aspects marked [SINGLE], return EXACTLY ONE value. Never use commas, semicolons, or lists. Pick the single best match. Example — if the listing mentions "Outdoor, Camping, Retro, Vintage" for a SINGLE Theme aspect, pick the one that best fits and return only that.
+- For aspects marked [MULTI], you may return multiple comma-separated values.
 
 LISTING TITLE:
 ${title}
@@ -94,7 +100,14 @@ Return a JSON object mapping each aspect name to its inferred value string. No c
         for (const a of aspects) {
           const val = parsed[a.name];
           if (typeof val === "string" && val.trim().length > 0) {
-            inferred[a.name] = val.trim();
+            let clean = val.trim();
+            // Defense against the AI returning comma-separated values for
+            // a SINGLE aspect despite the prompt instruction.
+            if (a.cardinality === "SINGLE" && /[,;|]/.test(clean)) {
+              const first = clean.split(/[,;|]/)[0].trim();
+              if (first.length > 0) clean = first;
+            }
+            inferred[a.name] = clean;
           }
         }
       }
