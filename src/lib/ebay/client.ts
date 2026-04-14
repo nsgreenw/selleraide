@@ -1,11 +1,11 @@
 /**
  * eBay API client — lazy-initialized, follows the same pattern as stripe.ts.
  *
- * Env vars:
- *   EBAY_CLIENT_ID      — eBay app ID (a.k.a. App ID / Client ID)
- *   EBAY_CLIENT_SECRET   — eBay cert ID (a.k.a. Cert ID / Client Secret)
- *   EBAY_REDIRECT_URI    — RuName (eBay OAuth redirect URI name)
- *   EBAY_ENVIRONMENT     — "PRODUCTION" | "SANDBOX"
+ * Env vars (match eBay developer portal terminology):
+ *   EBAY_APP_ID       — App ID (OAuth client_id)
+ *   EBAY_CERT_ID      — Cert ID (OAuth client_secret)
+ *   EBAY_RUNAME       — RuName (OAuth redirect_uri identifier)
+ *   EBAY_ENVIRONMENT  — "PRODUCTION" | "SANDBOX"
  */
 
 interface EbayConfig {
@@ -21,16 +21,16 @@ let _config: EbayConfig | null = null;
 
 export function getEbayConfig(): EbayConfig {
   if (!_config) {
-    const clientId = process.env.EBAY_CLIENT_ID;
-    const clientSecret = process.env.EBAY_CLIENT_SECRET;
-    const redirectUri = process.env.EBAY_REDIRECT_URI;
-    const environment = (process.env.EBAY_ENVIRONMENT ?? "PRODUCTION") as
-      | "PRODUCTION"
-      | "SANDBOX";
+    const clientId = process.env.EBAY_APP_ID;
+    const clientSecret = process.env.EBAY_CERT_ID;
+    const redirectUri = process.env.EBAY_RUNAME;
+    const environment = (
+      process.env.EBAY_ENVIRONMENT ?? "PRODUCTION"
+    ).toUpperCase() as "PRODUCTION" | "SANDBOX";
 
     if (!clientId || !clientSecret || !redirectUri) {
       throw new Error(
-        "Missing eBay env vars: EBAY_CLIENT_ID, EBAY_CLIENT_SECRET, EBAY_REDIRECT_URI"
+        "Missing eBay env vars: EBAY_APP_ID, EBAY_CERT_ID, EBAY_RUNAME"
       );
     }
 
