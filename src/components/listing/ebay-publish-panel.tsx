@@ -12,7 +12,13 @@ import {
 } from "lucide-react";
 import { useApp } from "@/components/providers";
 import type { Listing } from "@/types";
-import { EBAY_CONDITIONS } from "@/lib/ebay/conditions";
+import { EBAY_CONDITIONS, toEbayCondition } from "@/lib/ebay/conditions";
+
+interface CategoryCondition {
+  conditionEnum: string;
+  label: string;
+  conditionId: string;
+}
 
 interface EbayPublishPanelProps {
   listing: Listing;
@@ -72,6 +78,11 @@ export default function EbayPublishPanel({
   });
   const [loadingPolicies, setLoadingPolicies] = useState(false);
 
+  // Category-specific valid conditions (fetched when category selected)
+  const [categoryConditions, setCategoryConditions] = useState<
+    CategoryCondition[] | null
+  >(null);
+
   const status = listing.ebay_status ?? "none";
 
   // Fetch policies when the panel is ready
@@ -91,6 +102,37 @@ export default function EbayPublishPanel({
       .catch(() => {})
       .finally(() => setLoadingPolicies(false));
   }, [ebayConnection?.ready]);
+
+  // Fetch valid conditions for the selected category so the dropdown only
+  // shows conditions eBay will accept for that category.
+  useEffect(() => {
+    if (!selectedCategory) {
+      setCategoryConditions(null);
+      return;
+    }
+    let cancelled = false;
+    fetch(
+      `/api/ebay/conditions?categoryId=${encodeURIComponent(selectedCategory.categoryId)}`
+    )
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: CategoryCondition[] | null) => {
+        if (cancelled || !data) return;
+        setCategoryConditions(data);
+        // If the current condition isn't in the valid set, snap to the first
+        // valid one so the user can't submit an invalid condition.
+        if (data.length > 0) {
+          setCondition((current) => {
+            const currentEnum = toEbayCondition(current);
+            const isValid = data.some((c) => c.conditionEnum === currentEnum);
+            return isValid ? current : data[0].label;
+          });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedCategory]);
 
   // Debounced category search
   useEffect(() => {
@@ -429,16 +471,28 @@ export default function EbayPublishPanel({
             <select
               value={condition}
               onChange={(e) => setCondition(e.target.value)}
-              className="w-full appearance-none rounded-lg border border-white/10 bg-black/30 px-3 py-2 pr-8 text-sm text-zinc-200 focus:border-sa-200/50 focus:outline-none"
+              disabled={!selectedCategory}
+              className="w-full appearance-none rounded-lg border border-white/10 bg-black/30 px-3 py-2 pr-8 text-sm text-zinc-200 focus:border-sa-200/50 focus:outline-none disabled:opacity-50"
             >
-              {EBAY_CONDITIONS.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
+              {categoryConditions && categoryConditions.length > 0
+                ? categoryConditions.map((c) => (
+                    <option key={c.conditionId} value={c.label}>
+                      {c.label}
+                    </option>
+                  ))
+                : EBAY_CONDITIONS.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
             </select>
             <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
           </div>
+          {!selectedCategory && (
+            <p className="text-xs text-zinc-500 mt-1">
+              Select a category first
+            </p>
+          )}
         </div>
 
         {/* Business Policies */}
