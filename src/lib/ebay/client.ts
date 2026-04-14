@@ -162,6 +162,47 @@ export async function revokeEbayToken(token: string): Promise<void> {
 }
 
 /**
+ * Get an application (client_credentials) access token for eBay APIs that
+ * accept an app-only token — e.g. the Taxonomy API. Cached in-process until
+ * shortly before expiry so we aren't exchanging credentials on every call.
+ */
+let _appTokenCache: { token: string; expiresAt: number } | null = null;
+
+export async function getApplicationToken(): Promise<string> {
+  if (_appTokenCache && _appTokenCache.expiresAt > Date.now() + 60_000) {
+    return _appTokenCache.token;
+  }
+
+  const cfg = getEbayConfig();
+  const res = await fetch(`${cfg.apiBaseUrl}/identity/v1/oauth2/token`, {
+    method: "POST",
+    headers: {
+      Authorization: basicAuthHeader(),
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      grant_type: "client_credentials",
+      scope: "https://api.ebay.com/oauth/api_scope",
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`eBay app token failed (${res.status}): ${text}`);
+  }
+
+  const data = (await res.json()) as {
+    access_token: string;
+    expires_in: number;
+  };
+  _appTokenCache = {
+    token: data.access_token,
+    expiresAt: Date.now() + data.expires_in * 1000,
+  };
+  return data.access_token;
+}
+
+/**
  * Fetch the authenticated seller's eBay username via the Identity API.
  * Returns null if the request fails (e.g. token missing the identity scope).
  */
