@@ -34,19 +34,40 @@ export async function GET(req: NextRequest) {
 
     const admin = getSupabaseAdmin();
 
-    // Upsert: update existing connection or create new one
-    const { error: upsertError } = await admin.from("ebay_connections").upsert(
-      {
-        user_id: user.id,
-        access_token: encryptValue(tokens.access_token),
-        refresh_token: encryptValue(tokens.refresh_token),
-        token_expires_at: expiresAt,
-      },
-      { onConflict: "user_id" }
-    );
+    console.log("[eBay OAuth] Upserting for user:", user.id);
+
+    const { data: upsertData, error: upsertError } = await admin
+      .from("ebay_connections")
+      .upsert(
+        {
+          user_id: user.id,
+          access_token: encryptValue(tokens.access_token),
+          refresh_token: encryptValue(tokens.refresh_token),
+          token_expires_at: expiresAt,
+        },
+        { onConflict: "user_id" }
+      )
+      .select();
+
     if (upsertError) {
+      console.error("[eBay OAuth] Upsert error:", upsertError);
       throw upsertError;
     }
+
+    console.log(
+      "[eBay OAuth] Upsert returned rows:",
+      upsertData?.length ?? 0,
+      "user_id on row:",
+      upsertData?.[0]?.user_id
+    );
+
+    // Verify the row actually exists
+    const { data: verify } = await admin
+      .from("ebay_connections")
+      .select("id, user_id")
+      .eq("user_id", user.id)
+      .single();
+    console.log("[eBay OAuth] Verify fetch:", verify);
 
     const res = NextResponse.redirect(
       new URL("/settings?ebay=connected", req.url)
