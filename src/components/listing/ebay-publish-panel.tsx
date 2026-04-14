@@ -106,7 +106,10 @@ export default function EbayPublishPanel({
   }, [ebayConnection?.ready]);
 
   // Fetch valid conditions for the selected category so the dropdown only
-  // shows conditions eBay will accept for that category.
+  // shows conditions eBay will accept for that category. While category
+  // conditions are loaded, `condition` state holds the eBay enum directly
+  // (e.g. "LIKE_NEW") — otherwise it holds a friendly label from our
+  // fallback list (e.g. "Open Box"). toEbayCondition handles both.
   useEffect(() => {
     if (!selectedCategory) {
       setCategoryConditions(null);
@@ -120,13 +123,11 @@ export default function EbayPublishPanel({
       .then((data: CategoryCondition[] | null) => {
         if (cancelled || !data) return;
         setCategoryConditions(data);
-        // If the current condition isn't in the valid set, snap to the first
-        // valid one so the user can't submit an invalid condition.
         if (data.length > 0) {
           setCondition((current) => {
             const currentEnum = toEbayCondition(current);
-            const isValid = data.some((c) => c.conditionEnum === currentEnum);
-            return isValid ? current : data[0].label;
+            const match = data.find((c) => c.conditionEnum === currentEnum);
+            return match ? match.conditionEnum : data[0].conditionEnum;
           });
         }
       })
@@ -478,7 +479,7 @@ export default function EbayPublishPanel({
             >
               {categoryConditions && categoryConditions.length > 0
                 ? categoryConditions.map((c) => (
-                    <option key={c.conditionId} value={c.label}>
+                    <option key={c.conditionId} value={c.conditionEnum}>
                       {c.label}
                     </option>
                   ))
