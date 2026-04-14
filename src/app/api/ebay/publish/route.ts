@@ -8,13 +8,15 @@ import { getValidAccessToken } from "@/lib/ebay/tokens";
 import { ebayApiFetch } from "@/lib/ebay/client";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { buildInventoryItem, buildOffer, generateSku } from "@/lib/ebay/mapping";
+import { toEbayCondition } from "@/lib/ebay/conditions";
 import type { Listing } from "@/types";
 
 /**
  * Parse eBay's structured error response into a readable message.
  * eBay returns { errors: [{ errorId, message, longMessage, parameters }] } on failure.
- * Includes errorId and parameter names so vague messages like
- * "Core Inventory Service internal error" are diagnosable.
+ * Some errors (e.g. 25019 policy violations) stuff full HTML into parameter
+ * values, so we skip HTML-looking values and strip tags from anything that
+ * does slip through.
  */
 function parseEbayErrors(raw: string): string {
   try {
@@ -29,25 +31,66 @@ function parseEbayErrors(raw: string): string {
             errorId?: number;
             parameters?: Array<{ name?: string; value?: string }>;
           }) => {
-            const msg = e.longMessage || e.message || "Unknown error";
+            const msg = stripHtml(e.longMessage || e.message || "Unknown error");
             const idPart = e.errorId ? ` [${e.errorId}]` : "";
-            const params = (e.parameters ?? [])
-              .map((p) =>
-                p.name && p.value ? `${p.name}=${p.value}` : p.name || p.value
-              )
-              .filter(Boolean)
-              .join(", ");
-            const paramPart = params ? ` (${params})` : "";
+            const usefulParams = (e.parameters ?? [])
+              .filter((p) => p.name && p.value)
+              .filter((p) => !looksLikeHtml(p.value!))
+              .filter((p) => !/^\d+$/.test(p.name!)) // drop positional numeric names
+              .map((p) => `${p.name}=${p.value}`);
+            const paramPart = usefulParams.length
+              ? ` (${usefulParams.join(", ")})`
+              : "";
             return `${msg}${idPart}${paramPart}`;
           }
         )
         .join("; ");
     }
-    if (typeof data.message === "string") return data.message;
+    if (typeof data.message === "string") return stripHtml(data.message);
   } catch {
     // Not JSON — return raw text trimmed
   }
   return raw.length > 300 ? raw.slice(0, 300) + "…" : raw;
+}
+
+function looksLikeHtml(v: string): boolean {
+  return /<\/?[a-z][^>]*>/i.test(v);
+}
+
+function stripHtml(v: string): string {
+  return v.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Detect wording that contradicts the selected eBay condition. eBay policy
+ * 25019 (SP_Item_Condition_Misrep) rejects listings where the title or
+ * description implies a different condition than what's set. Catching this
+ * pre-flight gives a much clearer error than eBay's HTML-laden response.
+ */
+function detectConditionConflict(
+  conditionEnum: string,
+  title: string,
+  description: string
+): string | null {
+  const haystack = `${title}\n${description}`.toLowerCase();
+  const used = /\b(used|pre[- ]?owned|second[- ]?hand|refurbished|restored|gently used|previously owned)\b/;
+  const newish = /\b(brand new|factory sealed|never used|unused|new in box|new in package|nib|nwt)\b/;
+
+  if (conditionEnum.startsWith("NEW") || conditionEnum === "LIKE_NEW") {
+    if (used.test(haystack)) {
+      return 'The title or description contains words like "used", "pre-owned", or "refurbished" but the condition is set to new. Either edit the listing text or pick a used condition.';
+    }
+  }
+  if (
+    conditionEnum.startsWith("USED_") ||
+    conditionEnum === "FOR_PARTS_OR_NOT_WORKING" ||
+    conditionEnum.includes("REFURBISHED")
+  ) {
+    if (newish.test(haystack)) {
+      return 'The title or description contains words like "brand new", "sealed", or "unused" but the condition is not new. Either edit the listing text or pick "New".';
+    }
+  }
+  return null;
 }
 
 /**
@@ -163,6 +206,13 @@ export async function POST(req: NextRequest) {
       400
     );
   }
+
+  const conflict = detectConditionConflict(
+    toEbayCondition(condition),
+    typedListing.content.title ?? "",
+    typedListing.content.description ?? ""
+  );
+  if (conflict) return jsonError(conflict, 400);
 
   const sku = generateSku(listingId);
 
