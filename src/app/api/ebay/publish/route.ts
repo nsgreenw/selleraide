@@ -62,10 +62,11 @@ function stripHtml(v: string): string {
 }
 
 /**
- * Detect wording that contradicts the selected eBay condition. eBay policy
- * 25019 (SP_Item_Condition_Misrep) rejects listings where the title or
- * description implies a different condition than what's set. Catching this
- * pre-flight gives a much clearer error than eBay's HTML-laden response.
+ * Detect clearly-contradictory wording for the selected eBay condition.
+ * Intentionally conservative — eBay runs its own policy-25019 check, so
+ * we only flag unambiguous phrases ("pre-owned", "refurbished") and skip
+ * ambiguous ones ("used" matches "never used", "brand new" matches
+ * "brand-new-looking", etc). Let eBay be the final arbiter.
  */
 function detectConditionConflict(
   conditionEnum: string,
@@ -73,32 +74,27 @@ function detectConditionConflict(
   description: string
 ): string | null {
   const haystack = `${title}\n${description}`.toLowerCase();
-  const usedRegex = /\b(used|pre[- ]?owned|second[- ]?hand|refurbished|restored|gently used|previously owned)\b/i;
-  const newishRegex = /\b(brand new|factory sealed|never used|unused|new in box|new in package|nib|nwt)\b/i;
 
-  const isNewish = conditionEnum.startsWith("NEW") || conditionEnum === "LIKE_NEW";
-  const isUsed =
-    conditionEnum.startsWith("USED_") ||
-    conditionEnum === "FOR_PARTS_OR_NOT_WORKING" ||
-    conditionEnum.includes("REFURBISHED");
+  const isNewish =
+    conditionEnum === "NEW" || conditionEnum === "NEW_WITH_DEFECTS";
 
   if (isNewish) {
-    const m = haystack.match(usedRegex);
+    // Only flag phrases that unambiguously mean "not new"
+    const m = haystack.match(
+      /\b(pre[- ]?owned|second[- ]?hand|previously owned|refurbished|restored|gently used)\b/i
+    );
     if (m) {
-      return `The listing text contains "${m[0]}" which implies a used item, but the condition is ${prettyCondition(conditionEnum)}. Remove that word from the title/description, or change the condition to Used.`;
-    }
-  }
-  if (isUsed) {
-    const m = haystack.match(newishRegex);
-    if (m) {
-      return `The listing text contains "${m[0]}" which implies a new item, but the condition is ${prettyCondition(conditionEnum)}. Remove that phrase from the title/description, or change the condition to New.`;
+      return `The listing text contains "${m[0]}" which implies a used item, but the condition is ${prettyCondition(conditionEnum)}. Remove that phrase from the title/description, or pick a used condition.`;
     }
   }
   return null;
 }
 
 function prettyCondition(e: string): string {
-  return e.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+  return e
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 /**
