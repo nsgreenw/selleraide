@@ -12,7 +12,9 @@ import type { Listing } from "@/types";
 
 /**
  * Parse eBay's structured error response into a readable message.
- * eBay returns { errors: [{ errorId, message, ... }] } on failure.
+ * eBay returns { errors: [{ errorId, message, longMessage, parameters }] } on failure.
+ * Includes errorId and parameter names so vague messages like
+ * "Core Inventory Service internal error" are diagnosable.
  */
 function parseEbayErrors(raw: string): string {
   try {
@@ -20,8 +22,24 @@ function parseEbayErrors(raw: string): string {
     const errors = data.errors ?? data.error ?? [];
     if (Array.isArray(errors) && errors.length > 0) {
       return errors
-        .map((e: { message?: string; longMessage?: string; errorId?: number }) =>
-          e.longMessage || e.message || `Error ${e.errorId}`
+        .map(
+          (e: {
+            message?: string;
+            longMessage?: string;
+            errorId?: number;
+            parameters?: Array<{ name?: string; value?: string }>;
+          }) => {
+            const msg = e.longMessage || e.message || "Unknown error";
+            const idPart = e.errorId ? ` [${e.errorId}]` : "";
+            const params = (e.parameters ?? [])
+              .map((p) =>
+                p.name && p.value ? `${p.name}=${p.value}` : p.name || p.value
+              )
+              .filter(Boolean)
+              .join(", ");
+            const paramPart = params ? ` (${params})` : "";
+            return `${msg}${idPart}${paramPart}`;
+          }
         )
         .join("; ");
     }
@@ -164,7 +182,13 @@ export async function POST(req: NextRequest) {
     token = step1.token;
 
     if (!step1.res.ok && step1.res.status !== 204) {
-      const parsed = parseEbayErrors(await step1.res.text());
+      const text = await step1.res.text();
+      console.error("[eBay Publish] Step 1 (inventory item) failed", {
+        status: step1.res.status,
+        body: text,
+        payload: inventoryItem,
+      });
+      const parsed = parseEbayErrors(text);
       await setListingError(admin, listingId, `Inventory item creation failed: ${parsed}`);
       return jsonError(`Failed to create inventory item: ${parsed}`);
     }
@@ -204,7 +228,13 @@ export async function POST(req: NextRequest) {
     token = step2.token;
 
     if (!step2.res.ok) {
-      const parsed = parseEbayErrors(await step2.res.text());
+      const text = await step2.res.text();
+      console.error("[eBay Publish] Step 2 (offer) failed", {
+        status: step2.res.status,
+        body: text,
+        payload: offer,
+      });
+      const parsed = parseEbayErrors(text);
       // Attempt cleanup of inventory item
       await ebayApiFetch(
         `/sell/inventory/v1/inventory_item/${encodeURIComponent(sku)}`,
@@ -239,6 +269,14 @@ export async function POST(req: NextRequest) {
 
     if (!step3.res.ok) {
       const errorText = await step3.res.text();
+      console.error("[eBay Publish] Step 3 (publish) failed", {
+        status: step3.res.status,
+        body: errorText,
+        offerId,
+        sku,
+        inventoryItem,
+        offer,
+      });
 
       // Rollback: delete the orphaned offer, then the inventory item
       await ebayApiFetch(`/sell/inventory/v1/offer/${offerId}`, {
