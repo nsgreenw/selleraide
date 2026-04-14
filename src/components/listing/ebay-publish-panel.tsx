@@ -21,6 +21,14 @@ interface CategoryCondition {
   conditionId: string;
 }
 
+interface AspectOption {
+  name: string;
+  required: boolean;
+  cardinality: "SINGLE" | "MULTI";
+  mode: "FREE_TEXT" | "SELECTION_ONLY";
+  values: string[];
+}
+
 interface EbayPublishPanelProps {
   listing: Listing;
   onStatusChange?: (listing: Listing) => void;
@@ -85,7 +93,25 @@ export default function EbayPublishPanel({
     CategoryCondition[] | null
   >(null);
 
+  // Category-required item specifics. User fills values for any that
+  // aren't already present in the listing's item_specifics.
+  const [requiredAspects, setRequiredAspects] = useState<AspectOption[]>([]);
+  const [aspectValues, setAspectValues] = useState<Record<string, string>>({});
+
   const status = listing.ebay_status ?? "none";
+
+  // Required aspects the user still needs to fill — excludes any already
+  // present in the listing's item_specifics (case-insensitive).
+  const existingSpecifics = listing.content.item_specifics ?? {};
+  const existingKeysLower = new Set(
+    Object.keys(existingSpecifics).map((k) => k.toLowerCase())
+  );
+  const missingAspects = requiredAspects.filter(
+    (a) => !existingKeysLower.has(a.name.toLowerCase())
+  );
+  const allAspectsFilled = missingAspects.every(
+    (a) => (aspectValues[a.name] ?? "").trim().length > 0
+  );
 
   // Fetch policies when the panel is ready
   useEffect(() => {
@@ -130,6 +156,29 @@ export default function EbayPublishPanel({
             return match ? match.conditionEnum : data[0].conditionEnum;
           });
         }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedCategory]);
+
+  // Fetch category-required item specifics so the user can fill in any the
+  // AI didn't generate (e.g. "Compatible Operating System" for smartwatches).
+  useEffect(() => {
+    if (!selectedCategory) {
+      setRequiredAspects([]);
+      setAspectValues({});
+      return;
+    }
+    let cancelled = false;
+    fetch(
+      `/api/ebay/required-aspects?categoryId=${encodeURIComponent(selectedCategory.categoryId)}`
+    )
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: AspectOption[] | null) => {
+        if (cancelled || !data) return;
+        setRequiredAspects(data.filter((a) => a.required));
       })
       .catch(() => {});
     return () => {
@@ -190,6 +239,9 @@ export default function EbayPublishPanel({
           ...(selectedPolicies.paymentPolicyId && {
             paymentPolicyId: selectedPolicies.paymentPolicyId,
           }),
+          ...(Object.keys(aspectValues).length > 0 && {
+            additionalItemSpecifics: aspectValues,
+          }),
         }),
       });
 
@@ -223,7 +275,7 @@ export default function EbayPublishPanel({
     } finally {
       setPublishing(false);
     }
-  }, [listing, selectedCategory, price, quantity, condition, onStatusChange]);
+  }, [listing, selectedCategory, price, quantity, condition, aspectValues, selectedPolicies, onStatusChange]);
 
   // Not connected state
   if (!ebayConnection?.connected) {
@@ -650,6 +702,70 @@ export default function EbayPublishPanel({
           )}
         </div>
 
+        {/* Required item specifics for the picked category */}
+        {missingAspects.length > 0 && (
+          <div className="rounded-lg border border-amber-400/20 bg-amber-400/5 p-3 space-y-2">
+            <p className="text-xs text-amber-300">
+              This eBay category requires the following details:
+            </p>
+            {missingAspects.map((a) => {
+              const val = aspectValues[a.name] ?? "";
+              const listId = `aspect-${a.name.replace(/\W+/g, "-")}`;
+              return (
+                <div key={a.name}>
+                  <label className="label-kicker text-zinc-500 block mb-1">
+                    {a.name}
+                    {a.cardinality === "MULTI" && (
+                      <span className="text-zinc-600 normal-case ml-1">
+                        (comma-separated)
+                      </span>
+                    )}
+                  </label>
+                  {a.mode === "SELECTION_ONLY" && a.values.length > 0 ? (
+                    <select
+                      value={val}
+                      onChange={(e) =>
+                        setAspectValues((s) => ({ ...s, [a.name]: e.target.value }))
+                      }
+                      className="w-full appearance-none rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-zinc-200 focus:border-sa-200/50 focus:outline-none"
+                    >
+                      <option value="">Select...</option>
+                      {a.values.map((v) => (
+                        <option key={v} value={v}>
+                          {v}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <>
+                      <input
+                        type="text"
+                        value={val}
+                        list={a.values.length > 0 ? listId : undefined}
+                        onChange={(e) =>
+                          setAspectValues((s) => ({
+                            ...s,
+                            [a.name]: e.target.value,
+                          }))
+                        }
+                        placeholder={a.values[0] ?? ""}
+                        className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-sa-200/50 focus:outline-none"
+                      />
+                      {a.values.length > 0 && (
+                        <datalist id={listId}>
+                          {a.values.map((v) => (
+                            <option key={v} value={v} />
+                          ))}
+                        </datalist>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {/* Images */}
         <ImageManager
           listingId={listing.id}
@@ -666,7 +782,11 @@ export default function EbayPublishPanel({
         <button
           onClick={handlePublish}
           disabled={
-            !price || !selectedCategory || images.length === 0 || publishing
+            !price ||
+            !selectedCategory ||
+            images.length === 0 ||
+            !allAspectsFilled ||
+            publishing
           }
           className="btn-primary w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
         >

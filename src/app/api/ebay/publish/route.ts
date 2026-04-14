@@ -145,6 +145,7 @@ export async function POST(req: NextRequest) {
     fulfillmentPolicyId: reqFulfillment,
     returnPolicyId: reqReturn,
     paymentPolicyId: reqPayment,
+    additionalItemSpecifics,
   } = parsed.data;
 
   const admin = getSupabaseAdmin();
@@ -226,11 +227,20 @@ export async function POST(req: NextRequest) {
     .update({ ebay_status: "publishing", ebay_sku: sku, ebay_error: null })
     .eq("id", listingId);
 
+  // Merge user-provided required aspects into the listing's item_specifics
+  const mergedContent = {
+    ...typedListing.content,
+    item_specifics: {
+      ...(typedListing.content.item_specifics ?? {}),
+      ...(additionalItemSpecifics ?? {}),
+    },
+  };
+
   // -----------------------------------------------------------------------
   // Step 1: Create Inventory Item
   // -----------------------------------------------------------------------
   const inventoryItem = buildInventoryItem(
-    typedListing.content,
+    mergedContent,
     condition,
     quantity,
     images
@@ -278,7 +288,7 @@ export async function POST(req: NextRequest) {
     effectiveConnection,
     price,
     quantity,
-    typedListing.content
+    mergedContent
   );
 
   let offerId: string;
