@@ -34,54 +34,33 @@ export async function GET(req: NextRequest) {
 
     const admin = getSupabaseAdmin();
 
-    const upsertResult = await admin
-      .from("ebay_connections")
-      .upsert(
-        {
-          user_id: user.id,
-          access_token: encryptValue(tokens.access_token),
-          refresh_token: encryptValue(tokens.refresh_token),
-          token_expires_at: expiresAt,
-        },
-        { onConflict: "user_id" }
-      )
-      .select("id, user_id");
-
-    const upsertError = upsertResult.error;
-    const upsertData = upsertResult.data ?? [];
+    const { error: upsertError } = await admin.from("ebay_connections").upsert(
+      {
+        user_id: user.id,
+        access_token: encryptValue(tokens.access_token),
+        refresh_token: encryptValue(tokens.refresh_token),
+        token_expires_at: expiresAt,
+      },
+      { onConflict: "user_id" }
+    );
 
     if (upsertError) {
-      const debugMsg = `upsert_error:${upsertError.code}:${encodeURIComponent((upsertError.message || "").slice(0, 80))}`;
+      console.error("[eBay OAuth] Upsert error:", upsertError);
+      const reason = `upsert:${upsertError.code ?? "unknown"}`;
       return NextResponse.redirect(
-        new URL(`/settings?ebay=error&reason=${debugMsg}`, req.url)
+        new URL(`/settings?ebay=error&reason=${reason}`, req.url)
       );
     }
 
-    // Verify the row exists
-    const verifyResult = await admin
-      .from("ebay_connections")
-      .select("id, user_id")
-      .eq("user_id", user.id);
-
-    const verifyCount = verifyResult.data?.length ?? 0;
-    const verifyError = verifyResult.error?.message ?? "";
-
-    // Encode diagnostic info into the redirect URL
-    const debug = `inserted:${upsertData.length}_verified:${verifyCount}_uid:${user.id.slice(0, 8)}_verr:${encodeURIComponent(verifyError.slice(0, 40))}`;
-
     const res = NextResponse.redirect(
-      new URL(`/settings?ebay=connected&debug=${debug}`, req.url)
+      new URL("/settings?ebay=connected", req.url)
     );
-
     res.cookies.delete("ebay_oauth_state");
     return res;
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[eBay OAuth] Callback failed:", err);
     return NextResponse.redirect(
-      new URL(
-        `/settings?ebay=error&reason=exception:${encodeURIComponent(msg.slice(0, 100))}`,
-        req.url
-      )
+      new URL("/settings?ebay=error&reason=token_exchange", req.url)
     );
   }
 }
