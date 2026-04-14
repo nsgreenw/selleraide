@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api/auth-guard";
-import { exchangeCodeForTokens } from "@/lib/ebay/client";
+import {
+  exchangeCodeForTokens,
+  fetchEbayUsername,
+} from "@/lib/ebay/client";
 import { encryptValue } from "@/lib/security/encryption";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
@@ -32,6 +35,8 @@ export async function GET(req: NextRequest) {
       Date.now() + tokens.expires_in * 1000
     ).toISOString();
 
+    const username = await fetchEbayUsername(tokens.access_token);
+
     const admin = getSupabaseAdmin();
 
     const { error: upsertError } = await admin.from("ebay_connections").upsert(
@@ -40,6 +45,7 @@ export async function GET(req: NextRequest) {
         access_token: encryptValue(tokens.access_token),
         refresh_token: encryptValue(tokens.refresh_token),
         token_expires_at: expiresAt,
+        ebay_user_id: username,
       },
       { onConflict: "user_id" }
     );

@@ -59,6 +59,7 @@ const SCOPES = [
   "https://api.ebay.com/oauth/api_scope/sell.inventory",
   "https://api.ebay.com/oauth/api_scope/sell.account",
   "https://api.ebay.com/oauth/api_scope/sell.fulfillment",
+  "https://api.ebay.com/oauth/api_scope/commerce.identity.readonly",
 ].join(" ");
 
 /** Build the eBay OAuth consent URL for the user to authorise our app. */
@@ -126,7 +127,6 @@ export async function refreshAccessToken(
     body: new URLSearchParams({
       grant_type: "refresh_token",
       refresh_token: refreshToken,
-      scope: SCOPES,
     }),
   });
 
@@ -158,6 +158,26 @@ export async function revokeEbayToken(token: string): Promise<void> {
       `[eBay] Token revocation failed (${res.status}):`,
       await res.text().catch(() => "")
     );
+  }
+}
+
+/**
+ * Fetch the authenticated seller's eBay username via the Identity API.
+ * Returns null if the request fails (e.g. token missing the identity scope).
+ */
+export async function fetchEbayUsername(
+  accessToken: string
+): Promise<string | null> {
+  const cfg = getEbayConfig();
+  try {
+    const res = await fetch(`${cfg.apiBaseUrl}/commerce/identity/v1/user/`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { username?: string };
+    return data.username ?? null;
+  } catch {
+    return null;
   }
 }
 

@@ -1,5 +1,7 @@
 import { requireAuth } from "@/lib/api/auth-guard";
 import { jsonError, jsonSuccess } from "@/lib/api/response";
+import { fetchEbayUsername } from "@/lib/ebay/client";
+import { getValidAccessToken } from "@/lib/ebay/tokens";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export async function GET() {
@@ -26,13 +28,32 @@ export async function GET() {
     });
   }
 
+  let ebayUserId: string | null =
+    conn.ebay_user_id && conn.ebay_user_id !== "unknown"
+      ? conn.ebay_user_id
+      : null;
+
+  if (!ebayUserId) {
+    const tokenResult = await getValidAccessToken(user.id);
+    if (tokenResult) {
+      const username = await fetchEbayUsername(tokenResult.token);
+      if (username) {
+        ebayUserId = username;
+        await admin
+          .from("ebay_connections")
+          .update({ ebay_user_id: username })
+          .eq("user_id", user.id);
+      }
+    }
+  }
+
   const policiesVerified = conn.policies_verified ?? false;
   const locationConfigured = !!conn.merchant_location_key;
   const ready = policiesVerified && locationConfigured;
 
   return jsonSuccess({
     connected: true,
-    ebayUserId: conn.ebay_user_id,
+    ebayUserId,
     policiesVerified,
     locationConfigured,
     ready,
