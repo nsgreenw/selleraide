@@ -11,8 +11,9 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { useApp } from "@/components/providers";
-import type { Listing } from "@/types";
+import type { Listing, ListingImage } from "@/types";
 import { EBAY_CONDITIONS, toEbayCondition } from "@/lib/ebay/conditions";
+import ImageManager from "./image-manager";
 
 interface CategoryCondition {
   conditionEnum: string;
@@ -56,6 +57,7 @@ export default function EbayPublishPanel({
   const [price, setPrice] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [condition, setCondition] = useState("New");
+  const [images, setImages] = useState<ListingImage[]>(listing.images ?? []);
   const [categoryQuery, setCategoryQuery] = useState(
     listing.content.category_hint ?? ""
   );
@@ -647,10 +649,24 @@ export default function EbayPublishPanel({
           )}
         </div>
 
+        {/* Images */}
+        <ImageManager
+          listingId={listing.id}
+          images={images}
+          onChange={(next) => {
+            setImages(next);
+            if (onStatusChange) {
+              onStatusChange({ ...listing, images: next });
+            }
+          }}
+        />
+
         {/* Publish button */}
         <button
           onClick={handlePublish}
-          disabled={!price || !selectedCategory || publishing}
+          disabled={
+            !price || !selectedCategory || images.length === 0 || publishing
+          }
           className="btn-primary w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {publishing ? (

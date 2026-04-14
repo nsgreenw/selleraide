@@ -128,6 +128,13 @@ export interface Message {
   created_at: string;
 }
 
+export interface ListingImage {
+  url: string;
+  source: "upload" | "url";
+  /** Only set for uploads — path inside the listing-images bucket. */
+  storagePath?: string;
+}
+
 export interface Listing {
   id: string;
   conversation_id: string;
@@ -135,6 +142,7 @@ export interface Listing {
   marketplace: Marketplace;
   version: number;
   content: ListingContent;
+  images: ListingImage[];
   qa_results: QAResult[] | null;
   score: number | null;
   batch_id: string | null;

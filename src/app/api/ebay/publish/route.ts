@@ -156,6 +156,14 @@ export async function POST(req: NextRequest) {
   }
 
   const typedListing = listing as Listing;
+  const images = typedListing.images ?? [];
+  if (images.length === 0) {
+    return jsonError(
+      "At least one image is required to publish to eBay. Upload or paste image URLs on the listing page.",
+      400
+    );
+  }
+
   const sku = generateSku(listingId);
 
   // Mark as publishing
@@ -170,7 +178,8 @@ export async function POST(req: NextRequest) {
   const inventoryItem = buildInventoryItem(
     typedListing.content,
     condition,
-    quantity
+    quantity,
+    images
   );
 
   try {
@@ -373,7 +382,12 @@ export async function PUT(req: NextRequest) {
   const offerId = listing.ebay_offer_id;
 
   // Update inventory item
-  const inventoryItem = buildInventoryItem(typedListing.content, condition, quantity);
+  const inventoryItem = buildInventoryItem(
+    typedListing.content,
+    condition,
+    quantity,
+    typedListing.images ?? []
+  );
   try {
     const step1 = await ebayFetchWithRetry(
       `/sell/inventory/v1/inventory_item/${encodeURIComponent(sku)}`,

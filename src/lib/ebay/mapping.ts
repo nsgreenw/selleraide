@@ -2,7 +2,7 @@
  * Maps SellerAide ListingContent → eBay Inventory API payloads.
  */
 
-import type { ListingContent, EbayConnectionContext } from "@/types";
+import type { ListingContent, EbayConnectionContext, ListingImage } from "@/types";
 import { toEbayCondition } from "./conditions";
 
 // ---------------------------------------------------------------------------
@@ -19,6 +19,7 @@ export interface EbayInventoryItem {
     title: string;
     description: string;
     aspects?: Record<string, string[]>;
+    imageUrls?: string[];
   };
 }
 
@@ -50,7 +51,8 @@ export interface EbayOffer {
 export function buildInventoryItem(
   content: ListingContent,
   condition?: string,
-  quantity: number = 1
+  quantity: number = 1,
+  images: ListingImage[] = []
 ): EbayInventoryItem {
   const ebayCondition = toEbayCondition(condition);
   const item: EbayInventoryItem = {
@@ -63,6 +65,10 @@ export function buildInventoryItem(
       description: content.description,
     },
   };
+
+  if (images.length > 0) {
+    item.product.imageUrls = images.map((i) => i.url);
+  }
 
   // Add condition description for non-new items
   if (
